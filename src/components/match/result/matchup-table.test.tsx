@@ -158,4 +158,36 @@ describe('MatchupTable', () => {
             );
         }
     });
+
+    it('긴 특이사항이 플레이어 열 너비를 늘리지 않고 말줄임 처리된다', () => {
+        const longNote = '공백 없이'.repeat(40);
+        const sheetEntry: UserSheetEntry = {
+            id: 'sheet-long-note',
+            discordName: '시트 닉네임',
+            battleTag: players[0].name,
+            tank: '브1',
+            dps: '다3',
+            support: '미배치',
+            note: longNote,
+            createdAt: 1,
+            updatedAt: 1,
+            updatedByName: '관리자',
+        };
+        const markup = renderToStaticMarkup(
+            <MatchupTable
+                matchResult={matchResult}
+                onSlotClick={() => undefined}
+                swapSource={null}
+                userSheetByBattleTag={new Map([
+                    [sheetEntry.battleTag.toLowerCase(), sheetEntry],
+                ])}
+            />,
+        );
+
+        expect(markup).toContain('data-match-note="true"');
+        expect(markup).toContain('w-full min-w-0 max-w-full');
+        expect(markup).toContain('gap-1 overflow-hidden');
+        expect(markup).toContain('min-w-0 flex-1 truncate');
+        expect(markup).toContain(longNote);
+    });
 });
