@@ -111,6 +111,10 @@ describe('MatchResult', () => {
         expect(markup).toContain('role="switch"');
         expect(markup).toContain('aria-checked="false"');
         expect(markup).toContain('탱·딜·힐 티어 표시');
+        expect(markup).toContain('id="result-share-controls"');
+        expect(markup).toContain('이미지 복사');
+        expect(markup.indexOf('탱·딜·힐 티어 표시')).toBeLessThan(markup.indexOf('이미지 복사'));
+        expect(markup.indexOf('이미지 복사')).toBeLessThan(markup.indexOf('data-capture-content="true"'));
         expect(markup).toContain('밸런스 요약');
         expect(markup).toContain('선호 역할 이탈 1명');
         expect(markup).toContain('Player2#1234');

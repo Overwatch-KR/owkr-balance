@@ -126,7 +126,11 @@ const MatchResult = ({
                 )}
             </div>
 
-            <div data-exclude-export className="flex justify-end px-1">
+            <div
+                id="result-share-controls"
+                data-exclude-export
+                className="flex flex-wrap items-center justify-end gap-2 px-1"
+            >
                 <button
                     type="button"
                     role="switch"
@@ -152,6 +156,7 @@ const MatchResult = ({
                         />
                     </span>
                 </button>
+                <CopyButton status={copyStatus} onClick={handleCopyImage} />
             </div>
 
             <div
@@ -214,11 +219,6 @@ const MatchResult = ({
                         다른 팀 조합 계산 중…
                     </div>
                 ) : null}
-                </div>
-
-                {/* 하단 컨트롤 (캡처 제외) */}
-                <div id="result-share-controls" className="flex justify-end rounded-lg px-1">
-                    <CopyButton status={copyStatus} onClick={handleCopyImage} />
                 </div>
             </div>
 
