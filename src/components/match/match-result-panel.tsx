@@ -119,9 +119,11 @@ export function MatchResultPanel({
                 ) : (
                     <motion.div
                         key="result"
+                        data-result-viewport="true"
                         initial={{ opacity: 0, scale: 0.98 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.3 }}
+                        className="min-w-0 max-w-full overflow-hidden"
                     >
                         <MatchResult
                             matchResult={result}
