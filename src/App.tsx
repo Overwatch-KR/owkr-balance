@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 import { swapMatchResultPlayers } from './utils/balance';
 import {
@@ -83,6 +83,7 @@ const MatchApp = ({ authMode, csrfToken, dataMode, logout, user }: MatchAppProps
     const [errorDetails, setErrorDetails] = useState<ErrorDetails | null>(null);
     const [pathname, setPathname] = useState(() => window.location.pathname.replace(/\/+$/, '') || '/');
     const [isPageNavigating, setIsPageNavigating] = useState(false);
+    const playerEditReturnPathRef = useRef(pathname);
     const userSheet = useUserSheet();
     const { dismissToast, showToast, toast } = useToast();
     useEffect(() => {
@@ -105,6 +106,9 @@ const MatchApp = ({ authMode, csrfToken, dataMode, logout, user }: MatchAppProps
             onClick: () => setErrorDetails(details),
         });
     }, [showToast]);
+    const handlePlayerEditCompleted = useCallback(() => {
+        navigate(playerEditReturnPathRef.current);
+    }, [navigate]);
     const {
         addPlayer,
         cancelIdentityImport,
@@ -145,6 +149,7 @@ const MatchApp = ({ authMode, csrfToken, dataMode, logout, user }: MatchAppProps
             setPlayers,
             setResult,
         },
+        onPlayerEditCompleted: handlePlayerEditCompleted,
         setSwapSource,
         showDetailedError,
         userSheet: {
@@ -259,6 +264,11 @@ const MatchApp = ({ authMode, csrfToken, dataMode, logout, user }: MatchAppProps
         }
     };
     const currentAdminName = user.globalName ?? user.username;
+    const handleStartEditingPlayer = useCallback((player: Parameters<typeof startEditingPlayer>[0]) => {
+        playerEditReturnPathRef.current = pathname;
+        startEditingPlayer(player);
+        navigate('/participants');
+    }, [navigate, pathname, startEditingPlayer]);
     const playerFormProps = {
         players,
         participantMentions,
@@ -291,7 +301,7 @@ const MatchApp = ({ authMode, csrfToken, dataMode, logout, user }: MatchAppProps
     const playerListProps = {
         participants,
         waitlist,
-        onEditPlayer: startEditingPlayer,
+        onEditPlayer: handleStartEditingPlayer,
         onRemovePlayer: handleRemovePlayer,
         onClearAll: handleClearAll,
         csrfToken,
@@ -367,13 +377,7 @@ const MatchApp = ({ authMode, csrfToken, dataMode, logout, user }: MatchAppProps
                                 reviewCount={failedParses.length}
                                 onOpen={() => navigate('/participants')}
                             />
-                            <PlayerList
-                                {...playerListProps}
-                                onEditPlayer={(player) => {
-                                    startEditingPlayer(player);
-                                    navigate('/participants');
-                                }}
-                            />
+                            <PlayerList {...playerListProps} />
                         </div>
 
                         <MatchResultPanel

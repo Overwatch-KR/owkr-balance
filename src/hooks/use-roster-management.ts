@@ -46,6 +46,7 @@ interface RosterUserSheetState {
 interface UseRosterManagementOptions {
     csrfToken: string;
     match: RosterMatchState;
+    onPlayerEditCompleted: () => void;
     setSwapSource: Dispatch<SetStateAction<SwapSource | null>>;
     showDetailedError: (message: string, details: ErrorDetails) => void;
     userSheet: RosterUserSheetState;
@@ -59,6 +60,7 @@ const normalizePlayerName = (name: string) => name.trim().toLowerCase();
 export const useRosterManagement = ({
     csrfToken,
     match,
+    onPlayerEditCompleted,
     setSwapSource,
     showDetailedError,
     userSheet,
@@ -153,6 +155,7 @@ export const useRosterManagement = ({
             return !battleTag || normalizePlayerName(battleTag) !== normalizePlayerName(newPlayer.name);
         }));
         resetPlayerInputs();
+        if (isEditing) onPlayerEditCompleted();
         const hasOtherFailedParses = failedParses.some(entry => {
             const battleTag = entry.match(/[^\s·]+#\d{4,}/)?.[0];
             return !battleTag || normalizePlayerName(battleTag) !== normalizePlayerName(newPlayer.name);
