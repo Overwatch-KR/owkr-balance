@@ -121,7 +121,7 @@ BattleTag가 일치하면 화면의 대진표에 표시되지만, 복사 이미�
 - 유저 시트는 Upstash Redis Hash에 행 단위로 저장되며 동시 편집 충돌 시 수정 전·내 초안·최신값을 비교해 병합할 수 있습니다.
 - 개인 운영 메모 캐시는 같은 계정으로 연 브라우저 탭 사이에서 즉시 동기화되며 localStorage에는 저장하지 않습니다.
 - 개인 운영 메모는 로그인한 관리자 ID와 안정적인 시트 행 ID 조합으로 분리됩니다. 기존 BattleTag 기반 메모는 첫 조회 때 자동 이전됩니다.
-- 로그인 세션은 서명된 HttpOnly 쿠키로 관리되며 기본 유효 시간은 8시간입니다.
+- 로그인 세션은 서명된 HttpOnly 쿠키로 관리되며 기본 유효 시간은 1주일입니다.
 - 일반 Discord 채팅 복사본에는 Discord 사용자 숫자 ID가 없으므로 참가자 식별에 사용하지 않습니다.
 - OAuth 로그인에서 확인한 운영자 Discord ID가 `ADMIN_USER_IDS`에 있을 때만 접근할 수 있습니다.
 
@@ -131,7 +131,7 @@ BattleTag가 일치하면 화면의 대진표에 표시되지만, 복사 이미�
 
 - Node.js 24
 - pnpm 11.9
-- Vercel CLI
+- Vercel CLI 58.9 이상
 - Discord OAuth 애플리케이션 (`pnpm dev:full` 사용 시)
 - 운영 Upstash Redis 또는 Vercel KV 연동 Redis 접근 권한
 
