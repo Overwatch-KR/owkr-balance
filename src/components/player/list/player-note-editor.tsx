@@ -61,6 +61,8 @@ export const PlayerNoteForm = ({
             </span>
         </div>
         <textarea
+            name="private-player-note"
+            autoComplete="off"
             value={draft}
             onChange={(event) => onChange(event.target.value)}
             maxLength={1000}

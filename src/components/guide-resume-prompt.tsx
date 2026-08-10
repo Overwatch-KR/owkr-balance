@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react';
 import { BookOpen, RotateCcw, X } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useDialogFocus } from '../hooks/use-dialog-focus';
 import { getGuideStepPosition } from '../utils/guide-progress';
 import type { GuideProgress } from '../utils/guide-progress';
 
@@ -20,20 +20,9 @@ export const GuideResumePrompt = ({
     onResume,
     progress,
 }: GuideResumePromptProps) => {
-    const dialogRef = useRef<HTMLElement>(null);
+    const dialogRef = useDialogFocus({ onClose: onDismiss });
     const position = getGuideStepPosition(progress.variant, progress.stepId);
     const guideLabel = progress.variant === 'result' ? '결과 활용 가이드' : '참가자·팀 편성 가이드';
-
-    useEffect(() => {
-        dialogRef.current?.focus();
-
-        const handleEscape = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') onDismiss();
-        };
-
-        document.addEventListener('keydown', handleEscape);
-        return () => document.removeEventListener('keydown', handleEscape);
-    }, [onDismiss]);
 
     return (
         <div className="fixed inset-0 z-[100] grid place-items-center bg-black/70 px-4 backdrop-blur-sm">

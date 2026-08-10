@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { Layers3, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { MatchResultData } from '../../../types';
+import { useDialogFocus } from '../../../hooks/use-dialog-focus';
 import { AlternativeResultCard } from './alternative-result-card';
 
 interface AlternativeResultsDialogProps {
@@ -33,6 +34,7 @@ export function AlternativeResultsDialog({
     onClose,
     onSelectAlternative,
 }: AlternativeResultsDialogProps) {
+    const dialogRef = useDialogFocus({ onClose });
     const candidates = useMemo(() => {
         const currentKey = getAssignmentKey(currentResult);
         const entries: CandidateEntry[] = [{
@@ -57,15 +59,10 @@ export function AlternativeResultsDialog({
     useEffect(() => {
         const previousOverflow = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
-        const handleKeyDown = (event: KeyboardEvent): void => {
-            if (event.key === 'Escape') onClose();
-        };
-        window.addEventListener('keydown', handleKeyDown);
         return () => {
             document.body.style.overflow = previousOverflow;
-            window.removeEventListener('keydown', handleKeyDown);
         };
-    }, [onClose]);
+    }, []);
 
     return (
         <motion.div
@@ -79,13 +76,15 @@ export function AlternativeResultsDialog({
             }}
         >
             <motion.section
+                ref={dialogRef}
                 initial={{ opacity: 0, y: 16, scale: 0.99 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.99 }}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="alternative-results-dialog-title"
-                className="flex h-[calc(100dvh-1rem)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-slate-700/80 bg-surface-elevated shadow-2xl md:h-[min(900px,calc(100dvh-2.5rem))]"
+                tabIndex={-1}
+                className="flex h-[calc(100dvh-1rem)] w-full max-w-5xl flex-col overscroll-contain overflow-hidden rounded-2xl border border-slate-700/80 bg-surface-elevated shadow-2xl focus:outline-none md:h-[min(900px,calc(100dvh-2.5rem))]"
             >
                 <header className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-800 px-4 py-4 md:px-6">
                     <div>

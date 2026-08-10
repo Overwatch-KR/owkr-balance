@@ -78,6 +78,7 @@ const ParticipantChecker = ({
             >
                 <input
                     id="participant-includes-admin"
+                    name="participant-includes-admin"
                     type="checkbox"
                     checked={includesAdmin}
                     onChange={(event) => onIncludesAdminChange(event.target.checked)}

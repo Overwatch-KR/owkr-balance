@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Dices, FastForward, Sparkles } from 'lucide-react';
 import { HEROES } from '../../constants/hero';
+import { useDialogFocus } from '../../hooks/use-dialog-focus';
 
 interface RandomBanModalProps {
     candidateHeroIds: string[];
@@ -29,6 +30,10 @@ export function RandomBanModal({
     const [resolvedHeroIds, setResolvedHeroIds] = useState<string[] | null>(null);
     const [isRevealed, setIsRevealed] = useState(false);
     const [error, setError] = useState('');
+    const dialogRef = useDialogFocus({
+        closeOnEscape: Boolean(error || isRevealed),
+        onClose: () => onClose(Boolean(isRevealed && resolvedHeroIds)),
+    });
     const skipRequestedRef = useRef(false);
     const spinTimerRef = useRef<number | undefined>(undefined);
     const revealTimerRef = useRef<number | undefined>(undefined);
@@ -90,22 +95,28 @@ export function RandomBanModal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            role="dialog"
-            aria-modal="true"
-            aria-label="동점 영웅 랜덤 추첨"
+            role="presentation"
         >
             <motion.section
+                ref={dialogRef}
                 initial={{ opacity: 0, y: 18, scale: 0.96 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                className="w-full max-w-lg overflow-hidden rounded-3xl border border-violet-400/25 bg-[#111520] p-6 text-center shadow-2xl shadow-violet-950/50"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="random-ban-title"
+                aria-describedby="random-ban-description"
+                tabIndex={-1}
+                className="w-full max-w-lg overscroll-contain overflow-hidden rounded-3xl border border-violet-400/25 bg-[#111520] p-6 text-center shadow-2xl shadow-violet-950/50 focus:outline-none"
             >
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-400/10 text-violet-300">
-                    {isRevealed ? <Sparkles size={24} /> : <Dices size={24} className="animate-pulse" />}
+                    {isRevealed
+                        ? <Sparkles size={24} aria-hidden="true" />
+                        : <Dices size={24} className="animate-pulse" aria-hidden="true" />}
                 </div>
-                <h2 className="mt-4 text-xl font-bold text-white">
+                <h2 id="random-ban-title" className="mt-4 text-pretty text-xl font-bold text-white" aria-live="polite">
                     {isRevealed ? '랜덤 추첨 결과' : '동점 영웅을 추첨하고 있습니다'}
                 </h2>
-                <p className="mt-1 text-sm text-slate-400">
+                <p id="random-ban-description" className="mt-1 text-sm text-slate-400">
                     {isRevealed ? '서로 다른 역할군의 최종 밴이 확정되었습니다.' : '서버에서 공정하게 최종 밴을 결정합니다.'}
                 </p>
 
@@ -124,7 +135,13 @@ export function RandomBanModal({
                                     transition={{ delay: index * 0.18, type: 'spring', stiffness: 220 }}
                                     className="rounded-2xl border border-amber-300/30 bg-amber-300/10 p-3"
                                 >
-                                    <img className="mx-auto h-24 w-24 rounded-xl object-cover" src={`/hero/${hero.role}/${hero.id}.png`} alt="" />
+                                    <img
+                                        className="mx-auto h-24 w-24 rounded-xl object-cover"
+                                        src={`/hero/${hero.role}/${hero.id}.png`}
+                                        alt=""
+                                        width={96}
+                                        height={96}
+                                    />
                                     <strong className="mt-3 block text-white">{hero.name}</strong>
                                 </motion.div>
                             );
@@ -142,7 +159,13 @@ export function RandomBanModal({
                                     transition={{ duration: 0.08 }}
                                     className="absolute inset-3"
                                 >
-                                    <img className="h-full w-full rounded-2xl object-cover" src={`/hero/${displayHero.role}/${displayHero.id}.png`} alt="" />
+                                    <img
+                                        className="h-full w-full rounded-2xl object-cover"
+                                        src={`/hero/${displayHero.role}/${displayHero.id}.png`}
+                                        alt=""
+                                        width={152}
+                                        height={152}
+                                    />
                                     <span className="absolute inset-x-2 bottom-2 rounded-lg bg-slate-950/80 py-1.5 text-sm font-semibold text-white backdrop-blur">{displayHero.name}</span>
                                 </motion.div>
                             )}
@@ -161,7 +184,7 @@ export function RandomBanModal({
                         </button>
                     ) : (
                         <button type="button" className="btn-ghost w-full" onClick={skip}>
-                            <FastForward size={16} className="mr-1 inline" />애니메이션 스킵
+                            <FastForward size={16} className="mr-1 inline" aria-hidden="true" />애니메이션 스킵
                         </button>
                     )}
                 </div>

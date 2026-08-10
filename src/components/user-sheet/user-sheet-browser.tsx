@@ -90,9 +90,13 @@ export function UserSheetBrowser({
                         <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" aria-hidden="true" />
                         <span className="sr-only">유저 검색</span>
                         <input
+                            name="user-sheet-search"
+                            type="search"
+                            autoComplete="off"
+                            spellCheck={false}
                             value={query}
                             onChange={event => onQueryChange(event.target.value)}
-                            placeholder="이름·Discord ID·배틀태그 검색"
+                            placeholder="이름·Discord ID·배틀태그 검색…"
                             className="h-9 w-full rounded-lg border border-slate-800 bg-surface pl-9 pr-9 text-xs text-slate-200 outline-none focus:border-cyan-400"
                         />
                         {query && (

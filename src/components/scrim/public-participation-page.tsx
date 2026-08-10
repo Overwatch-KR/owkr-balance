@@ -191,7 +191,7 @@ export function PublicParticipationPage() {
                     </div>
                     <div className="mt-5"><HeroGrid disabledHeroIds={scrim.usedBanHeroIds} selectedHeroIds={heroIds} onChange={setHeroIds} /></div>
                     {scrim.usedBanHeroIds.length > 0 && <p className="mt-3 text-sm text-slate-400">비활성화된 영웅은 이미 이번 내전에서 밴된 영웅입니다.</p>}
-                    <button
+                        <button
                         type="button"
                         className="btn-primary mt-5 inline-flex w-full items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-40"
                         disabled={!hasAvailableParticipantSelection || heroIds.length === 0 || isSubmitting}
@@ -204,28 +204,146 @@ export function PublicParticipationPage() {
                                 제출 중…
                             </>
                         ) : `투표 제출 (${heroIds.length}/3)`}
-                    </button>
+                        </button>
                 </section>}
                 {isVoteLink && voteStatus !== 'VOTING_OPEN' && <section className="card"><h2 className="text-lg font-semibold text-white">영웅 밴 투표</h2><p className="mt-2 text-slate-400">영웅 밴 투표가 마감되었습니다.<br />투표 결과는 관리자 확인 후 최종 확정됩니다.</p></section>}
-                {!isVoteLink && satisfactionStatus === 'SATISFACTION_OPEN' ? <section className="card overflow-hidden"><div className="mx-auto max-w-xl text-center"><div className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl border border-amber-300/20 bg-amber-300/10 text-amber-200"><Star size={22} fill="currentColor" /></div><h2 className="mt-3 text-xl font-bold text-white">오늘 내전, 어떠셨나요?</h2><p className="mt-1 text-sm text-slate-400">응답은 완전 익명으로 저장됩니다.</p><p className="mt-7 text-sm font-medium text-slate-200">전반적인 만족도를 선택해 주세요</p>
-                    <div className="mt-3 flex justify-center gap-1.5 sm:gap-3">{[1, 2, 3, 4, 5].map(value => <motion.button key={value} type="button" whileHover={{ y: -3, scale: 1.08 }} whileTap={{ scale: 0.92 }} onClick={() => selectScore(value)} aria-label={`${value}점`} className={`flex h-12 w-12 items-center justify-center rounded-full transition-colors sm:h-14 sm:w-14 ${value <= score ? 'bg-amber-300 text-slate-950 shadow-lg shadow-amber-300/20' : 'bg-slate-900 text-slate-600 hover:bg-slate-800 hover:text-amber-100'}`}><Star size={25} fill="currentColor" /></motion.button>)}</div><AnimatePresence mode="wait">{score > 0 && <motion.p key={score} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className={`mt-3 text-sm font-medium ${score >= 3 ? 'text-emerald-300' : 'text-amber-200'}`}>{score >= 4 ? '좋은 의견 감사합니다!' : score === 3 ? '솔직한 의견 감사합니다.' : '아쉬웠던 점을 알려주세요.'}</motion.p>}</AnimatePresence></div>
-                    <AnimatePresence>{score > 0 && score < 3 && <motion.div initial={{ opacity: 0, height: 0, y: 16 }} animate={{ opacity: 1, height: 'auto', y: 0 }} exit={{ opacity: 0, height: 0, y: 8 }} transition={{ duration: 0.24 }} className="mx-auto mt-8 max-w-2xl overflow-hidden"><div className="border-t border-slate-800 pt-6"><p className="text-center text-sm font-semibold text-white">어떤 점이 아쉬웠나요?</p><p className="mt-1 text-center text-xs text-slate-500">하나 이상 선택해 주세요. 복수 선택할 수 있습니다.</p><div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">{SATISFACTION_OPTIONS.map(item => { const checked = disappointments.includes(item); return <motion.button key={item} type="button" whileTap={{ scale: 0.97 }} onClick={() => toggleDisappointment(item)} className={`flex min-h-12 items-center justify-between rounded-xl border px-3 text-left text-sm transition-colors ${checked ? 'border-cyan-300/70 bg-cyan-400/10 text-cyan-100' : 'border-slate-800 bg-slate-950/50 text-slate-300 hover:border-slate-600'}`}><span>{item}</span>{checked && <Check size={16} className="text-cyan-300" />}</motion.button>; })}</div></div></motion.div>}</AnimatePresence>
-                    <AnimatePresence>{score > 0 && <motion.label initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }} className="mx-auto mt-6 block max-w-2xl"><span className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-200"><MessageSquareText size={16} className="text-cyan-300" />추가 의견 <span className="font-normal text-slate-500">(선택)</span></span><div className="rounded-xl border border-slate-700/70 bg-slate-950/70 p-1.5 transition focus-within:border-cyan-400/70 focus-within:ring-2 focus-within:ring-cyan-400/15"><textarea className="min-h-32 w-full resize-y rounded-lg bg-transparent px-3 py-3 text-sm text-white outline-none placeholder:text-slate-600" value={otherOpinion} onChange={event => setOtherOpinion(event.target.value)} maxLength={1000} placeholder="별점과 관계없이 자유롭게 의견을 남겨 주세요. 개인을 특정할 수 있는 정보는 적지 말아 주세요." /><div className="flex justify-end px-2 pb-1 text-xs text-slate-600">{otherOpinion.length}/1000</div></div></motion.label>}</AnimatePresence>
-                    <button
-                        type="button"
-                        className="btn-primary mx-auto mt-8 flex w-full max-w-xl items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-40"
-                        disabled={!score || (score < 3 && disappointments.length === 0) || isSubmitting}
-                        aria-busy={isSubmitting}
-                        onClick={() => void submit('satisfaction')}
-                    >
-                        {isSubmitting ? (
-                            <>
-                                <Loader2 size={17} className="animate-spin" aria-hidden="true" />
-                                제출 중…
-                            </>
-                        ) : '익명 응답 제출'}
-                    </button>
-                </section> : !isVoteLink && <section className="card"><h2 className="text-lg font-semibold text-white">내전 만족도 조사</h2><p className="mt-2 text-slate-400">만족도 조사는 내전이 시작된 후 참여할 수 있습니다.</p></section>}
+                {!isVoteLink && satisfactionStatus === 'SATISFACTION_OPEN' ? (
+                    <section className="card overflow-hidden">
+                        <div className="mx-auto max-w-xl text-center">
+                            <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl border border-amber-300/20 bg-amber-300/10 text-amber-200">
+                                <Star size={22} fill="currentColor" aria-hidden="true" />
+                            </div>
+                            <h2 className="mt-3 text-pretty text-xl font-bold text-white">오늘 내전, 어떠셨나요?</h2>
+                            <p className="mt-1 text-sm text-slate-400">응답은 완전 익명으로 저장됩니다.</p>
+                            <p id="satisfaction-score-label" className="mt-7 text-sm font-medium text-slate-200">
+                                전반적인 만족도를 선택해 주세요
+                            </p>
+                            <div
+                                className="mt-3 flex justify-center gap-1.5 sm:gap-3"
+                                role="group"
+                                aria-labelledby="satisfaction-score-label"
+                            >
+                                {[1, 2, 3, 4, 5].map(value => (
+                                    <motion.button
+                                        key={value}
+                                        type="button"
+                                        whileHover={{ y: -3, scale: 1.08 }}
+                                        whileTap={{ scale: 0.92 }}
+                                        onClick={() => selectScore(value)}
+                                        aria-label={`${value}점`}
+                                        aria-pressed={score === value}
+                                        className={`flex h-12 w-12 touch-manipulation items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-elevated sm:h-14 sm:w-14 ${
+                                            value <= score
+                                                ? 'bg-amber-300 text-slate-950 shadow-lg shadow-amber-300/20'
+                                                : 'bg-slate-900 text-slate-600 hover:bg-slate-800 hover:text-amber-100'
+                                        }`}
+                                    >
+                                        <Star size={25} fill="currentColor" aria-hidden="true" />
+                                    </motion.button>
+                                ))}
+                            </div>
+                            <AnimatePresence mode="wait">
+                                {score > 0 && (
+                                    <motion.p
+                                        key={score}
+                                        initial={{ opacity: 0, y: 6 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -6 }}
+                                        className={`mt-3 text-sm font-medium ${score >= 3 ? 'text-emerald-300' : 'text-amber-200'}`}
+                                        aria-live="polite"
+                                    >
+                                        {score >= 4
+                                            ? '좋은 의견 감사합니다!'
+                                            : score === 3
+                                                ? '솔직한 의견 감사합니다.'
+                                                : '아쉬웠던 점을 알려주세요.'}
+                                    </motion.p>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                        <AnimatePresence>
+                            {score > 0 && score < 3 && (
+                                <motion.div
+                                    initial={{ opacity: 0, height: 0, y: 16 }}
+                                    animate={{ opacity: 1, height: 'auto', y: 0 }}
+                                    exit={{ opacity: 0, height: 0, y: 8 }}
+                                    transition={{ duration: 0.24 }}
+                                    className="mx-auto mt-8 max-w-2xl overflow-hidden"
+                                >
+                                    <div className="border-t border-slate-800 pt-6">
+                                        <p id="disappointment-label" className="text-center text-sm font-semibold text-white">어떤 점이 아쉬웠나요?</p>
+                                        <p className="mt-1 text-center text-xs text-slate-500">하나 이상 선택해 주세요. 복수 선택할 수 있습니다.</p>
+                                        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3" role="group" aria-labelledby="disappointment-label">
+                                            {SATISFACTION_OPTIONS.map(item => {
+                                                const checked = disappointments.includes(item);
+                                                return (
+                                                    <motion.button
+                                                        key={item}
+                                                        type="button"
+                                                        whileTap={{ scale: 0.97 }}
+                                                        onClick={() => toggleDisappointment(item)}
+                                                        aria-pressed={checked}
+                                                        className={`flex min-h-12 touch-manipulation items-center justify-between rounded-xl border px-3 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
+                                                            checked
+                                                                ? 'border-cyan-300/70 bg-cyan-400/10 text-cyan-100'
+                                                                : 'border-slate-800 bg-slate-950/50 text-slate-300 hover:border-slate-600'
+                                                        }`}
+                                                    >
+                                                        <span>{item}</span>
+                                                        {checked && <Check size={16} className="text-cyan-300" aria-hidden="true" />}
+                                                    </motion.button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                        <AnimatePresence>
+                            {score > 0 && (
+                                <motion.label
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: 8 }}
+                                    className="mx-auto mt-6 block max-w-2xl"
+                                >
+                                    <span className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-200">
+                                        <MessageSquareText size={16} className="text-cyan-300" aria-hidden="true" />
+                                        추가 의견 <span className="font-normal text-slate-500">(선택)</span>
+                                    </span>
+                                    <div className="rounded-xl border border-slate-700/70 bg-slate-950/70 p-1.5 transition focus-within:border-cyan-400/70 focus-within:ring-2 focus-within:ring-cyan-400/15">
+                                        <textarea
+                                            name="satisfaction-opinion"
+                                            autoComplete="off"
+                                            className="min-h-32 w-full resize-y rounded-lg bg-transparent px-3 py-3 text-sm text-white outline-none placeholder:text-slate-600"
+                                            value={otherOpinion}
+                                            onChange={event => setOtherOpinion(event.target.value)}
+                                            maxLength={1000}
+                                            placeholder="별점과 관계없이 자유롭게 의견을 남겨 주세요. 개인을 특정할 수 있는 정보는 적지 말아 주세요…"
+                                        />
+                                        <div className="flex justify-end px-2 pb-1 text-xs tabular-nums text-slate-600">
+                                            {otherOpinion.length}/1000
+                                        </div>
+                                    </div>
+                                </motion.label>
+                            )}
+                        </AnimatePresence>
+                        <button
+                            type="button"
+                            className="btn-primary mx-auto mt-8 flex w-full max-w-xl items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-40"
+                            disabled={!score || (score < 3 && disappointments.length === 0) || isSubmitting}
+                            aria-busy={isSubmitting}
+                            onClick={() => void submit('satisfaction')}
+                        >
+                            {isSubmitting ? (
+                                <>
+                                    <Loader2 size={17} className="animate-spin" aria-hidden="true" />
+                                    제출 중…
+                                </>
+                            ) : '익명 응답 제출'}
+                        </button>
+                    </section>
+                ) : !isVoteLink && <section className="card"><h2 className="text-lg font-semibold text-white">내전 만족도 조사</h2><p className="mt-2 text-slate-400">만족도 조사는 내전이 시작된 후 참여할 수 있습니다.</p></section>}
                 {toast && <AppToast toast={toast} onDismiss={dismissToast} />}
             </div>}
         </main>

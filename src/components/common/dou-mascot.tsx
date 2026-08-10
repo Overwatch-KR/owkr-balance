@@ -38,6 +38,7 @@ export function DouMascot({
 }: DouMascotProps) {
     const [hasFailed, setHasFailed] = useState(false);
     const isDecorative = decorative || !alt;
+    const numericSize = typeof size === 'number' ? size : undefined;
     const sizeStyle: CSSProperties = { width: size, height: size };
     const containerClassName = ['flex shrink-0 items-center justify-center', className].filter(Boolean).join(' ');
 
@@ -61,6 +62,8 @@ export function DouMascot({
                 className="h-full w-full"
                 src={MASCOT_PATHS[variant]}
                 alt={isDecorative ? '' : alt}
+                width={numericSize}
+                height={numericSize}
                 onError={() => setHasFailed(true)}
             />
         </span>

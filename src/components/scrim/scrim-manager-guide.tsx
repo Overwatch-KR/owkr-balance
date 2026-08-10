@@ -1,4 +1,3 @@
-import { useEffect, useRef } from 'react';
 import {
     BookOpen,
     CalendarPlus,
@@ -8,6 +7,7 @@ import {
     Trash2,
     X,
 } from 'lucide-react';
+import { useDialogFocus } from '../../hooks/use-dialog-focus';
 
 interface ScrimManagerGuideProps {
     onClose: () => void;
@@ -45,18 +45,7 @@ const GUIDE_ITEMS = [
  * @description 내전 생성부터 운영 기록까지 관리자가 사용하는 화면의 범위를 요약해 안내한다.
  */
 export function ScrimManagerGuide({ onClose }: ScrimManagerGuideProps) {
-    const dialogRef = useRef<HTMLElement>(null);
-
-    useEffect(() => {
-        dialogRef.current?.focus();
-
-        const handleEscape = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') onClose();
-        };
-
-        document.addEventListener('keydown', handleEscape);
-        return () => document.removeEventListener('keydown', handleEscape);
-    }, [onClose]);
+    const dialogRef = useDialogFocus({ onClose });
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-sm">

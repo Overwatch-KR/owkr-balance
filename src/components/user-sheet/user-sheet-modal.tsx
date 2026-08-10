@@ -24,6 +24,7 @@ import {
     type UserSheetMode,
 } from './user-sheet-modal-header';
 import { DouMascot } from '../common/dou-mascot';
+import { useDialogFocus } from '../../hooks/use-dialog-focus';
 
 interface UserSheetModalProps {
     csrfToken: string;
@@ -61,6 +62,7 @@ export function UserSheetModal({
     onSnapshotChange,
     sheetVersion,
 }: UserSheetModalProps) {
+    const dialogRef = useDialogFocus({ closeOnEscape: false, onClose });
     const initialEntry = entries.find(entry => entry.id === initialEntryId)
         ?? (initialBattleTag ? entries.find(entry => (
             normalizeUserSheetBattleTag(entry.battleTag)
@@ -152,13 +154,15 @@ export function UserSheetModal({
                 }}
             >
                 <motion.section
+                    ref={dialogRef}
                     initial={{ opacity: 0, y: 16, scale: 0.99 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.99 }}
                     role="dialog"
                     aria-modal="true"
                     aria-labelledby="user-sheet-title"
-                    className="flex h-[calc(100dvh-1rem)] w-full max-w-[1560px] flex-col overflow-hidden rounded-2xl border border-slate-700/70 bg-surface-elevated shadow-2xl md:h-[calc(100dvh-2.5rem)]"
+                    tabIndex={-1}
+                    className="flex h-[calc(100dvh-1rem)] w-full max-w-[1560px] flex-col overscroll-contain overflow-hidden rounded-2xl border border-slate-700/70 bg-surface-elevated shadow-2xl focus:outline-none md:h-[calc(100dvh-2.5rem)]"
                 >
                 <UserSheetModalHeader
                     entryCount={entries.length}
