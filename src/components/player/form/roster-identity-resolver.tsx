@@ -1,12 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     AlertCircle,
-    ArrowRight,
     CheckCircle2,
     Fingerprint,
-    Link2,
     RefreshCw,
-    UserPlus,
     X,
 } from 'lucide-react';
 import { formatRank } from '../../../constants';
@@ -23,8 +20,13 @@ import {
     isValidDiscordUserId,
     normalizeDiscordName,
     suggestRosterIdentities,
-    type RosterIdentitySuggestion,
 } from '../../../utils/player-identity';
+import {
+    RosterIdentityRow,
+    type FieldChange,
+    type ResolutionDraft,
+} from './roster-identity-row';
+import { useDialogFocus } from '../../../hooks/use-dialog-focus';
 
 export interface RosterIdentityResolution {
     mode: RosterImportMode;
@@ -44,27 +46,6 @@ interface RosterIdentityResolverProps {
     players: Player[];
     submitError: string;
 }
-
-interface ResolutionDraft extends RosterIdentitySuggestion {
-    discordUserId: string;
-    selectedEntryId: string;
-    syncTiers: boolean;
-}
-
-interface FieldChange {
-    after: string;
-    before: string;
-    label: string;
-}
-
-const MATCH_LABELS: Record<RosterIdentitySuggestion['matchKind'], string> = {
-    DISCORD_ID: 'Discord ID 일치',
-    BATTLE_TAG_AND_NAME: '이름·배틀태그 일치',
-    BATTLE_TAG: '배틀태그 일치',
-    DISCORD_NAME: '이름으로 추천',
-    AMBIGUOUS: '후보 확인 필요',
-    NEW: '신규 유저',
-};
 
 const makeDrafts = (
     players: Player[],
@@ -116,6 +97,7 @@ export function RosterIdentityResolver({
     players,
     submitError,
 }: RosterIdentityResolverProps) {
+    const dialogRef = useDialogFocus({ closeOnEscape: !isSubmitting, onClose: onCancel });
     const [drafts, setDrafts] = useState<ResolutionDraft[]>(() => makeDrafts(players, entries));
     const [mode, setMode] = useState<RosterImportMode>(() => (
         getDefaultRosterImportMode(currentPlayers.length, players.length)
@@ -132,15 +114,10 @@ export function RosterIdentityResolver({
     useEffect(() => {
         const previousOverflow = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape' && !isSubmitting) onCancel();
-        };
-        window.addEventListener('keydown', handleKeyDown);
         return () => {
             document.body.style.overflow = previousOverflow;
-            window.removeEventListener('keydown', handleKeyDown);
         };
-    }, [isSubmitting, onCancel]);
+    }, []);
 
     const getResolvedEntry = useCallback((draft: ResolutionDraft): UserSheetEntry | undefined => {
         const discordUserId = cleanDiscordUserId(draft.discordUserId);
@@ -338,10 +315,12 @@ export function RosterIdentityResolver({
             }}
         >
             <section
+                ref={dialogRef}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="roster-identity-title"
-                className="flex h-[calc(100dvh-1rem)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-slate-700/80 bg-surface-elevated shadow-2xl md:h-[min(900px,calc(100dvh-2.5rem))]"
+                tabIndex={-1}
+                className="flex h-[calc(100dvh-1rem)] w-full max-w-5xl flex-col overscroll-contain overflow-hidden rounded-2xl border border-slate-700/80 bg-surface-elevated shadow-2xl focus:outline-none md:h-[min(900px,calc(100dvh-2.5rem))]"
             >
                 <header className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-800 px-4 py-4 md:px-6">
                     <div>
@@ -450,6 +429,7 @@ export function RosterIdentityResolver({
                                 <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-800 px-2.5 py-2 text-[11px] text-slate-300">
                                     <input
                                         type="checkbox"
+                                        name="sync-all-existing-tiers"
                                         checked={allExistingTiersEnabled}
                                         onChange={toggleAllExistingTiers}
                                         className="accent-cyan-400"
@@ -461,6 +441,8 @@ export function RosterIdentityResolver({
                         <div className="mt-2 flex flex-col gap-2 sm:flex-row">
                             <textarea
                                 id="bulk-discord-ids"
+                                name="bulk-discord-ids"
+                                autoComplete="off"
                                 value={bulkText}
                                 onChange={event => setBulkText(event.target.value)}
                                 rows={3}
@@ -507,147 +489,21 @@ export function RosterIdentityResolver({
                                 candidates.unshift(resolvedEntry);
                             }
                             return (
-                                <article
+                                <RosterIdentityRow
                                     key={draft.player.id}
-                                    className={`rounded-xl border p-3 ${
-                                        error
-                                            ? 'border-rose-500/30 bg-rose-500/[0.045]'
-                                            : 'border-slate-800 bg-surface'
-                                    }`}
-                                >
-                                    <div className={`grid gap-3 ${
-                                        isLocalOnly
-                                            ? 'grid-cols-1'
-                                            : 'lg:grid-cols-[minmax(0,1.2fr)_minmax(180px,0.9fr)_minmax(210px,1fr)]'
-                                    }`}>
-                                        <div className="min-w-0">
-                                            <div className="flex items-center gap-2">
-                                                {isLocalOnly
-                                                    ? <CheckCircle2 size={14} className="shrink-0 text-emerald-300" aria-hidden="true" />
-                                                    : resolvedEntry
-                                                    ? <Link2 size={14} className="shrink-0 text-cyan-300" aria-hidden="true" />
-                                                    : <UserPlus size={14} className="shrink-0 text-violet-300" aria-hidden="true" />}
-                                                <p className="truncate text-sm font-medium text-slate-100">
-                                                    {draft.player.discordName || draft.player.name}
-                                                </p>
-                                                <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] ${
-                                                    isLocalOnly
-                                                        ? 'bg-emerald-500/10 text-emerald-300'
-                                                        : draft.requiresDiscordUserId
-                                                        ? 'bg-amber-500/10 text-amber-300'
-                                                        : 'bg-cyan-500/10 text-cyan-300'
-                                                }`}>
-                                                    {isLocalOnly
-                                                        ? '로컬 명단'
-                                                        : idMatchedEntry && draft.matchKind !== 'DISCORD_ID'
-                                                        ? 'Discord ID로 기존 연결'
-                                                        : MATCH_LABELS[draft.matchKind]}
-                                                </span>
-                                            </div>
-                                            <p className="mt-1 truncate font-mono text-[11px] text-slate-600">
-                                                {draft.player.name}
-                                            </p>
-                                        </div>
-
-                                        {!isLocalOnly && (
-                                            <>
-                                                <label className="grid gap-1 text-[11px] text-slate-500">
-                                                    시트 연결
-                                                    <select
-                                                        value={resolvedEntry?.id ?? ''}
-                                                        onChange={event => selectEntry(draft, event.target.value)}
-                                                        className="h-10 min-w-0 rounded-lg border border-slate-700 bg-slate-950/50 px-2 text-xs text-slate-200 outline-none focus:border-cyan-400"
-                                                    >
-                                                        <option value="">새 유저로 생성 · 미등록 ID만 가능</option>
-                                                        {candidates.map(entry => (
-                                                            <option key={entry.id} value={entry.id}>
-                                                                {entry.discordName || '이름 없음'} · {entry.battleTag}
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                </label>
-
-                                                <label className="grid gap-1 text-[11px] text-slate-500">
-                                                    Discord 고유 ID
-                                                    <input
-                                                        value={draft.discordUserId}
-                                                        onChange={event => updateDiscordUserId(
-                                                            draft,
-                                                            event.target.value,
-                                                        )}
-                                                        inputMode="numeric"
-                                                        placeholder="필수 · 17~20자리 숫자"
-                                                        className={`h-10 min-w-0 rounded-lg border bg-slate-950/50 px-3 font-mono text-xs outline-none ${
-                                                            error
-                                                                ? 'border-rose-400/60 text-rose-100 focus:border-rose-300'
-                                                                : 'border-slate-700 text-slate-200 focus:border-cyan-400'
-                                                        }`}
-                                                        aria-invalid={Boolean(error)}
-                                                    />
-                                                </label>
-                                            </>
-                                        )}
-                                    </div>
-
-                                    <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-                                        <div className="flex min-w-0 items-center gap-1.5 text-[11px]">
-                                            {error ? (
-                                                <>
-                                                    <AlertCircle size={12} className="shrink-0 text-rose-300" aria-hidden="true" />
-                                                    <span className="text-rose-200">{error}</span>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <CheckCircle2 size={12} className="shrink-0 text-emerald-300" aria-hidden="true" />
-                                                    <span className="text-emerald-300">
-                                                        {isLocalOnly
-                                                            ? '현재 브라우저의 참가 명단에만 추가'
-                                                            : resolvedEntry
-                                                            ? idMatchedEntry && draft.matchKind !== 'DISCORD_ID'
-                                                                ? `Discord ID로 ${resolvedEntry.discordName || resolvedEntry.battleTag} 기존 행 재연결 · 새 행을 만들지 않음`
-                                                                : changes.length > 0
-                                                                    ? `${changes.length}개 항목 갱신 예정`
-                                                                    : '시트 정보 변경 없음'
-                                                            : '새 유저 시트 행으로 추가'}
-                                                    </span>
-                                                </>
-                                            )}
-                                        </div>
-                                        {!isLocalOnly && resolvedEntry && (
-                                            <label className="flex cursor-pointer items-center gap-1.5 text-[11px] text-slate-400">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={draft.syncTiers}
-                                                    onChange={event => updateDraft(draft.player.id, {
-                                                        syncTiers: event.target.checked,
-                                                    })}
-                                                    className="accent-cyan-400"
-                                                />
-                                                티어 변동 반영
-                                            </label>
-                                        )}
-                                    </div>
-
-                                    {!isLocalOnly && !error && (resolvedEntry ? changes.length > 0 : true) && (
-                                        <div className="mt-2 flex flex-wrap gap-1.5">
-                                            {resolvedEntry ? changes.map(change => (
-                                                <span
-                                                    key={change.label}
-                                                    className="inline-flex min-w-0 items-center gap-1 rounded-md bg-slate-950/45 px-2 py-1 text-[10px] text-slate-400"
-                                                >
-                                                    <strong className="font-medium text-slate-300">{change.label}</strong>
-                                                    <span className="max-w-28 truncate">{change.before}</span>
-                                                    <ArrowRight size={10} className="shrink-0 text-cyan-500" aria-hidden="true" />
-                                                    <span className="max-w-28 truncate text-cyan-200">{change.after}</span>
-                                                </span>
-                                            )) : (
-                                                <span className="rounded-md bg-violet-500/[0.08] px-2 py-1 text-[10px] text-violet-200">
-                                                    ID · 이름 · 배틀태그 · 3개 역할 티어 저장
-                                                </span>
-                                            )}
-                                        </div>
-                                    )}
-                                </article>
+                                    candidates={candidates}
+                                    changes={changes}
+                                    draft={draft}
+                                    error={error}
+                                    idMatchedEntry={idMatchedEntry}
+                                    isLocalOnly={isLocalOnly}
+                                    resolvedEntry={resolvedEntry}
+                                    onEntryChange={selectEntry}
+                                    onDiscordUserIdChange={updateDiscordUserId}
+                                    onSyncTiersChange={(playerId, syncTiers) => updateDraft(playerId, {
+                                        syncTiers,
+                                    })}
+                                />
                             );
                         })}
                     </div>

@@ -1,6 +1,5 @@
 import {
-    lazy,
-    Suspense,
+    type KeyboardEvent,
     useCallback,
     useEffect,
     useMemo,
@@ -10,23 +9,16 @@ import { AnimatePresence } from 'framer-motion';
 import {
     ArrowLeft,
     BookOpen,
-    Copy,
-    Dices,
-    ExternalLink,
     Link2,
     NotebookPen,
-    Pencil,
-    Save,
     ShieldBan,
     Star,
-    TimerReset,
     Trash2,
 } from 'lucide-react';
-import { HEROES, type Hero } from '../../constants/hero';
+import { HEROES } from '../../constants/hero';
 import type { Player } from '../../types';
 import type {
     PublicParticipationKind,
-    PublicParticipationLink,
     ScrimRecord,
 } from '../../types/scrim';
 import { formatScrimLabel } from '../../utils/scrim';
@@ -39,14 +31,13 @@ import { HeroPickerModal } from './hero-picker-modal';
 import { RandomBanModal } from './random-ban-modal';
 import { ScrimDateTimePicker } from './scrim-datetime-picker';
 import { ScrimManagerGuide } from './scrim-manager-guide';
-import type { HeroDemandChartDatum } from './scrim-result-charts';
-
-const HeroDemandChart = lazy(() => import('./scrim-result-charts').then(module => ({
-    default: module.HeroDemandChart,
-})));
-const SatisfactionCharts = lazy(() => import('./scrim-result-charts').then(module => ({
-    default: module.SatisfactionCharts,
-})));
+import { ScrimOperationsTab } from './scrim-operations-tab';
+import { ScrimReviewTab } from './scrim-review-tab';
+import {
+    ScrimBanTab,
+    ScrimSatisfactionTab,
+    type VoteCount,
+} from './scrim-results-tabs';
 
 interface ScrimManagerProps {
     csrfToken: string;
@@ -59,11 +50,6 @@ interface ScrimsResponse {
     scrims: ScrimRecord[];
 }
 
-interface VoteCount {
-    count: number;
-    hero: Hero;
-}
-
 type DetailTab = 'operations' | 'ban' | 'satisfaction' | 'review';
 type HeroPickerMode = 'final' | 'used' | null;
 
@@ -73,8 +59,6 @@ const DETAIL_TABS: Array<{ id: DetailTab; label: string; icon: typeof Link2 }> =
     { id: 'satisfaction', label: '만족도 결과', icon: Star },
     { id: 'review', label: '내전 후기', icon: NotebookPen },
 ];
-
-const heroById = new Map(HEROES.map(hero => [hero.id, hero]));
 
 const toRosterSnapshot = (players: Player[]) => players.slice(0, 10).map(player => ({
     id: player.discordUserId ?? player.userSheetEntryId ?? String(player.id),
@@ -110,453 +94,6 @@ const ScrimDetailSkeleton = () => (
         </div>
     </section>
 );
-
-interface LinkControlCardProps {
-    kind: PublicParticipationKind;
-    link?: PublicParticipationLink;
-    onAction: (action: string, payload?: Record<string, unknown>) => void;
-    onCopy: (kind: PublicParticipationKind) => void;
-    satisfactionExpiresAt?: number;
-}
-
-function LinkControlCard({
-    kind,
-    link,
-    onAction,
-    onCopy,
-    satisfactionExpiresAt,
-}: LinkControlCardProps) {
-    const title = kind === 'vote' ? '영웅 밴 투표 링크' : '만족도 조사 링크';
-    const href = link ? `${window.location.origin}/participate/${link.token}` : '';
-
-    return (
-        <section className="rounded-xl border border-slate-800 bg-slate-950/50 p-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                    <h3 className="font-semibold text-white">{title}</h3>
-                    <p className={`mt-1 text-xs ${link?.active ? 'text-emerald-300' : 'text-slate-500'}`}>
-                        {link?.active
-                            ? '활성화된 링크'
-                            : kind === 'vote'
-                                ? '투표를 열면 링크가 자동으로 생성됩니다.'
-                                : '비활성화된 내전 링크'}
-                    </p>
-                </div>
-                <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                    link?.active
-                        ? 'bg-emerald-400/10 text-emerald-200'
-                        : 'bg-slate-800 text-slate-400'
-                }`}>
-                    {link?.active ? '활성' : '비활성'}
-                </span>
-            </div>
-
-            {!link?.active && kind === 'satisfaction' ? (
-                <button
-                    type="button"
-                    className="btn-primary mt-4 w-full"
-                    onClick={() => onAction('activateLink', { kind, regenerate: !link })}
-                >
-                    {link ? '링크 다시 활성화' : '링크 생성'}
-                </button>
-            ) : null}
-
-            {kind === 'satisfaction' && satisfactionExpiresAt ? (
-                <div className="mt-4 rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-2.5">
-                    <p className="text-xs text-slate-500">현재 응답 마감</p>
-                    <p className="mt-0.5 text-sm font-medium text-slate-200">
-                        {new Date(satisfactionExpiresAt).toLocaleString('ko-KR', {
-                            timeZone: 'Asia/Seoul',
-                        })}
-                    </p>
-                    <button
-                        type="button"
-                        className="btn-ghost mt-3 w-full"
-                        onClick={() => onAction('extendSatisfaction')}
-                    >
-                        <TimerReset size={15} className="mr-1 inline" />응답 기간 24시간 연장
-                    </button>
-                </div>
-            ) : null}
-
-            {link?.active ? (
-                <div className="mt-4 grid grid-cols-2 gap-2">
-                    <button type="button" className="btn-ghost w-full" onClick={() => onCopy(kind)}>
-                        <Copy size={15} className="mr-1 inline" />링크 복사
-                    </button>
-                    <a className="btn-ghost w-full text-center" href={href} target="_blank" rel="noreferrer">
-                        <ExternalLink size={15} className="mr-1 inline" />열기
-                    </a>
-                    <button
-                        type="button"
-                        className="btn-danger w-full"
-                        onClick={() => onAction('deactivateLink', { kind })}
-                    >
-                        링크 비활성화
-                    </button>
-                    <button
-                        type="button"
-                        className="btn-ghost w-full"
-                        onClick={() => onAction('activateLink', { kind, regenerate: true })}
-                    >
-                        새 링크 생성
-                    </button>
-                </div>
-            ) : null}
-        </section>
-    );
-}
-
-interface OperationsTabProps {
-    onAction: (action: string, payload?: Record<string, unknown>) => void;
-    onCopy: (kind: PublicParticipationKind) => void;
-    scrim: ScrimRecord;
-}
-
-function OperationsTab({ onAction, onCopy, scrim }: OperationsTabProps) {
-    return (
-        <section className="card" role="tabpanel" id="scrim-panel-operations">
-            <h2 className="text-lg font-semibold text-white">운영 및 참여 링크</h2>
-            <p className="mt-1 text-sm text-slate-400">투표와 만족도 링크를 각각 관리합니다.</p>
-            <div className="mt-5 grid gap-3 md:grid-cols-2">
-                <LinkControlCard
-                    kind="vote"
-                    link={scrim.publicLinks?.vote}
-                    onAction={onAction}
-                    onCopy={onCopy}
-                />
-                <LinkControlCard
-                    kind="satisfaction"
-                    link={scrim.publicLinks?.satisfaction}
-                    satisfactionExpiresAt={scrim.satisfactionExpiresAt}
-                    onAction={onAction}
-                    onCopy={onCopy}
-                />
-            </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-                <button type="button" className="btn-primary" onClick={() => onAction('openVote')}>
-                    영웅 밴 투표 열기
-                </button>
-                <button type="button" className="btn-ghost" onClick={() => onAction('closeVote')}>
-                    투표 수동 마감
-                </button>
-            </div>
-        </section>
-    );
-}
-
-const ChartSkeleton = () => (
-    <div className="space-y-3" role="status" aria-label="결과 그래프를 불러오는 중">
-        <Skeleton className="h-4 w-36" />
-        <Skeleton className="h-64 w-full rounded-2xl" />
-    </div>
-);
-
-interface BanTabProps {
-    onOpenFinalPicker: () => void;
-    onOpenRandom: () => void;
-    onOpenUsedPicker: () => void;
-    scrim: ScrimRecord;
-    voteCounts: VoteCount[];
-}
-
-function BanTab({
-    onOpenFinalPicker,
-    onOpenRandom,
-    onOpenUsedPicker,
-    scrim,
-    voteCounts,
-}: BanTabProps) {
-    const decision = scrim.finalBanDecision;
-    const finalHeroes = decision?.heroIds
-        .map(heroId => heroById.get(heroId))
-        .filter((hero): hero is Hero => Boolean(hero)) ?? [];
-    const usedHeroes = scrim.usedBanHeroIds
-        .map(heroId => heroById.get(heroId))
-        .filter((hero): hero is Hero => Boolean(hero));
-    const hasUnresolvedTie = Boolean(decision?.hasTie && finalHeroes.length < 2);
-    const canResolveRandomly = new Set(voteCounts.map(result => result.hero.role)).size >= 2;
-    const heroDemandData = useMemo<HeroDemandChartDatum[]>(
-        () => voteCounts.map(result => ({
-            count: result.count,
-            name: result.hero.name,
-            role: result.hero.role,
-        })),
-        [voteCounts],
-    );
-
-    return (
-        <section className="space-y-5" role="tabpanel" id="scrim-panel-ban">
-            <div className="card">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                        <h2 className="text-lg font-semibold text-white">영웅 밴 결과</h2>
-                        <p className="mt-1 text-sm text-slate-400">
-                            제출 {scrim.votes.length}/{scrim.rosterSnapshot.length}명
-                        </p>
-                    </div>
-                    <div className="min-w-36">
-                        <div className="h-2 overflow-hidden rounded-full bg-slate-800">
-                            <div
-                                className="h-full rounded-full bg-cyan-400 transition-[width]"
-                                style={{ width: `${Math.min(100, (scrim.votes.length / scrim.rosterSnapshot.length) * 100)}%` }}
-                            />
-                        </div>
-                        <p className="mt-1 text-right text-xs text-slate-500">
-                            {Math.round((scrim.votes.length / scrim.rosterSnapshot.length) * 100)}% 참여
-                        </p>
-                    </div>
-                </div>
-
-                {heroDemandData.length > 0 ? (
-                    <div className="mt-5">
-                        <h3 className="mb-1 text-sm font-semibold text-white">영웅별 밴 수요</h3>
-                        <p className="mb-4 text-xs text-slate-500">막대에 마우스를 올리면 정확한 득표 수를 확인할 수 있습니다.</p>
-                        <Suspense fallback={<ChartSkeleton />}>
-                            <HeroDemandChart data={heroDemandData} />
-                        </Suspense>
-                    </div>
-                ) : (
-                    <div className="mt-5 rounded-xl border border-dashed border-slate-700 py-8 text-center text-sm text-slate-500">
-                        아직 제출된 투표가 없습니다.
-                    </div>
-                )}
-            </div>
-
-            <div className="card">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                        <h2 className="text-lg font-semibold text-white">최종 밴</h2>
-                        <p className="mt-1 text-sm text-slate-400">
-                            {decision?.resolvedBy === 'random'
-                                ? '관리자 랜덤 추첨으로 확정됨'
-                                : decision?.resolvedBy === 'manual'
-                                    ? '관리자가 직접 확정함'
-                                    : decision?.resolvedBy === 'automatic'
-                                        ? '득표 규칙에 따라 자동 선정됨'
-                                        : '아직 최종 밴이 확정되지 않았습니다.'}
-                        </p>
-                    </div>
-                    {finalHeroes.length === 2 ? (
-                        <button type="button" className="btn-ghost" onClick={onOpenFinalPicker}>
-                            <Pencil size={15} className="mr-1 inline" />수정
-                        </button>
-                    ) : null}
-                </div>
-
-                {finalHeroes.length > 0 ? (
-                    <div className="mt-5 grid grid-cols-2 gap-3">
-                        {finalHeroes.map(hero => (
-                            <div key={hero.id} className="flex items-center gap-3 rounded-2xl border border-amber-300/25 bg-amber-300/8 p-3">
-                                <img src={`/hero/${hero.role}/${hero.id}.png`} alt="" className="h-16 w-16 rounded-xl object-cover" />
-                                <strong className="text-white">{hero.name}</strong>
-                            </div>
-                        ))}
-                    </div>
-                ) : null}
-
-                {hasUnresolvedTie ? (
-                    <div className="mt-5 rounded-2xl border border-violet-400/25 bg-violet-400/8 p-4">
-                        <h3 className="font-semibold text-violet-100">동점 후보가 있습니다</h3>
-                        <p className="mt-1 text-sm text-slate-400">
-                            {canResolveRandomly
-                                ? '랜덤 추첨을 진행하거나 관리자가 직접 최종 밴을 선택해 주세요.'
-                                : '서로 다른 역할군 후보가 부족해 관리자가 직접 최종 밴을 선택해야 합니다.'}
-                        </p>
-                        <div className={`mt-4 grid gap-2 ${canResolveRandomly ? 'sm:grid-cols-2' : ''}`}>
-                            {canResolveRandomly ? (
-                                <button type="button" className="btn-primary" onClick={onOpenRandom}>
-                                    <Dices size={16} className="mr-1 inline" />랜덤으로 결정
-                                </button>
-                            ) : null}
-                            <button type="button" className="btn-ghost" onClick={onOpenFinalPicker}>
-                                <Pencil size={16} className="mr-1 inline" />직접 선택
-                            </button>
-                        </div>
-                    </div>
-                ) : finalHeroes.length < 2 ? (
-                    <button type="button" className="btn-primary mt-5" onClick={onOpenFinalPicker}>
-                        최종 밴 직접 선택
-                    </button>
-                ) : null}
-
-                {decision?.excludedHeroIds.length ? (
-                    <p className="mt-4 text-xs text-slate-500">
-                        역할군 중복 제외: {decision.excludedHeroIds.map(heroId => heroById.get(heroId)?.name ?? heroId).join(', ')}
-                    </p>
-                ) : null}
-            </div>
-
-            <div className="card">
-                <div className="flex items-start justify-between gap-3">
-                    <div>
-                        <h2 className="text-lg font-semibold text-white">사용된 밴 영웅</h2>
-                        <p className="mt-1 text-sm text-slate-400">다음 투표에서 다시 선택할 수 없는 영웅입니다.</p>
-                    </div>
-                    <button type="button" className="btn-ghost" onClick={onOpenUsedPicker}>
-                        <Pencil size={15} className="mr-1 inline" />편집
-                    </button>
-                </div>
-                {usedHeroes.length > 0 ? (
-                    <div className="mt-4 flex flex-wrap gap-2">
-                        {usedHeroes.map(hero => (
-                            <span key={hero.id} className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-2.5 py-2 text-sm text-slate-200">
-                                <img src={`/hero/${hero.role}/${hero.id}.png`} alt="" className="h-8 w-8 rounded-lg object-cover" />
-                                {hero.name}
-                            </span>
-                        ))}
-                    </div>
-                ) : (
-                    <p className="mt-4 text-sm text-slate-500">아직 기록된 사용 밴이 없습니다.</p>
-                )}
-            </div>
-        </section>
-    );
-}
-
-interface SatisfactionTabProps {
-    disappointmentCounts: Record<string, number>;
-    satisfactionAverage: number;
-    satisfactionScores: number[];
-    scrim: ScrimRecord;
-}
-
-function SatisfactionTab({
-    disappointmentCounts,
-    satisfactionAverage,
-    satisfactionScores,
-    scrim,
-}: SatisfactionTabProps) {
-    return (
-        <section className="space-y-5" role="tabpanel" id="scrim-panel-satisfaction">
-            <div className="card">
-                <h2 className="text-lg font-semibold text-white">만족도 결과</h2>
-                <div className="mt-4 grid grid-cols-2 gap-3">
-                    <div className="rounded-2xl border border-slate-800 bg-slate-950/50 p-4">
-                        <p className="text-xs text-slate-500">총 응답</p>
-                        <strong className="mt-1 block text-2xl text-white">
-                            {scrim.satisfactionResponses.length}
-                            <span className="ml-1 text-sm font-medium text-slate-400">건</span>
-                        </strong>
-                    </div>
-                    <div className="rounded-2xl border border-amber-300/15 bg-amber-300/5 p-4">
-                        <p className="text-xs text-amber-100/60">평균 만족도</p>
-                        <strong className="mt-1 block text-2xl text-amber-200">
-                            {scrim.satisfactionResponses.length > 0
-                                ? satisfactionAverage.toFixed(1)
-                                : '-'}
-                            <span className="ml-1 text-sm font-medium text-amber-100/60">/ 5</span>
-                        </strong>
-                    </div>
-                </div>
-                {scrim.satisfactionResponses.length > 0 ? (
-                    <div className="mt-5">
-                        <Suspense fallback={<ChartSkeleton />}>
-                            <SatisfactionCharts
-                                scoreCounts={satisfactionScores}
-                                disappointmentCounts={disappointmentCounts}
-                            />
-                        </Suspense>
-                    </div>
-                ) : (
-                    <p className="mt-6 rounded-xl border border-dashed border-slate-700 py-8 text-center text-sm text-slate-500">
-                        아직 제출된 만족도 응답이 없습니다.
-                    </p>
-                )}
-            </div>
-            {scrim.satisfactionResponses.length > 0 ? (
-                <div className="card">
-                    <h2 className="text-lg font-semibold text-white">개별 응답</h2>
-                    <p className="mt-1 text-sm text-slate-400">응답자를 특정할 수 있는 정보는 저장되지 않습니다.</p>
-                    <div className="mt-4 space-y-2">
-                        {scrim.satisfactionResponses.map((response, index) => (
-                            <div key={`${response.submittedAt}-${index}`} className="rounded-xl bg-slate-900 p-3 text-sm">
-                                <span className="font-semibold text-amber-200">{response.score}점</span>
-                                <span className="ml-3 text-slate-400">{response.disappointments.join(', ') || '아쉬운 점 없음'}</span>
-                                {response.otherOpinion ? <p className="mt-1 text-slate-300">의견: {response.otherOpinion}</p> : null}
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            ) : null}
-        </section>
-    );
-}
-
-interface ReviewTabProps {
-    onSave: (adminReview: string) => Promise<void>;
-    scrim: ScrimRecord;
-}
-
-/**
- * @description 관리자가 내전의 운영 특이점과 후기를 작성하고 수정 이력을 확인하게 한다.
- */
-function ReviewTab({ onSave, scrim }: ReviewTabProps) {
-    const [draft, setDraft] = useState(scrim.adminReview ?? '');
-    const [isSaving, setIsSaving] = useState(false);
-    const savedReview = scrim.adminReview ?? '';
-    const isDirty = draft.trim() !== savedReview;
-
-    useEffect(() => {
-        setDraft(scrim.adminReview ?? '');
-    }, [scrim.adminReview, scrim.id]);
-
-    const save = async () => {
-        setIsSaving(true);
-        try {
-            await onSave(draft);
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
-    return (
-        <section className="card" role="tabpanel" id="scrim-panel-review">
-            <div className="flex items-start gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-400/10 text-violet-200">
-                    <NotebookPen size={19} aria-hidden="true" />
-                </span>
-                <div>
-                    <h2 className="text-lg font-semibold text-white">내전 후기 및 운영 기록</h2>
-                    <p className="mt-1 text-sm text-slate-400">
-                        팀 구성, 진행 중 특이점, 다음 내전에서 참고할 내용을 관리자끼리 기록합니다.
-                    </p>
-                </div>
-            </div>
-            <label className="mt-5 block">
-                <span className="mb-2 block text-sm font-medium text-slate-200">관리자 기록</span>
-                <div className="rounded-xl border border-slate-700/70 bg-slate-950/70 p-1.5 transition focus-within:border-violet-400/70 focus-within:ring-2 focus-within:ring-violet-400/15">
-                    <textarea
-                        className="min-h-64 w-full resize-y rounded-lg bg-transparent px-3 py-3 text-sm leading-relaxed text-white outline-none placeholder:text-slate-600"
-                        value={draft}
-                        onChange={event => setDraft(event.target.value)}
-                        maxLength={4_000}
-                        placeholder="예: 2세트 이후 역할 변경, 진행 지연 원인, 다음 내전에서 유지하거나 바꿀 점"
-                    />
-                    <div className="flex items-center justify-between px-2 pb-1 text-xs text-slate-600">
-                        <span>
-                            {scrim.adminReviewUpdatedAt && scrim.adminReviewUpdatedBy
-                                ? `마지막 수정 · ${scrim.adminReviewUpdatedBy} · ${new Date(scrim.adminReviewUpdatedAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}`
-                                : '아직 작성된 기록이 없습니다.'}
-                        </span>
-                        <span>{draft.length}/4000</span>
-                    </div>
-                </div>
-            </label>
-            <div className="mt-4 flex justify-end">
-                <button
-                    type="button"
-                    className="btn-primary inline-flex items-center gap-2 disabled:opacity-40"
-                    disabled={!isDirty || isSaving}
-                    onClick={() => void save()}
-                >
-                    <Save size={15} aria-hidden="true" />
-                    {isSaving ? '저장 중…' : '후기 저장'}
-                </button>
-            </div>
-        </section>
-    );
-}
 
 /**
  * @description 전용 페이지에서 내전 기록과 공개 링크, 밴, 만족도 결과 및 운영 후기를 탭으로 관리한다.
@@ -638,6 +175,22 @@ export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManag
         setSelectedId(scrim.id);
         setHeroPickerMode(null);
         setIsRandomModalOpen(false);
+    };
+
+    const handleDetailTabKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+        const tabs = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
+        const currentIndex = tabs.indexOf(event.target as HTMLButtonElement);
+        if (currentIndex < 0) return;
+        event.preventDefault();
+        const nextIndex = event.key === 'Home'
+            ? 0
+            : event.key === 'End'
+                ? tabs.length - 1
+                : (currentIndex + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+        const nextTab = DETAIL_TABS[nextIndex];
+        setActiveTab(nextTab.id);
+        tabs[nextIndex]?.focus();
     };
 
     const call = useCallback(async (
@@ -838,7 +391,13 @@ export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManag
                                         </button>
                                     ) : null}
                                 </div>
-                                <div className="mt-5 flex overflow-x-auto rounded-xl border border-slate-800 bg-slate-950/50 p-1" role="tablist" aria-label="내전 상세">
+                                <div
+                                    className="mt-5 flex overflow-x-auto rounded-xl border border-slate-800 bg-slate-950/50 p-1"
+                                    role="tablist"
+                                    aria-label="내전 상세"
+                                    aria-orientation="horizontal"
+                                    onKeyDown={handleDetailTabKeyDown}
+                                >
                                     {DETAIL_TABS.map(tab => {
                                         const Icon = tab.icon;
                                         const isActive = activeTab === tab.id;
@@ -847,8 +406,10 @@ export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManag
                                                 key={tab.id}
                                                 type="button"
                                                 role="tab"
+                                                id={`scrim-tab-${tab.id}`}
                                                 aria-selected={isActive}
                                                 aria-controls={`scrim-panel-${tab.id}`}
+                                                tabIndex={isActive ? 0 : -1}
                                                 onClick={() => setActiveTab(tab.id)}
                                                 className={`min-h-10 flex-1 whitespace-nowrap rounded-lg px-3 text-sm font-medium transition ${
                                                     isActive
@@ -864,13 +425,13 @@ export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManag
                             </section>
 
                             {activeTab === 'operations' ? (
-                                <OperationsTab
+                                <ScrimOperationsTab
                                     scrim={selected}
                                     onAction={(action, payload) => void call(action, payload)}
                                     onCopy={kind => void copyLink(kind)}
                                 />
                             ) : activeTab === 'ban' ? (
-                                <BanTab
+                                <ScrimBanTab
                                     scrim={selected}
                                     voteCounts={voteCounts}
                                     onOpenFinalPicker={() => setHeroPickerMode('final')}
@@ -878,14 +439,14 @@ export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManag
                                     onOpenUsedPicker={() => setHeroPickerMode('used')}
                                 />
                             ) : activeTab === 'satisfaction' ? (
-                                <SatisfactionTab
+                                <ScrimSatisfactionTab
                                     scrim={selected}
                                     satisfactionAverage={satisfactionAverage}
                                     satisfactionScores={satisfactionScores}
                                     disappointmentCounts={disappointmentCounts}
                                 />
                             ) : (
-                                <ReviewTab
+                                <ScrimReviewTab
                                     scrim={selected}
                                     onSave={adminReview => call('updateReview', { adminReview })}
                                 />
