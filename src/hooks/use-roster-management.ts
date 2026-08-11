@@ -47,6 +47,7 @@ interface UseRosterManagementOptions {
     csrfToken: string;
     match: RosterMatchState;
     onPlayerEditCompleted: () => void;
+    onRosterCompleted: () => void;
     setSwapSource: Dispatch<SetStateAction<SwapSource | null>>;
     showDetailedError: (message: string, details: ErrorDetails) => void;
     userSheet: RosterUserSheetState;
@@ -61,6 +62,7 @@ export const useRosterManagement = ({
     csrfToken,
     match,
     onPlayerEditCompleted,
+    onRosterCompleted,
     setSwapSource,
     showDetailedError,
     userSheet,
@@ -170,6 +172,7 @@ export const useRosterManagement = ({
                 ? `대기열에 추가 완료 · ${newPlayer.discordName ?? newPlayer.name}`
                 : `참가자 1명 추가 완료 · ${newPlayer.discordName ?? newPlayer.name}`);
         setIsInputCollapsed(true);
+        if (!isEditing && match.players.length + 1 === 10) onRosterCompleted();
     };
 
     const commitRosterImport = (
@@ -233,6 +236,7 @@ export const useRosterManagement = ({
         }
         setIsInputCollapsed(true);
         setPasteText('');
+        if (reconciled.players.length === 10) onRosterCompleted();
     };
 
     const requestRosterIdentityReview = (incoming: Player[], failedLines: string[]) => {

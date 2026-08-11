@@ -84,6 +84,7 @@ const MatchApp = ({ authMode, csrfToken, dataMode, logout, user }: MatchAppProps
     const [pathname, setPathname] = useState(() => window.location.pathname.replace(/\/+$/, '') || '/');
     const [isPageNavigating, setIsPageNavigating] = useState(false);
     const playerEditReturnPathRef = useRef(pathname);
+    const isGuideActiveRef = useRef(false);
     const userSheet = useUserSheet();
     const { dismissToast, showToast, toast } = useToast();
     useEffect(() => {
@@ -108,6 +109,9 @@ const MatchApp = ({ authMode, csrfToken, dataMode, logout, user }: MatchAppProps
     }, [showToast]);
     const handlePlayerEditCompleted = useCallback(() => {
         navigate(playerEditReturnPathRef.current);
+    }, [navigate]);
+    const handleRosterCompleted = useCallback(() => {
+        if (!isGuideActiveRef.current) navigate('/');
     }, [navigate]);
     const {
         addPlayer,
@@ -150,6 +154,7 @@ const MatchApp = ({ authMode, csrfToken, dataMode, logout, user }: MatchAppProps
             setResult,
         },
         onPlayerEditCompleted: handlePlayerEditCompleted,
+        onRosterCompleted: handleRosterCompleted,
         setSwapSource,
         showDetailedError,
         userSheet: {
@@ -228,6 +233,9 @@ const MatchApp = ({ authMode, csrfToken, dataMode, logout, user }: MatchAppProps
         onUseExampleRoster: handleUseExampleRoster,
         playerCount: players.length,
     });
+    useEffect(() => {
+        isGuideActiveRef.current = isGuideOpen || isGuideResumePromptOpen;
+    }, [isGuideOpen, isGuideResumePromptOpen]);
     const handleInterruptGuide = useCallback(() => {
         handleDismissGuide();
     }, [handleDismissGuide]);
