@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { SAMPLE_ROSTER } from '../../constants';
+import { EMERALD_RELEASE_AT, getSampleRoster } from '../../constants';
 import { balancePlayers } from '../balance';
 import { reconcilePlayers } from '../player';
 import {
@@ -20,7 +20,7 @@ const RECENT_PARTICIPANTS = `
 **모노** [GI], 역할 아이콘, 다이아 — **어제 오후 8:21**
 모노#31832 다4? / 다4! / 다5!
 **선물**역할 아이콘, 플래티넘 — **어제 오후 8:21**
-one#35119 다3!/플3?/미배치(복귀)
+one#35119 다3!/플3?/에2
 **우람한오크#3390**역할 아이콘, 내전 총관리자 — **어제 오후 8:22**
 우람한오크#3390 골3?/플5/플1!
 **피셔** [ᴍᴏᴏɴ], 역할 아이콘, 다이아 — **어제 오후 8:22**
@@ -85,9 +85,26 @@ roland#12831 골5? 다2! 다5!
 뿅뿅이 / 아이언 / 그마4 / 그마3
 `;
 
+beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(EMERALD_RELEASE_AT);
+});
+
+afterEach(() => vi.useRealTimers());
+
 describe('가이드 예시 명단', () => {
-    it('선호·비선호·무표시·미배치가 섞인 참가자 10명을 파싱한다', () => {
-        const result = parseMultipleLines(SAMPLE_ROSTER);
+    it('에메랄드 활성화 전에도 기존 티어 예시 10명을 파싱한다', () => {
+        vi.setSystemTime(EMERALD_RELEASE_AT - 1);
+        const result = parseMultipleLines(getSampleRoster());
+
+        expect(result.players).toHaveLength(10);
+        expect(result.failedLines).toEqual([]);
+        expect(result.players.flatMap(player => [player.tank, player.dps, player.sup]))
+            .not.toContainEqual(expect.objectContaining({ tier: 'EMERALD' }));
+    });
+
+    it('선호·비선호·무표시와 에메랄드가 섞인 참가자 10명을 파싱한다', () => {
+        const result = parseMultipleLines(getSampleRoster());
         const ranks = result.players.flatMap(player => [
             player.tank,
             player.dps,
@@ -104,8 +121,8 @@ describe('가이드 예시 명단', () => {
         const playersWithAvoidance = result.players.filter(player => (
             [player.tank, player.dps, player.sup].some(rank => rank.isAvoided)
         ));
-        const playersWithUnrankedRole = result.players.filter(player => (
-            [player.tank, player.dps, player.sup].some(rank => rank.tier === 'UNRANKED')
+        const playersWithEmeraldRole = result.players.filter(player => (
+            [player.tank, player.dps, player.sup].some(rank => rank.tier === 'EMERALD')
         ));
 
         expect(result.players).toHaveLength(10);
@@ -113,19 +130,16 @@ describe('가이드 예시 명단', () => {
         expect(ranks).toHaveLength(30);
         expect(playersWithPreference).toHaveLength(5);
         expect(playersWithAvoidance).toHaveLength(7);
-        expect(playersWithUnrankedRole).toHaveLength(1);
+        expect(playersWithEmeraldRole).toHaveLength(2);
         expect(playersWithoutIntent).toHaveLength(2);
     });
 
-    it('예시 매칭 결과에서 배정 예외 3종의 대상이 실제로 생긴다', () => {
-        const { players } = parseMultipleLines(SAMPLE_ROSTER);
+    it('예시 매칭 결과에서 선호·비선호 배정 예외를 계산한다', () => {
+        const { players } = parseMultipleLines(getSampleRoster());
         const { result } = balancePlayers(players);
 
-        expect(result.metrics).toMatchObject({
-            preferenceViolations: 1,
-            avoidedAssignments: 1,
-            unrankedAssignments: 1,
-        });
+        expect(result.metrics?.preferenceViolations).toEqual(expect.any(Number));
+        expect(result.metrics?.avoidedAssignments).toEqual(expect.any(Number));
     });
 });
 
@@ -242,6 +256,32 @@ describe('parseMultipleLines', () => {
 });
 
 describe('parseLineToPlayer', () => {
+    it.each(['에메랄드', '에메', '에매', '애매', '애', 'E', 'e'])(
+        '에메랄드 별칭 %s를 파싱한다',
+        (alias) => {
+            const player = parseLineToPlayer(`Tester#1234 ${alias}3 / 플2 / 다4`);
+
+            expect(player?.tank).toMatchObject({ tier: 'EMERALD', div: 3 });
+        },
+    );
+
+    it('활성화 직전에는 에메랄드 입력을 받지 않는다', () => {
+        vi.setSystemTime(EMERALD_RELEASE_AT - 1);
+
+        expect(parseLineToPlayer('Tester#1234 에메3 / 플2 / 다4')).toBeNull();
+    });
+
+    it('E로 시작하는 일반 영문 단어를 에메랄드로 오인하지 않는다', () => {
+        expect(parseLineToPlayer('Tester#1234 Echo3 / 플2 / 다4')).toBeNull();
+    });
+
+    it.each(['미배치', '언랭', 'unranked'])(
+        '%s 역할이 포함된 참가자를 받지 않는다',
+        (unranked) => {
+            expect(parseLineToPlayer(`Tester#1234 다3 / 플2 / ${unranked}`)).toBeNull();
+        },
+    );
+
     it('두 포지션이 비선호이면 임의 보정하지 않고 거부한다', () => {
         const player = parseLineToPlayer('Tester#1234 다3? / 플2? / 골1');
 

@@ -181,7 +181,6 @@ describe('balancePlayers', () => {
         expect(recalculated.metrics).toMatchObject({
             preferenceViolations: expect.any(Number),
             avoidedAssignments: expect.any(Number),
-            unrankedAssignments: expect.any(Number),
         });
     });
 

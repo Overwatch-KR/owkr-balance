@@ -1,12 +1,12 @@
 import type { Player, Rank, Role } from 'src/types';
-import { TIERS, getScore } from 'src/constants';
+import { getAvailableTiers, getScore, TIERS } from 'src/constants';
 import { normalizePlayerRolePreferences } from 'src/utils/role-preference';
 import { findAvoidedRoleHighlightRanges } from './avoidance-highlight';
 
 /**
  * @description 티어 문자열을 정규화해 TIERS 인덱스로 매핑한다.
- * @param tierStr - 티어 문자열 (예: "다이아", "다", "플레", "그마", "마스터" 등)
- * @returns 티어 인덱스 (0-7), 찾지 못하면 -1
+ * @param tierStr - 티어 문자열 (예: "에메랄드", "에메", "다이아", "플레" 등)
+ * @returns 티어 인덱스 (0-8), 찾지 못하면 -1
  */
 const findTierIndex = (tierStr: string): number => {
     const normalized = tierStr.toLowerCase().trim();
@@ -20,24 +20,28 @@ const findTierIndex = (tierStr: string): number => {
         '골드': 2, '골': 2, 'gold': 2, 'go': 2,
         // 플래티넘 (3)
         '플래티넘': 3, '플레티넘': 3, '플래': 3, '플레': 3, '플': 3, 'platinum': 3, 'plat': 3, 'pl': 3,
-        // 다이아몬드 (4)
-        '다이아몬드': 4, '다이아': 4, '다이': 4, '다': 4, 'diamond': 4, 'dia': 4, 'di': 4,
-        // 마스터 (5)
-        '마스터': 5, '마스': 5, '마': 5, 'master': 5, 'ma': 5,
-        // 그랜드마스터 (6)
-        '그랜드마스터': 6, '그마': 6, '그': 6, 'grandmaster': 6, 'gm': 6,
-        // 챔피언 (7)
-        '챔피언': 7, '챔피': 7, '챔': 7, 'champion': 7, 'champ': 7, 'ch': 7
+        // 에메랄드 (4)
+        '에메랄드': 4, '에메': 4, '에매': 4, '애매': 4, '애': 4,
+        'emerald': 4, 'eme': 4, 'em': 4, 'e': 4,
+        // 다이아몬드 (5)
+        '다이아몬드': 5, '다이아': 5, '다이': 5, '다': 5, 'diamond': 5, 'dia': 5, 'di': 5,
+        // 마스터 (6)
+        '마스터': 6, '마스': 6, '마': 6, 'master': 6, 'ma': 6,
+        // 그랜드마스터 (7)
+        '그랜드마스터': 7, '그마': 7, '그': 7, 'grandmaster': 7, 'gm': 7,
+        // 챔피언 (8)
+        '챔피언': 8, '챔피': 8, '챔': 8, 'champion': 8, 'champ': 8, 'ch': 8
     };
 
     if (tierMap[normalized] !== undefined) {
-        return tierMap[normalized];
+        return getAvailableTiers().indexOf(TIERS[tierMap[normalized]]);
     }
 
     // 부분 매칭 시도
     for (const [key, idx] of Object.entries(tierMap)) {
+        if (key.length === 1) continue;
         if (normalized.startsWith(key) || key.startsWith(normalized)) {
-            return idx;
+            return getAvailableTiers().indexOf(TIERS[idx]);
         }
     }
 
@@ -101,14 +105,9 @@ const parseRankSegment = (segment: string): { tierIdx: number; div: number; isPr
     const isAvoided = segment.includes('?');
     const cleanSegment = segment.replace(/[!?]/g, '').trim();
 
-    // "미배치(골)"은 예상 티어로, "미배치(복귀)"는 미배치 그대로 처리
-    if (cleanSegment.match(/미배치|unranked/i)) {
-        const parentheticalText = cleanSegment.match(/\(([^)]*)\)/)?.[1] ?? '';
-        const estimatedRank = findRankToken(parentheticalText);
-        if (estimatedRank) {
-            return { ...estimatedRank, isPreferred, isAvoided };
-        }
-        return { tierIdx: -1, div: 0, isPreferred, isAvoided };
+    // 미배치 입력은 예상 티어가 함께 적혀 있어도 더 이상 받지 않는다.
+    if (cleanSegment.match(/미배치|언랭|unranked/i)) {
+        return null;
     }
 
     // 예상 티어는 보존하고 영웅, 복귀, 마이크 같은 부가 설명은 제거한다.
@@ -126,35 +125,21 @@ const parseRankSegment = (segment: string): { tierIdx: number; div: number; isPr
 
 /**
  * @description 티어/등급/선호를 받아 Rank 객체로 변환한다.
- * @param tierIdx - 티어 인덱스 (0-7)
+ * @param tierIdx - 티어 인덱스 (0-8)
  * @param div - 등급 (1-5)
  * @param isPreferred - 선호 역할 여부
  * @returns Rank 객체
  */
 const createRank = (tierIdx: number, div: number, isPreferred: boolean, isAvoided: boolean): Rank => {
-    if (tierIdx === -1) {
-        return { tier: 'UNRANKED', div: 0, score: 0, isPreferred, isAvoided };
-    }
+    const tier = getAvailableTiers()[tierIdx];
     return {
-        tier: TIERS[tierIdx],
+        tier,
         div,
         score: getScore(tierIdx, div),
         isPreferred,
         isAvoided
     };
 };
-
-/**
- * @description 미배치 상태의 기본 Rank 객체를 만든다.
- * @returns 미배치 상태의 Rank 객체
- */
-const createUnrankedRank = (): Rank => ({
-    tier: 'UNRANKED',
-    div: 0,
-    score: 0,
-    isPreferred: false,
-    isAvoided: false
-});
 
 /**
  * @description 티어 이모지를 티어 문자열로 변환한다.
@@ -167,6 +152,7 @@ const emojiToTier = (emoji: string): string | null => {
     if (lower.includes('silver')) return '실';
     if (lower.includes('gold')) return '골';
     if (lower.includes('plat')) return '플';
+    if (lower.includes('emerald')) return '에메';
     if (lower.includes('diamond')) return '다';
     if (lower.includes('master')) return '마';
     if (lower.includes('grand')) return '그';
@@ -237,9 +223,9 @@ const parseRawLineToPlayer = (line: string, discordName?: string): Player | null
     remainText = cleanText;
 
     // 역할별 랭크 초기화
-    let tank = createUnrankedRank();
-    let dps = createUnrankedRank();
-    let sup = createUnrankedRank();
+    let tank: Rank | null = null;
+    let dps: Rank | null = null;
+    let sup: Rank | null = null;
 
     // 슬래시로 구분된 형식 처리: "다5/다1/다5" 또는 "탱! 실3/ 딜 브1/ 힐(예상)실2"
     const slashParts = remainText.split('/').map(p => p.trim()).filter(p => p.length > 0);
@@ -339,8 +325,8 @@ const parseRawLineToPlayer = (line: string, discordName?: string): Player | null
                 }
             }
 
-            // "미배치" 처리
-            if (tierStr.match(/미배치|unranked|배치/i)) {
+            // 미배치 역할이 포함된 참가자는 마지막 완전성 검사에서 거부한다.
+            if (tierStr.match(/미배치|언랭|unranked|배치/i)) {
                 if (!roleStr) autoIndex++;
                 continue;
             }
@@ -381,8 +367,8 @@ const parseRawLineToPlayer = (line: string, discordName?: string): Player | null
         }
     }
 
-    // 최소 하나의 역할에 점수가 있어야 유효한 플레이어
-    if (tank.score === 0 && dps.score === 0 && sup.score === 0) {
+    // 세 역할 모두 정식 티어가 있어야 유효한 플레이어다.
+    if (!tank || !dps || !sup) {
         return null;
     }
 
@@ -431,7 +417,7 @@ const hasTierInfoOnly = (line: string): boolean => {
 
     const normalized = trimmed.replace(/★/g, '!').replace(/!+/g, '!').replace(/\?+/g, '?');
 
-    if (normalized === '-' || /미배치|unranked|배치/i.test(normalized)) return true;
+    if (normalized === '-' || /미배치|언랭|unranked|배치/i.test(normalized)) return true;
     if (normalized.includes('/') || normalized.includes(':pob_') || normalized.includes(':poc_') || normalized.includes(':pod_')) return true;
     if (/(탱(?:커)?|딜(?:러)?|힐(?:러)?|t|d|s)\s*[!?]?\s*[가-힣a-zA-Z]+\s*\d?/i.test(normalized)) return true;
     if (/^[가-힣a-zA-Z]+\s*\d?\s*[!?]?$/.test(normalized)) return true;

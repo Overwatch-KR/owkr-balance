@@ -51,7 +51,6 @@ const matchResult: MatchResultData = {
         teamStdDevs: [120, 140],
         preferenceViolations: 1,
         avoidedAssignments: 0,
-        unrankedAssignments: 0,
     },
 };
 
@@ -159,19 +158,10 @@ describe('MatchResult', () => {
         expect(markup).toContain('aria-pressed="true"');
     });
 
-    it('비선호와 미배치 역할에 배정된 대상도 이름과 배정 위치로 알려준다', () => {
+    it('비선호 역할에 배정된 대상을 이름과 배정 위치로 알려준다', () => {
         const avoidedPlayer: Player = {
             ...players[2],
             dps: { ...players[2].dps, isAvoided: true },
-        };
-        const unrankedPlayer: Player = {
-            ...players[3],
-            sup: {
-                ...players[3].sup,
-                tier: 'UNRANKED',
-                div: 0,
-                score: 0,
-            },
         };
         const resultWithExceptions: MatchResultData = {
             ...matchResult,
@@ -180,7 +170,6 @@ describe('MatchResult', () => {
                 assignment: {
                     ...matchResult.teamA.assignment,
                     DPS: [players[1], avoidedPlayer],
-                    SUPPORT: [unrankedPlayer, players[4]],
                 },
             },
         };
@@ -194,9 +183,8 @@ describe('MatchResult', () => {
 
         expect(markup).toContain('비선호 배정 1명');
         expect(markup).toContain('Player3#1234');
-        expect(markup).toContain('미배치 역할 1명');
-        expect(markup).toContain('Player4#1234');
-        expect(markup).toContain('1팀 · 힐러');
+        expect(markup).toContain('1팀 · 딜러');
+        expect(markup).not.toContain('미배치 역할');
     });
 
     it('기본 결과 아래에는 추천 후보 2개와 전체 조합 Dialog 진입점만 보여준다', () => {

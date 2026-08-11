@@ -1,4 +1,4 @@
-import { ArrowLeftRight, Ban, Check, ShieldCheck, ShieldQuestion, Star } from 'lucide-react';
+import { ArrowLeftRight, Ban, Check, ShieldCheck, Star } from 'lucide-react';
 import { formatRank, TIER_LABEL_MAP } from '../../../constants';
 import type { MatchResultData, Player, Role, Tier } from '../../../types';
 import { getTierImage } from '../../../utils/tier';
@@ -57,23 +57,10 @@ const getRoleIcon = (role: Role) => {
 };
 
 /**
- * @description 기존 매치업 표와 같은 티어 이미지 또는 미배치 방패를 후보 카드에 표시한다.
+ * @description 기존 매치업 표와 같은 티어 이미지를 후보 카드에 표시한다.
  */
 const renderTierIcon = (tier: Tier) => {
-    if (tier === 'UNRANKED') {
-        return (
-            <span
-                className="inline-flex h-4 w-4 shrink-0 items-center justify-center text-slate-400"
-                data-tier-icon="unranked"
-                aria-hidden="true"
-            >
-                <ShieldQuestion size={13} strokeWidth={1.75} />
-            </span>
-        );
-    }
-
     const tierImage = getTierImage(tier);
-    if (!tierImage) return null;
 
     return (
         <img
@@ -115,9 +102,7 @@ const CompositionPlayer = ({ align, player, role }: CompositionPlayerProps) => {
     const rankDisplay = (
         <span
             className="inline-flex shrink-0 items-center gap-1 font-mono text-[10px] text-slate-300"
-            title={`${ROLE_LABELS[role]} ${TIER_LABEL_MAP[rank.tier]}${
-                rank.tier === 'UNRANKED' ? '' : ` ${rank.div} 디비전`
-            }`}
+            title={`${ROLE_LABELS[role]} ${TIER_LABEL_MAP[rank.tier]} ${rank.div} 디비전`}
             data-assigned-rank={rankLabel}
         >
             {align === 'left' && <span>{visibleRankLabel}</span>}
@@ -202,8 +187,7 @@ export function AlternativeResultCard({
     const metrics = candidate.metrics;
     const changes = getCandidateChanges(currentResult, candidate);
     const exceptionCount = (metrics?.preferenceViolations ?? 0)
-        + (metrics?.avoidedAssignments ?? 0)
-        + (metrics?.unrankedAssignments ?? 0);
+        + (metrics?.avoidedAssignments ?? 0);
     const rankLabel = candidate.evaluation
         ? `추천 ${candidate.evaluation.rank}위`
         : '수동 조정';

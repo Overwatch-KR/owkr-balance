@@ -167,7 +167,7 @@ const RosterPasteTextarea = ({
                             ? 'border-rose-500/70 focus:border-rose-400 focus:ring-rose-500/20'
                             : ''
                     }`}
-                    placeholder={`예시:\nkimjungun#11853 다5/다1/다5\n학살#38848 다3/마4/다4\nAki#34981 미배치(골)/미배치(플)/플2\n재봉이#31207 그5!/마1!/마4`}
+                    placeholder={`예시:\nkimjungun#11853 다5/다1/다5\n학살#38848 다3/마4/다4\nAki#34981 에3/플1/에2\n재봉이#31207 그5!/마1!/마4`}
                     value={value}
                     onChange={event => onChange(event.target.value)}
                     onPaste={() => {

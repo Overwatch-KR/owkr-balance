@@ -8,6 +8,7 @@ import {
 } from '../utils/player';
 import { normalizePlayerRolePreferences } from '../utils/role-preference';
 import { cleanupExpired, getWithExpiry, removeItem, setWithExpiry } from '../utils/storage';
+import { EMERALD_RELEASE_AT, getAvailableTiers, getTierScore } from '../constants';
 
 interface StoredMatchState {
     result: MatchResultData;
@@ -15,6 +16,27 @@ interface StoredMatchState {
 }
 
 const MATCH_SESSION_EXPIRY_MS = 30 * 60 * 1000;
+const RANK_KEYS = ['tank', 'dps', 'sup'] as const;
+
+/**
+ * @description 저장 명단에서 현재 허용하는 세 역할 티어만 남기고 활성 점수표로 갱신한다.
+ */
+const normalizeStoredPlayer = (player: Player): Player | null => {
+    const availableTiers = getAvailableTiers();
+    const hasCompleteRanks = RANK_KEYS.every((rankKey) => {
+        const rank = player[rankKey];
+        return availableTiers.includes(rank.tier)
+            && ['1', '2', '3', '4', '5'].includes(String(rank.div));
+    });
+    if (!hasCompleteRanks) return null;
+
+    return {
+        ...player,
+        tank: { ...player.tank, score: getTierScore(player.tank.tier, player.tank.div) },
+        dps: { ...player.dps, score: getTierScore(player.dps.tier, player.dps.div) },
+        sup: { ...player.sup, score: getTierScore(player.sup.tier, player.sup.div) },
+    };
+};
 
 const getStorageKeys = (userId: string) => ({
     PLAYERS: `owkr_players:${userId}`,
@@ -32,6 +54,8 @@ export const useMatchSession = (userId: string) => {
         const savedPlayers = (
             getWithExpiry<Player[]>(storageKeys.PLAYERS, MATCH_SESSION_EXPIRY_MS) || []
         )
+            .map(normalizeStoredPlayer)
+            .filter((player): player is Player => player !== null)
             .map(normalizePlayerRolePreferences);
         return reconcilePlayers([], savedPlayers, 'replace').players;
     });
@@ -54,6 +78,7 @@ export const useMatchSession = (userId: string) => {
         );
         if (!savedState) return null;
         const savedResult = 'result' in savedState ? savedState.result : savedState;
+        if (isMatchResultStale(savedResult, players)) return null;
         const savedAlternatives = 'result' in savedState ? savedState.alternatives : [];
         return {
             result: syncMatchResultPlayerIdentities(savedResult, players),
@@ -75,6 +100,20 @@ export const useMatchSession = (userId: string) => {
         initialMatchState?.result ?? null,
         initialMatchState?.alternatives ?? [],
     );
+
+    useEffect(() => {
+        const remainingMs = EMERALD_RELEASE_AT - Date.now();
+        if (remainingMs <= 0) return;
+
+        const timeoutId = window.setTimeout(() => {
+            setPlayers((currentPlayers) => currentPlayers
+                .map(normalizeStoredPlayer)
+                .filter((player): player is Player => player !== null));
+            setResult(null);
+            setAlternatives([]);
+        }, remainingMs);
+        return () => window.clearTimeout(timeoutId);
+    }, [setAlternatives, setResult]);
 
     useEffect(() => {
         cleanupExpired();
