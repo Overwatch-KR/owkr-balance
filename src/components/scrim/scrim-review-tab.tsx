@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NotebookPen, Save } from 'lucide-react';
-import type { ScrimRecord } from '../../types/scrim';
+import type { ScrimRecord } from '../../../domains/scrim/shared/public';
 
 interface ScrimReviewTabProps {
     onSave: (adminReview: string) => Promise<void>;

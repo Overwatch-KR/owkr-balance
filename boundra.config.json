@@ -1,0 +1,37 @@
+{
+  "$schema": "https://boundra.dev/schemas/boundra-config.v1.json",
+  "version": 1,
+  "project": {
+    "name": "owkr-match",
+    "workspaceRoot": "."
+  },
+  "paths": {
+    "apps": ".",
+    "domains": "domains",
+    "packages": "packages",
+    "crates": "crates"
+  },
+  "domain": {
+    "manifestFile": "domain.json",
+    "publicApi": {
+      "client": ["./client/public.ts"],
+      "server": ["./server/public.ts"],
+      "shared": ["./shared/public.ts"]
+    }
+  },
+  "checkBoundaries": {
+    "includeExtensions": ["ts", "tsx", "js", "jsx", "svelte"],
+    "ignore": [
+      "**/node_modules/**",
+      "**/.next/**",
+      "**/.turbo/**",
+      "**/.claude/worktrees/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/coverage/**",
+      "**/target/**",
+      "domains/scrim/shared/contracts/**",
+      "domains/scrim/shared/model.ts"
+    ]
+  }
+}

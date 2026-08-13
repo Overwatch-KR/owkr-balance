@@ -9,7 +9,7 @@ import type {
     ScrimRecord,
     ScrimRosterParticipant,
     PublicParticipationKind,
-} from '../../src/types/scrim.js';
+} from '../../domains/scrim/shared/public.js';
 import { getScrimTimes } from '../../src/utils/scrim.js';
 
 const SCRIMS_KEY = 'scrims:v1:records';

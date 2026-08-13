@@ -9,7 +9,7 @@ import {
     YAxis,
 } from 'recharts';
 import type { HeroRole } from '../../constants/hero';
-import { SATISFACTION_OPTIONS } from '../../types/scrim';
+import { SATISFACTION_OPTIONS } from '../../../domains/scrim/shared/constants';
 
 export interface HeroDemandChartDatum {
     count: number;

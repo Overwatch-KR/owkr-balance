@@ -20,7 +20,7 @@ import type { Player } from '../../types';
 import type {
     PublicParticipationKind,
     ScrimRecord,
-} from '../../types/scrim';
+} from '../../../domains/scrim/shared/public';
 import { formatScrimLabel } from '../../utils/scrim';
 import { getErrorMessage, requestJson } from '../../utils/api';
 import { useToast } from '../../hooks/use-toast';

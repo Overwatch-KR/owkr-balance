@@ -82,8 +82,25 @@ export const requestJson = async <T>(
 };
 
 /**
+ * @description Boundra 같은 계약 계층이 감싼 오류에서도 원래 API 오류를 찾아낸다.
+ */
+export const findApiError = (error: unknown): ApiError | null => {
+    let current = error;
+    const seen = new Set<unknown>();
+    while (current && !seen.has(current)) {
+        if (current instanceof ApiError) return current;
+        seen.add(current);
+        current = current instanceof Error ? current.cause : undefined;
+    }
+    return null;
+};
+
+/**
  * @description 알 수 없는 예외를 사용자에게 보여줄 안전한 한국어 메시지로 바꾼다.
  */
-export const getErrorMessage = (error: unknown, fallback: string): string => (
-    error instanceof Error && error.message.trim() ? error.message : fallback
-);
+export const getErrorMessage = (error: unknown, fallback: string): string => {
+    const apiError = findApiError(error);
+    if (apiError?.message.trim()) return apiError.message;
+    if (error instanceof Error && error.name === 'BoundraRuntimeError') return fallback;
+    return error instanceof Error && error.message.trim() ? error.message : fallback;
+};

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Loader2, MessageSquareText, Star } from 'lucide-react';
-import { ApiError, requestJson, getErrorMessage } from '../../utils/api';
+import { findApiError, getErrorMessage } from '../../utils/api';
 import {
     formatScrimLabel,
     formatRemainingDuration,
@@ -14,7 +14,15 @@ import {
     markSurveyAsSubmitted,
     markVoteAsSubmitted,
 } from '../../utils/survey-submission';
-import { SATISFACTION_OPTIONS, type PublicParticipationKind, type ScrimRecord } from '../../types/scrim';
+import {
+    loadPublicParticipation,
+    submitPublicSatisfaction,
+    submitPublicVote,
+} from '../../utils/scrim-contract-client';
+import {
+    SATISFACTION_OPTIONS,
+    type GetPublicParticipationQueryResult,
+} from '../../../domains/scrim/shared/public';
 import { useToast } from '../../hooks/use-toast';
 import { AppToast } from '../app-toast';
 import { Skeleton } from '../common/skeleton';
@@ -25,13 +33,8 @@ import { ParticipationClosed } from './participation-closed';
 import { RosterParticipantSelect } from './roster-participant-select';
 import { SurveySubmissionComplete } from './survey-submission-complete';
 
-interface PublicScrimRecord extends ScrimRecord {
-    submittedRosterParticipantIds?: string[];
-}
-
-interface PublicResponse { serverNow: number; scrims: PublicScrimRecord[]; kind: PublicParticipationKind; }
-
 const token = window.location.pathname.split('/').filter(Boolean).at(-1) ?? '';
+type SatisfactionOption = (typeof SATISFACTION_OPTIONS)[number];
 
 const PublicParticipationSkeleton = () => (
     <main className="mx-auto min-h-screen max-w-3xl p-4 py-8 text-slate-200 md:p-8" role="status" aria-label="내전 참여 정보를 불러오는 중">
@@ -59,12 +62,12 @@ const PublicParticipationSkeleton = () => (
  * @description 공개 토큰으로 연결된 내전의 투표와 익명 만족도 응답을 제공한다.
  */
 export function PublicParticipationPage() {
-    const [data, setData] = useState<PublicResponse | null>(null);
+    const [data, setData] = useState<GetPublicParticipationQueryResult | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [participantId, setParticipantId] = useState('');
     const [heroIds, setHeroIds] = useState<string[]>([]);
     const [score, setScore] = useState(0);
-    const [disappointments, setDisappointments] = useState<string[]>([]);
+    const [disappointments, setDisappointments] = useState<SatisfactionOption[]>([]);
     const [otherOpinion, setOtherOpinion] = useState('');
     const [error, setError] = useState('');
     const [isUnavailableLink, setIsUnavailableLink] = useState(false);
@@ -77,7 +80,7 @@ export function PublicParticipationPage() {
     const { dismissToast, showToast, toast } = useToast();
     const load = useCallback(async () => {
         try {
-            const next = await requestJson<PublicResponse>(`/api/public/participation?token=${encodeURIComponent(token)}`);
+            const next = await loadPublicParticipation({ token });
             serverClockOffsetRef.current = next.serverNow - Date.now();
             setNow(next.serverNow);
             setData(next);
@@ -86,7 +89,7 @@ export function PublicParticipationPage() {
         } catch (loadError) {
             setData(null);
             setError(getErrorMessage(loadError, '참여 링크를 불러오지 못했습니다.'));
-            setIsUnavailableLink(loadError instanceof ApiError && loadError.status === 404);
+            setIsUnavailableLink(findApiError(loadError)?.status === 404);
         } finally {
             setIsLoading(false);
         }
@@ -128,12 +131,15 @@ export function PublicParticipationPage() {
         setIsSubmitting(true);
         setError('');
         try {
-            await requestJson('/api/public/participation', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(action === 'vote'
-                    ? { token, action, scrimId: scrim.id, participantId, heroIds }
-                    : { token, action, scrimId: scrim.id, response: { score, disappointments, otherOpinion } }),
-            });
+            if (action === 'vote') {
+                await submitPublicVote({ token, scrimId: scrim.id, participantId, heroIds });
+            } else {
+                await submitPublicSatisfaction({
+                    token,
+                    scrimId: scrim.id,
+                    response: { score, disappointments, otherOpinion },
+                });
+            }
             if (action === 'satisfaction') {
                 markSurveyAsSubmitted(scrim.id);
                 setSubmittedSurveyId(scrim.id);
@@ -149,7 +155,7 @@ export function PublicParticipationPage() {
             setIsSubmitting(false);
         }
     };
-    const toggleDisappointment = (item: string) => setDisappointments(current => current.includes(item) ? current.filter(value => value !== item) : [...current, item]);
+    const toggleDisappointment = (item: SatisfactionOption) => setDisappointments(current => current.includes(item) ? current.filter(value => value !== item) : [...current, item]);
     const selectScore = (value: number) => {
         setScore(value);
         if (value >= 3) setDisappointments([]);

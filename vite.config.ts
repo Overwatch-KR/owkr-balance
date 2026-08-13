@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { boundra } from 'boundra/vite'
 import path from 'path'
 
 const getBasePath = () => {
@@ -14,7 +15,7 @@ const getBasePath = () => {
 // https://vite.dev/config/
 export default defineConfig({
   base: getBasePath(),
-  plugins: [react()],
+  plugins: [boundra(), react()],
   resolve: {
     alias: {
       'src': path.resolve(__dirname, './src')

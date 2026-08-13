@@ -1,7 +1,7 @@
 import { lazy, Suspense, useMemo } from 'react';
 import { Dices, Pencil } from 'lucide-react';
 import { HEROES, type Hero } from '../../constants/hero';
-import type { ScrimRecord } from '../../types/scrim';
+import type { ScrimRecord } from '../../../domains/scrim/shared/public';
 import { Skeleton } from '../common/skeleton';
 import type { HeroDemandChartDatum } from './scrim-result-charts';
 

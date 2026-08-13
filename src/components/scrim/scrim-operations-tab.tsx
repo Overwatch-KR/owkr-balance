@@ -7,7 +7,7 @@ import type {
     PublicParticipationKind,
     PublicParticipationLink,
     ScrimRecord,
-} from '../../types/scrim';
+} from '../../../domains/scrim/shared/public';
 
 interface LinkControlCardProps {
     kind: PublicParticipationKind;

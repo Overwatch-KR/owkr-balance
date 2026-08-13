@@ -1,7 +1,7 @@
 import type { Redis } from '@upstash/redis';
 import { describe, expect, it, vi } from 'vitest';
 import { HEROES } from '../../src/constants/hero';
-import type { HeroVote, ScrimRecord } from '../../src/types/scrim';
+import type { HeroVote, ScrimRecord } from '../../domains/scrim/shared/public';
 import {
     activatePublicLink,
     deleteScrim,
