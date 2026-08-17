@@ -2,6 +2,7 @@ import type { VercelRequest } from '@vercel/node';
 import { parseCookie, stringifySetCookie } from 'cookie';
 import jwt from 'jsonwebtoken';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
+import { ADMIN_USERS } from './admin.constants.js';
 
 export interface SessionUser {
     id: string;
@@ -45,10 +46,6 @@ const isSecureRequest = (req: VercelRequest): boolean => (
     || req.headers['x-forwarded-proto'] === 'https'
 );
 
-const splitIds = (value?: string): string[] => (
-    value?.split(',').map(id => id.trim()).filter(Boolean) ?? []
-);
-
 /**
  * @description 명시적으로 허용된 비프로덕션 루프백 요청인지 확인한다.
  */
@@ -75,7 +72,7 @@ export const isLocalAuthRequest = (req: VercelRequest): boolean => {
  * @description Discord 사용자 ID가 관리자 허용 목록에 포함되는지 확인한다.
  */
 export const isAllowedAdmin = (userId: string): boolean => (
-    splitIds(process.env.ADMIN_USER_IDS).includes(userId)
+    userId in ADMIN_USERS
 );
 
 /**

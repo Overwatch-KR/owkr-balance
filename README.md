@@ -123,7 +123,7 @@ BattleTag가 일치하면 화면의 대진표에 표시되지만, 복사 이미�
 - 개인 운영 메모는 로그인한 관리자 ID와 안정적인 시트 행 ID 조합으로 분리됩니다. 기존 BattleTag 기반 메모는 첫 조회 때 자동 이전됩니다.
 - 로그인 세션은 서명된 HttpOnly 쿠키로 관리되며 기본 유효 시간은 1주일입니다.
 - 일반 Discord 채팅 복사본에는 Discord 사용자 숫자 ID가 없으므로 참가자 식별에 사용하지 않습니다.
-- OAuth 로그인에서 확인한 운영자 Discord ID가 `ADMIN_USER_IDS`에 있을 때만 접근할 수 있습니다.
+- OAuth 로그인에서 확인한 운영자 Discord ID가 `api/_lib/admin.constants.ts`의 `ADMIN_USERS`에 있을 때만 접근할 수 있습니다.
 
 ## 개발 환경
 
@@ -210,7 +210,6 @@ Vercel CLI에 로그인할 수 있는 환경에서 운영 변수를 자동으로
 APP_ORIGIN=http://localhost:3000
 DISCORD_CLIENT_ID=
 DISCORD_CLIENT_SECRET=
-ADMIN_USER_IDS=
 JWT_SECRET=
 UPSTASH_REDIS_REST_URL=
 UPSTASH_REDIS_REST_TOKEN=
@@ -222,7 +221,6 @@ OWKR_LOCAL_DATA_ONLY=
 | `APP_ORIGIN` | 현재 환경의 공개 주소. 운영에서는 실제 HTTPS 도메인 |
 | `DISCORD_CLIENT_ID` | Discord OAuth 애플리케이션 Client ID |
 | `DISCORD_CLIENT_SECRET` | Discord OAuth 애플리케이션 Client Secret |
-| `ADMIN_USER_IDS` | 접근을 허용할 Discord 사용자 숫자 ID 목록. 쉼표로 구분 |
 | `JWT_SECRET` | OAuth state와 로그인 세션 서명 키. 최소 32자 |
 | `UPSTASH_REDIS_REST_URL` | Upstash Redis REST URL |
 | `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis REST Token |
@@ -247,7 +245,7 @@ https://서비스도메인/api/auth/callback
 ```
 
 3. 애플리케이션의 Client ID와 Client Secret을 환경 변수에 등록합니다.
-4. Discord 개발자 모드에서 운영자 계정의 사용자 ID를 복사해 `ADMIN_USER_IDS`에 등록합니다.
+4. Discord 개발자 모드에서 운영자 계정의 사용자 ID를 복사해 `api/_lib/admin.constants.ts`의 `ADMIN_USERS`에 이름과 함께 등록합니다.
 5. `APP_ORIGIN`이 접속 중인 주소와 일치하는지 확인합니다.
 
 `APP_ORIGIN`을 로컬 주소로 둔 채 배포하면 운영 사이트에서 로그인해도 로컬 콜백으로 이동하므로
