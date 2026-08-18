@@ -1,10 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { EMERALD_RELEASE_AT } from '../../../constants';
+import { describe, expect, it } from 'vitest';
 import { createDefaultPlayerInputs } from '../../../hooks/use-player-input';
 import TierSelect from './tier-select';
-
-afterEach(() => vi.useRealTimers());
 
 const renderTierSelect = () => renderToStaticMarkup(
     <TierSelect
@@ -18,16 +15,7 @@ const renderTierSelect = () => renderToStaticMarkup(
 );
 
 describe('TierSelect', () => {
-    it('활성화 전에는 에메랄드를 선택지에 표시하지 않는다', () => {
-        vi.useFakeTimers();
-        vi.setSystemTime(EMERALD_RELEASE_AT - 1);
-
-        expect(renderTierSelect()).not.toContain('value="EMERALD"');
-    });
-
-    it('활성화 시각부터 에메랄드와 디비전 선택을 표시한다', () => {
-        vi.useFakeTimers();
-        vi.setSystemTime(EMERALD_RELEASE_AT);
+    it('에메랄드와 디비전 선택을 항상 표시한다', () => {
         const markup = renderTierSelect();
 
         expect(markup).toContain('value="EMERALD"');

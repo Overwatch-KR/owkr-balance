@@ -8,7 +8,7 @@ import {
 } from '../utils/player';
 import { normalizePlayerRolePreferences } from '../utils/role-preference';
 import { cleanupExpired, getWithExpiry, removeItem, setWithExpiry } from '../utils/storage';
-import { EMERALD_RELEASE_AT, getAvailableTiers, getTierScore } from '../constants';
+import { getTierScore, TIERS } from '../constants';
 
 interface StoredMatchState {
     result: MatchResultData;
@@ -19,13 +19,12 @@ const MATCH_SESSION_EXPIRY_MS = 30 * 60 * 1000;
 const RANK_KEYS = ['tank', 'dps', 'sup'] as const;
 
 /**
- * @description 저장 명단에서 현재 허용하는 세 역할 티어만 남기고 활성 점수표로 갱신한다.
+ * @description 저장 명단에서 지원하는 세 역할 티어만 남기고 현재 점수표로 갱신한다.
  */
 const normalizeStoredPlayer = (player: Player): Player | null => {
-    const availableTiers = getAvailableTiers();
     const hasCompleteRanks = RANK_KEYS.every((rankKey) => {
         const rank = player[rankKey];
-        return availableTiers.includes(rank.tier)
+        return TIERS.includes(rank.tier)
             && ['1', '2', '3', '4', '5'].includes(String(rank.div));
     });
     if (!hasCompleteRanks) return null;
@@ -100,20 +99,6 @@ export const useMatchSession = (userId: string) => {
         initialMatchState?.result ?? null,
         initialMatchState?.alternatives ?? [],
     );
-
-    useEffect(() => {
-        const remainingMs = EMERALD_RELEASE_AT - Date.now();
-        if (remainingMs <= 0) return;
-
-        const timeoutId = window.setTimeout(() => {
-            setPlayers((currentPlayers) => currentPlayers
-                .map(normalizeStoredPlayer)
-                .filter((player): player is Player => player !== null));
-            setResult(null);
-            setAlternatives([]);
-        }, remainingMs);
-        return () => window.clearTimeout(timeoutId);
-    }, [setAlternatives, setResult]);
 
     useEffect(() => {
         cleanupExpired();

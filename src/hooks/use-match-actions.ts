@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction } from 'react';
-import { getSampleRoster } from '../constants';
+import { SAMPLE_ROSTER } from '../constants';
 import {
     swapMatchResultPlayers,
     type BalanceOptions,
@@ -186,7 +186,7 @@ export const useMatchActions = ({
             players,
             failedLines,
             avoidedRoleWarnings,
-        } = parseMultipleLines(getSampleRoster());
+        } = parseMultipleLines(SAMPLE_ROSTER);
         if (players.length !== 10 || failedLines.length > 0 || avoidedRoleWarnings.length > 0) {
             showToast('error', '더미 참가자 명단을 불러오지 못했습니다.');
             return;

@@ -1,6 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { EMERALD_RELEASE_AT, getSampleRoster } from '../../constants';
+import { SAMPLE_ROSTER } from '../../constants';
 import { balancePlayers } from '../balance';
 import { reconcilePlayers } from '../player';
 import {
@@ -85,26 +85,9 @@ roland#12831 골5? 다2! 다5!
 뿅뿅이 / 아이언 / 그마4 / 그마3
 `;
 
-beforeEach(() => {
-    vi.useFakeTimers();
-    vi.setSystemTime(EMERALD_RELEASE_AT);
-});
-
-afterEach(() => vi.useRealTimers());
-
 describe('가이드 예시 명단', () => {
-    it('에메랄드 활성화 전에도 기존 티어 예시 10명을 파싱한다', () => {
-        vi.setSystemTime(EMERALD_RELEASE_AT - 1);
-        const result = parseMultipleLines(getSampleRoster());
-
-        expect(result.players).toHaveLength(10);
-        expect(result.failedLines).toEqual([]);
-        expect(result.players.flatMap(player => [player.tank, player.dps, player.sup]))
-            .not.toContainEqual(expect.objectContaining({ tier: 'EMERALD' }));
-    });
-
     it('선호·비선호·무표시와 에메랄드가 섞인 참가자 10명을 파싱한다', () => {
-        const result = parseMultipleLines(getSampleRoster());
+        const result = parseMultipleLines(SAMPLE_ROSTER);
         const ranks = result.players.flatMap(player => [
             player.tank,
             player.dps,
@@ -135,7 +118,7 @@ describe('가이드 예시 명단', () => {
     });
 
     it('예시 매칭 결과에서 선호·비선호 배정 예외를 계산한다', () => {
-        const { players } = parseMultipleLines(getSampleRoster());
+        const { players } = parseMultipleLines(SAMPLE_ROSTER);
         const { result } = balancePlayers(players);
 
         expect(result.metrics?.preferenceViolations).toEqual(expect.any(Number));
@@ -264,12 +247,6 @@ describe('parseLineToPlayer', () => {
             expect(player?.tank).toMatchObject({ tier: 'EMERALD', div: 3 });
         },
     );
-
-    it('활성화 직전에는 에메랄드 입력을 받지 않는다', () => {
-        vi.setSystemTime(EMERALD_RELEASE_AT - 1);
-
-        expect(parseLineToPlayer('Tester#1234 에메3 / 플2 / 다4')).toBeNull();
-    });
 
     it('E로 시작하는 일반 영문 단어를 에메랄드로 오인하지 않는다', () => {
         expect(parseLineToPlayer('Tester#1234 Echo3 / 플2 / 다4')).toBeNull();

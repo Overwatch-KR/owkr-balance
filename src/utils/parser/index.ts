@@ -1,5 +1,5 @@
 import type { Player, Rank, Role } from 'src/types';
-import { getAvailableTiers, getScore, TIERS } from 'src/constants';
+import { getScore, TIERS } from 'src/constants';
 import { normalizePlayerRolePreferences } from 'src/utils/role-preference';
 import { findAvoidedRoleHighlightRanges } from './avoidance-highlight';
 
@@ -34,14 +34,14 @@ const findTierIndex = (tierStr: string): number => {
     };
 
     if (tierMap[normalized] !== undefined) {
-        return getAvailableTiers().indexOf(TIERS[tierMap[normalized]]);
+        return tierMap[normalized];
     }
 
     // 부분 매칭 시도
     for (const [key, idx] of Object.entries(tierMap)) {
         if (key.length === 1) continue;
         if (normalized.startsWith(key) || key.startsWith(normalized)) {
-            return getAvailableTiers().indexOf(TIERS[idx]);
+            return idx;
         }
     }
 
@@ -131,7 +131,7 @@ const parseRankSegment = (segment: string): { tierIdx: number; div: number; isPr
  * @returns Rank 객체
  */
 const createRank = (tierIdx: number, div: number, isPreferred: boolean, isAvoided: boolean): Rank => {
-    const tier = getAvailableTiers()[tierIdx];
+    const tier = TIERS[tierIdx];
     return {
         tier,
         div,

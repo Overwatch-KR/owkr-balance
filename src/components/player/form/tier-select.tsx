@@ -1,9 +1,8 @@
 import React from 'react';
 import { Ban, Star, ChevronDown } from 'lucide-react';
 import {
-    EMERALD_RELEASE_AT,
-    getAvailableTiers,
     TIER_LABEL_MAP,
+    TIERS,
 } from '../../../constants';
 import type { PlayerInputs } from '../../../hooks/use-player-input';
 import type { Tier } from '../../../types';
@@ -45,17 +44,9 @@ const TierSelect = ({ prefix, label, prefKey, avoidKey, inputs, setInputs }: Tie
     const tierKey = `${prefix}Tier` as 'tTier' | 'dTier' | 'sTier';
     const divKey = `${prefix}Div` as 'tDiv' | 'dDiv' | 'sDiv';
     const currentTier = inputs[tierKey];
-    const [currentTime, setCurrentTime] = React.useState(Date.now);
-    const tierOptions = getAvailableTiers(currentTime);
+    const tierOptions = TIERS;
     const role: Role = prefix === 't' ? 'TANK' : prefix === 'd' ? 'DPS' : 'SUPPORT';
     const tierImg = getTierImage(currentTier);
-
-    React.useEffect(() => {
-        const remainingMs = EMERALD_RELEASE_AT - Date.now();
-        if (remainingMs <= 0) return;
-        const timeoutId = window.setTimeout(() => setCurrentTime(Date.now()), remainingMs);
-        return () => window.clearTimeout(timeoutId);
-    }, []);
 
     const togglePref = () => {
         setInputs(prev => normalizeInputPreferences({
