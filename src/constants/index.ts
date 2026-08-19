@@ -3,7 +3,7 @@ import { Rank, Tier } from "../types";
 /**
  * @description 티어 순서를 점수 계산 기준으로 고정한 목록.
  */
-export const TIERS: readonly Tier[] = [
+export const TIERS: readonly Exclude<Tier, 'UNRANKED'>[] = [
     "BRONZE",
     "SILVER",
     "GOLD",
@@ -14,6 +14,11 @@ export const TIERS: readonly Tier[] = [
     "GRANDMASTER",
     "CHAMPION"
 ];
+
+/**
+ * @description 선택 UI에서 노출하는 정식 티어와 미배치 상태 목록.
+ */
+export const TIER_OPTIONS: readonly Tier[] = [...TIERS, 'UNRANKED'];
 
 /**
  * @description 티어·상태 코드와 UI 표기를 연결하는 라벨 맵.
@@ -27,7 +32,8 @@ export const TIER_LABEL_MAP: Record<Tier, string> = {
     DIAMOND: "다이아",
     MASTER: "마스터",
     GRANDMASTER: "그마",
-    CHAMPION: "챔피언"
+    CHAMPION: "챔피언",
+    UNRANKED: "미배치"
 };
 
 /**
@@ -70,20 +76,21 @@ export const getScore = (tierIdx: number, div: string | number): number => {
  * @returns 계산된 점수
  */
 export const getTierScore = (tier: Tier, div: string | number): number => {
+    if (tier === 'UNRANKED') return 0;
     return getScore(TIERS.indexOf(tier), div);
 };
 
 /**
  * @description Rank 정보를 UI용 짧은 문자열로 변환한다.
  * @param rankObj - 랭크 객체
- * @returns 포맷된 문자열 (예: "다3", "플1★")
+ * @returns 포맷된 문자열 (예: "다3", "플1★", "미배치")
  *
  * @example
  * formatRank({ tier: 'DIAMOND', div: 3, score: 2700, isPreferred: true })
  * // => "다3★"
  */
 export const formatRank = (rankObj: Rank): string => {
-    if (!rankObj) return "?";
+    if (!rankObj || rankObj.tier === 'UNRANKED') return "미배치";
     const shortName = TIER_LABEL_MAP[rankObj.tier]?.[0] || "?";
     const intentMark = rankObj.isPreferred ? '★' : rankObj.isAvoided ? '?' : '';
     return `${shortName}${rankObj.div}${intentMark}`;

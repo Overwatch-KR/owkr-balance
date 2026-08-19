@@ -390,6 +390,10 @@ const PlayerForm = ({
                                     <TierSelect prefix="s" label="힐러" prefKey="sPref" avoidKey="sAvoid" inputs={inputs} setInputs={setInputs} />
                                 </div>
 
+                                <p className="text-center text-xs text-slate-500">
+                                    정식 티어는 최소 2개 포지션이 필요하며, 나머지는 미배치로 선택할 수 있습니다
+                                </p>
+
                                 <button
                                     type="button"
                                     onClick={addPlayer}

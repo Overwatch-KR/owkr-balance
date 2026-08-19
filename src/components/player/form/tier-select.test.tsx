@@ -24,4 +24,23 @@ describe('TierSelect', () => {
         expect(markup).toContain('name="s-division"');
         expect(markup).toContain('aria-label="힐러 등급"');
     });
+
+    it('미배치를 선택하면 중립 상태를 표시하고 디비전 선택을 숨긴다', () => {
+        const markup = renderToStaticMarkup(
+            <TierSelect
+                prefix="s"
+                label="힐러"
+                prefKey="sPref"
+                avoidKey="sAvoid"
+                inputs={{ ...createDefaultPlayerInputs(), sTier: 'UNRANKED', sDiv: '0' }}
+                setInputs={() => undefined}
+            />,
+        );
+
+        expect(markup).toContain('data-tier-state="unranked"');
+        expect(markup).toContain('value="UNRANKED" selected=""');
+        expect(markup).toContain('미배치');
+        expect(markup).toContain('lucide-shield-question-mark');
+        expect(markup).not.toContain('name="s-division"');
+    });
 });

@@ -78,6 +78,10 @@ const BalanceSummary = ({ matchResult }: BalanceSummaryProps) => {
             label: '비선호 배정',
             players: assignedPlayers.filter(({ rank }) => rank.isAvoided),
         },
+        {
+            label: '미배치 역할',
+            players: assignedPlayers.filter(({ rank }) => rank.tier === 'UNRANKED'),
+        },
     ];
     const activeExceptions = exceptions.filter(({ players }) => players.length > 0);
     const roleDifferences = ROLE_DIFFERENCE_DEFS.map(({ role, label }) => {

@@ -253,11 +253,27 @@ describe('parseLineToPlayer', () => {
     });
 
     it.each(['미배치', '언랭', 'unranked'])(
-        '%s 역할이 포함된 참가자를 받지 않는다',
+        '%s 역할 하나가 포함된 두 포지션 배치 참가자를 받는다',
         (unranked) => {
-            expect(parseLineToPlayer(`Tester#1234 다3 / 플2 / ${unranked}`)).toBeNull();
+            expect(parseLineToPlayer(`Tester#1234 다3 / 플2 / ${unranked}`)).toMatchObject({
+                tank: { tier: 'DIAMOND', div: 3 },
+                dps: { tier: 'PLATINUM', div: 2 },
+                sup: { tier: 'UNRANKED', div: 0, score: 0 },
+            });
         },
     );
+
+    it('세 번째 포지션을 생략한 두 포지션 입력을 미배치로 채운다', () => {
+        expect(parseLineToPlayer('Tester#1234 다3 / 플2')).toMatchObject({
+            tank: { tier: 'DIAMOND', div: 3 },
+            dps: { tier: 'PLATINUM', div: 2 },
+            sup: { tier: 'UNRANKED', div: 0, score: 0 },
+        });
+    });
+
+    it('정식 티어가 한 포지션뿐인 참가자는 받지 않는다', () => {
+        expect(parseLineToPlayer('Tester#1234 다3 / 미배치 / 언랭')).toBeNull();
+    });
 
     it('두 포지션이 비선호이면 임의 보정하지 않고 거부한다', () => {
         const player = parseLineToPlayer('Tester#1234 다3? / 플2? / 골1');

@@ -110,6 +110,13 @@ export const useRosterManagement = ({
             setManualInputError('배틀태그를 Player#1234 형식으로 입력해 주세요.');
             return;
         }
+        const rankedRoleCount = [inputs.tTier, inputs.dTier, inputs.sTier]
+            .filter(tier => tier !== 'UNRANKED').length;
+        if (rankedRoleCount < 2) {
+            setIsInputCollapsed(false);
+            setManualInputError('최소 2개 포지션의 정식 티어를 입력해 주세요.');
+            return;
+        }
         const normalizedName = normalizePlayerName(inputs.name);
         if (match.players.some(player => (
             player.id !== editingPlayerId
@@ -338,9 +345,9 @@ export const useRosterManagement = ({
             setIsInputCollapsed(false);
             showDetailedError('읽어낸 플레이어가 없습니다.', {
                 title: 'Discord 명단을 해석하지 못했습니다',
-                description: '붙여넣은 내용에서 올바른 배틀태그와 세 역할 티어를 찾지 못했습니다.',
+                description: '붙여넣은 내용에서 올바른 배틀태그와 최소 두 역할 티어를 찾지 못했습니다.',
                 items: importFailedLines,
-                hint: 'Player#1234 다3/플2/마5 형식이 포함되어 있는지 확인해 주세요.',
+                hint: 'Player#1234 다3/플2/미배치 형식이 포함되어 있는지 확인해 주세요.',
             });
             return;
         }

@@ -33,6 +33,7 @@ interface AssignmentResult {
     realScore: number;
     preferenceViolations: number;
     avoidedAssignments: number;
+    unrankedAssignments: number;
     teamStdDev: number;
     roleScores: RoleScores;
 }
@@ -42,6 +43,7 @@ interface Candidate {
     teamB: AssignmentResult;
     preferenceViolations: number;
     avoidedAssignments: number;
+    unrankedAssignments: number;
     compositeScore: number;
     realDiff: number;
     tankDiff: number;
@@ -105,6 +107,7 @@ const buildAssignmentResult = (assignment: RoleAssignment): AssignmentResult => 
 
     let preferenceViolations = 0;
     let avoidedAssignments = 0;
+    let unrankedAssignments = 0;
 
     for (const [player, role] of assignedPlayers) {
         const assignedRank = getRank(player, role);
@@ -112,6 +115,7 @@ const buildAssignmentResult = (assignment: RoleAssignment): AssignmentResult => 
 
         if (hasPreferredRole && !assignedRank.isPreferred) preferenceViolations++;
         if (assignedRank.isAvoided) avoidedAssignments++;
+        if (assignedRank.tier === 'UNRANKED') unrankedAssignments++;
     }
 
     const tankScore = scores[0];
@@ -123,6 +127,7 @@ const buildAssignmentResult = (assignment: RoleAssignment): AssignmentResult => 
         realScore: scores.reduce((sum, score) => sum + score, 0),
         preferenceViolations,
         avoidedAssignments,
+        unrankedAssignments,
         teamStdDev: calculateStdDev(scores),
         roleScores: {
             tank: tankScore,
@@ -186,7 +191,7 @@ const compareTankSafeguard = (candidate: Candidate, existing: Candidate): number
 };
 
 /**
- * @description 설정에 따라 선호 위반을 제외하고 탱커 안전장치·비선호·종합 점수 순으로 후보를 비교한다.
+ * @description 설정에 따라 선호 위반을 제외하고 탱커 안전장치·비선호·미배치·종합 점수 순으로 후보를 비교한다.
  */
 const compareCandidates = (
     candidate: Candidate,
@@ -198,6 +203,7 @@ const compareCandidates = (
         : candidate.preferenceViolations - existing.preferenceViolations)
     || compareTankSafeguard(candidate, existing)
     || candidate.avoidedAssignments - existing.avoidedAssignments
+    || candidate.unrankedAssignments - existing.unrankedAssignments
     || candidate.compositeScore - existing.compositeScore
     || candidate.realDiff - existing.realDiff;
 
@@ -313,6 +319,7 @@ const buildMetrics = (teamA: AssignmentResult, teamB: AssignmentResult): Balance
     teamStdDevs: [Math.round(teamA.teamStdDev), Math.round(teamB.teamStdDev)],
     preferenceViolations: teamA.preferenceViolations + teamB.preferenceViolations,
     avoidedAssignments: teamA.avoidedAssignments + teamB.avoidedAssignments,
+    unrankedAssignments: teamA.unrankedAssignments + teamB.unrankedAssignments,
 });
 
 /**
@@ -445,6 +452,7 @@ export const balancePlayers = (
                     teamB,
                     preferenceViolations: teamA.preferenceViolations + teamB.preferenceViolations,
                     avoidedAssignments: teamA.avoidedAssignments + teamB.avoidedAssignments,
+                    unrankedAssignments: teamA.unrankedAssignments + teamB.unrankedAssignments,
                     compositeScore: realDiff
                         + roleMatchupDiff * SCORE_WEIGHTS.roleMatchup
                         + teamVariance * SCORE_WEIGHTS.teamVariance,

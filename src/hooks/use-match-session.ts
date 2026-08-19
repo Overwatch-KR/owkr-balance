@@ -19,15 +19,20 @@ const MATCH_SESSION_EXPIRY_MS = 30 * 60 * 1000;
 const RANK_KEYS = ['tank', 'dps', 'sup'] as const;
 
 /**
- * @description 저장 명단에서 지원하는 세 역할 티어만 남기고 현재 점수표로 갱신한다.
+ * @description 저장 명단에서 최소 두 역할의 정식 티어와 선택적 미배치를 검증하고 현재 점수표로 갱신한다.
  */
 const normalizeStoredPlayer = (player: Player): Player | null => {
-    const hasCompleteRanks = RANK_KEYS.every((rankKey) => {
+    const hasValidRanks = RANK_KEYS.every((rankKey) => {
         const rank = player[rankKey];
+        if (!rank) return false;
+        if (rank.tier === 'UNRANKED') return String(rank.div) === '0';
         return TIERS.includes(rank.tier)
             && ['1', '2', '3', '4', '5'].includes(String(rank.div));
     });
-    if (!hasCompleteRanks) return null;
+    const rankedRoleCount = RANK_KEYS.filter(
+        rankKey => player[rankKey]?.tier !== 'UNRANKED',
+    ).length;
+    if (!hasValidRanks || rankedRoleCount < 2) return null;
 
     return {
         ...player,

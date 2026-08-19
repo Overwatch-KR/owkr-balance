@@ -1,8 +1,8 @@
 import React from 'react';
-import { Ban, Star, ChevronDown } from 'lucide-react';
+import { Ban, Star, ChevronDown, ShieldQuestion } from 'lucide-react';
 import {
     TIER_LABEL_MAP,
-    TIERS,
+    TIER_OPTIONS,
 } from '../../../constants';
 import type { PlayerInputs } from '../../../hooks/use-player-input';
 import type { Tier } from '../../../types';
@@ -44,7 +44,8 @@ const TierSelect = ({ prefix, label, prefKey, avoidKey, inputs, setInputs }: Tie
     const tierKey = `${prefix}Tier` as 'tTier' | 'dTier' | 'sTier';
     const divKey = `${prefix}Div` as 'tDiv' | 'dDiv' | 'sDiv';
     const currentTier = inputs[tierKey];
-    const tierOptions = TIERS;
+    const isUnranked = currentTier === 'UNRANKED';
+    const tierOptions = TIER_OPTIONS;
     const role: Role = prefix === 't' ? 'TANK' : prefix === 'd' ? 'DPS' : 'SUPPORT';
     const tierImg = getTierImage(currentTier);
 
@@ -104,10 +105,16 @@ const TierSelect = ({ prefix, label, prefKey, avoidKey, inputs, setInputs }: Tie
             </div>
             <div className="flex gap-2 items-center">
                 <div
-                    className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-700/50 bg-surface p-1.5"
-                    data-tier-state="ranked"
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border p-1.5 ${
+                        isUnranked
+                            ? 'border-slate-500/70 bg-slate-800 text-slate-300'
+                            : 'border-slate-700/50 bg-surface'
+                    }`}
+                    data-tier-state={isUnranked ? 'unranked' : 'ranked'}
                 >
-                    {tierImg ? (
+                    {isUnranked ? (
+                        <ShieldQuestion size={22} strokeWidth={1.75} aria-hidden="true" />
+                    ) : tierImg ? (
                         <img
                             key={tierImg}
                             src={tierImg}
@@ -126,15 +133,19 @@ const TierSelect = ({ prefix, label, prefKey, avoidKey, inputs, setInputs }: Tie
                         <select
                             name={`${prefix}-tier`}
                             aria-label={`${label} 티어`}
-                            className="input-base cursor-pointer appearance-none pr-8"
-                            data-tier-state="ranked"
+                            className={`input-base cursor-pointer appearance-none pr-8 ${
+                                isUnranked ? 'border-slate-500/70 bg-slate-800/80 text-slate-200' : ''
+                            }`}
+                            data-tier-state={isUnranked ? 'unranked' : 'ranked'}
                             value={currentTier}
                             onChange={(event) => {
                                 const nextTier = event.target.value as Tier;
                                 setInputs(prev => ({
                                     ...prev,
                                     [tierKey]: nextTier,
-                                    [divKey]: prev[divKey] === '0' ? '3' : prev[divKey],
+                                    [divKey]: nextTier === 'UNRANKED'
+                                        ? '0'
+                                        : prev[divKey] === '0' ? '3' : prev[divKey],
                                 }));
                             }}
                         >
@@ -144,18 +155,22 @@ const TierSelect = ({ prefix, label, prefKey, avoidKey, inputs, setInputs }: Tie
                         </select>
                         <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" aria-hidden="true" />
                     </div>
-                    <div className="relative w-20">
-                        <select
-                            name={`${prefix}-division`}
-                            aria-label={`${label} 등급`}
-                            className="input-base cursor-pointer appearance-none text-center"
-                            value={inputs[divKey]}
-                            onChange={(e) => setInputs(prev => ({ ...prev, [divKey]: e.target.value }))}
-                        >
-                            {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n}</option>)}
-                        </select>
-                        <ChevronDown size={14} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-500" aria-hidden="true" />
-                    </div>
+                    {isUnranked ? (
+                        <div className="w-20 shrink-0" aria-hidden="true" />
+                    ) : (
+                        <div className="relative w-20">
+                            <select
+                                name={`${prefix}-division`}
+                                aria-label={`${label} 등급`}
+                                className="input-base cursor-pointer appearance-none text-center"
+                                value={inputs[divKey]}
+                                onChange={(e) => setInputs(prev => ({ ...prev, [divKey]: e.target.value }))}
+                            >
+                                {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n}</option>)}
+                            </select>
+                            <ChevronDown size={14} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-500" aria-hidden="true" />
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

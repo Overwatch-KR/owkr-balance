@@ -184,7 +184,41 @@ describe('MatchResult', () => {
         expect(markup).toContain('비선호 배정 1명');
         expect(markup).toContain('Player3#1234');
         expect(markup).toContain('1팀 · 딜러');
-        expect(markup).not.toContain('미배치 역할');
+        expect(markup).toContain('미배치 역할 0명');
+    });
+
+    it('미배치 역할에 배정된 대상을 이름과 배정 위치로 알려준다', () => {
+        const unrankedPlayer: Player = {
+            ...players[3],
+            sup: {
+                tier: 'UNRANKED',
+                div: 0,
+                score: 0,
+                isPreferred: false,
+                isAvoided: false,
+            },
+        };
+        const resultWithUnrankedAssignment: MatchResultData = {
+            ...matchResult,
+            teamA: {
+                ...matchResult.teamA,
+                assignment: {
+                    ...matchResult.teamA.assignment,
+                    SUPPORT: [unrankedPlayer, players[4]],
+                },
+            },
+        };
+        const markup = renderToStaticMarkup(
+            <MatchResult
+                matchResult={resultWithUnrankedAssignment}
+                onSlotClick={vi.fn()}
+                swapSource={null}
+            />,
+        );
+
+        expect(markup).toContain('미배치 역할 1명');
+        expect(markup).toContain('Player4#1234');
+        expect(markup).toContain('1팀 · 힐러');
     });
 
     it('기본 결과 아래에는 추천 후보 2개와 전체 조합 Dialog 진입점만 보여준다', () => {

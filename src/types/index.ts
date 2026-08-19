@@ -15,13 +15,14 @@ export type Tier =
     | 'DIAMOND'
     | 'MASTER'
     | 'GRANDMASTER'
-    | 'CHAMPION';
+    | 'CHAMPION'
+    | 'UNRANKED';
 
 /**
  * @description 역할별 점수 계산과 표시를 위한 랭크 정보.
- * @property tier - 티어 (BRONZE ~ CHAMPION)
- * @property div - 등급 (1~5)
- * @property score - 비선형 티어 기준표와 디비전으로 계산한 점수
+ * @property tier - 티어 (BRONZE ~ CHAMPION, UNRANKED)
+ * @property div - 등급 (1~5, 미배치는 0)
+ * @property score - 비선형 티어 기준표와 디비전으로 계산한 점수 (미배치는 0)
  * @property isPreferred - 선호 역할 여부 (! 표시)
  * @property isAvoided - 비선호 역할 여부 (? 표시)
  */
@@ -95,6 +96,7 @@ export interface SwapSource {
  * @property teamStdDevs - 각 팀의 내부 점수 표준편차
  * @property preferenceViolations - 선호 역할이 있지만 다른 역할에 배정된 인원
  * @property avoidedAssignments - 비선호 역할에 배정된 인원
+ * @property unrankedAssignments - 미배치 역할에 배정된 인원
  */
 export interface BalanceMetrics {
     totalDiff: number;
@@ -102,6 +104,7 @@ export interface BalanceMetrics {
     teamStdDevs: [number, number];
     preferenceViolations?: number;
     avoidedAssignments?: number;
+    unrankedAssignments?: number;
 }
 
 /**

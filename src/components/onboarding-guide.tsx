@@ -118,7 +118,7 @@ const RESULT_GUIDE_STEPS: readonly GuideStep[] = [
         icon: ListChecks,
         target: '#balance-exceptions',
         title: '배정 예외를 확인하세요',
-        description: '선호 역할 이탈이나 비선호 배정 인원이 있다면 실제 플레이가 가능한 구성인지 확인합니다.',
+        description: '선호 역할 이탈, 비선호 배정, 미배치 역할 인원이 있다면 실제 플레이가 가능한 구성인지 확인합니다.',
     },
     {
         id: 'result-alternatives',
