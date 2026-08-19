@@ -108,6 +108,7 @@ export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManag
     const [heroPickerMode, setHeroPickerMode] = useState<HeroPickerMode>(null);
     const [isRandomModalOpen, setIsRandomModalOpen] = useState(false);
     const [isGuideOpen, setIsGuideOpen] = useState(false);
+    const [pendingActionKey, setPendingActionKey] = useState('');
     const { dismissToast, showToast, toast } = useToast();
 
     const load = useCallback(async () => {
@@ -197,9 +198,11 @@ export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManag
         action: string,
         payload: Record<string, unknown> = {},
     ) => {
-        if (!selected && action !== 'create') return;
+        if ((!selected && action !== 'create') || pendingActionKey) return;
+        const actionKey = `${action}:${typeof payload.kind === 'string' ? payload.kind : ''}`;
+        setPendingActionKey(actionKey);
         try {
-            await requestJson('/api/scrims', {
+            const result = await requestJson<{ scrim: ScrimRecord }>('/api/scrims', {
                 method: action === 'create' ? 'POST' : 'PATCH',
                 credentials: 'same-origin',
                 headers: {
@@ -212,7 +215,14 @@ export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManag
                         : { id: selected!.id, action, ...payload },
                 ),
             });
-            await load();
+            if (action === 'create') {
+                setScrims(current => [...current, result.scrim]);
+                setSelectedId(result.scrim.id);
+            } else {
+                setScrims(current => current.map(scrim => (
+                    scrim.id === result.scrim.id ? result.scrim : scrim
+                )));
+            }
             const messages: Record<string, string> = {
                 create: '내전을 등록했습니다.',
                 openVote: '영웅 밴 투표를 열고 참여 링크를 생성했습니다.',
@@ -231,8 +241,10 @@ export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManag
             showToast('success', messages[action] ?? '변경 사항을 저장했습니다.');
         } catch (error) {
             showToast('error', getErrorMessage(error, '저장하지 못했습니다.'));
+        } finally {
+            setPendingActionKey('');
         }
-    }, [csrfToken, load, selected, showToast]);
+    }, [csrfToken, pendingActionKey, selected, showToast]);
 
     const resolveTieRandom = useCallback(async (): Promise<string[]> => {
         if (!selectedScrimId) throw new Error('내전 정보를 찾을 수 없습니다.');
@@ -426,6 +438,7 @@ export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManag
 
                             {activeTab === 'operations' ? (
                                 <ScrimOperationsTab
+                                    pendingActionKey={pendingActionKey}
                                     scrim={selected}
                                     onAction={(action, payload) => void call(action, payload)}
                                     onCopy={kind => void copyLink(kind)}
