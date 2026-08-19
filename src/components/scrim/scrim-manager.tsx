@@ -27,6 +27,7 @@ import { useToast } from '../../hooks/use-toast';
 import { AppToast } from '../app-toast';
 import { DouMascot } from '../common/dou-mascot';
 import { Skeleton } from '../common/skeleton';
+import { EventParticipantSummary } from './event-participant-summary';
 import { HeroPickerModal } from './hero-picker-modal';
 import { RandomBanModal } from './random-ban-modal';
 import { ScrimDateTimePicker } from './scrim-datetime-picker';
@@ -334,6 +335,8 @@ export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManag
                         </button>
                     </div>
                 </section>
+
+                <EventParticipantSummary isLoading={isLoading} scrims={scrims} />
 
                 <div className="mt-6 grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
                     <aside className="card h-fit">
