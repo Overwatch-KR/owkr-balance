@@ -101,7 +101,7 @@ export function EventParticipantsPage({ csrfToken, onClose }: EventParticipantsP
                     <div>
                         <p className="text-xs font-semibold text-cyan-300">2026 넥슨 이벤트</p>
                         <h1 className="mt-1 text-2xl font-bold text-white">이벤트 참여자</h1>
-                        <p className="mt-1 text-sm text-slate-400">내전 로스터 후보에서 실제 참여한 사람을 직접 확정합니다.</p>
+                        <p className="mt-1 text-sm text-slate-400">팀 결과에서 등록한 실제 참여자를 확인하고 수정합니다.</p>
                     </div>
                     <div className="flex items-center gap-2">
                         <button

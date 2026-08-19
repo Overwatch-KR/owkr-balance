@@ -1,7 +1,11 @@
 import type { Redis } from '@upstash/redis';
 import { describe, expect, it, vi } from 'vitest';
 import type { ScrimRecord } from '../../domains/scrim/shared/public';
-import { getEventParticipation, saveEventParticipation } from './event-participant-store';
+import {
+    addEventParticipation,
+    getEventParticipation,
+    saveEventParticipation,
+} from './event-participant-store';
 
 const scrims = [{
     id: 'scrim-1',
@@ -57,6 +61,30 @@ describe('event participant store', () => {
         const { redis } = createRedis();
 
         await expect(saveEventParticipation(redis, scrims, ['unknown'])).resolves.toBeNull();
+        expect(redis.set).not.toHaveBeenCalled();
+    });
+
+    it('팀 결과 참여자를 기존 명단과 합치고 같은 ID는 중복 저장하지 않는다', async () => {
+        const { redis } = createRedis();
+        await saveEventParticipation(redis, scrims, ['player-1']);
+
+        const result = await addEventParticipation(redis, scrims, [
+            { id: 'player-1', name: '갱신된 이름' },
+            { id: 'direct-player', name: '직접 등록' },
+        ]);
+
+        expect(result?.participantIds).toEqual(['player-1', 'direct-player']);
+        expect(result?.candidates).toContainEqual({ id: 'player-1', name: '갱신된 이름' });
+        expect(result?.candidates).toContainEqual({ id: 'direct-player', name: '직접 등록' });
+    });
+
+    it('팀 결과 참여자는 10명 이하의 유효한 고유 ID만 허용한다', async () => {
+        const { redis } = createRedis();
+
+        await expect(addEventParticipation(redis, scrims, [
+            { id: 'same', name: '첫 번째' },
+            { id: 'same', name: '두 번째' },
+        ])).resolves.toBeNull();
         expect(redis.set).not.toHaveBeenCalled();
     });
 });

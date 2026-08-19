@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { AlertTriangle, ArrowLeftRight, Layers3, Loader2, X } from 'lucide-react';
+import { AlertTriangle, ArrowLeftRight, CalendarCheck2, Layers3, Loader2, X } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import type { MatchResultData, Role, SwapSource } from '../../../types';
 import type { UserSheetEntry } from '../../../utils/user-sheet';
@@ -17,8 +17,10 @@ interface MatchResultProps {
     alternatives?: MatchResultData[];
     onSelectAlternative?: (idx: number) => void;
     isGeneratingAlternatives?: boolean;
+    isEventRegistrationAvailable?: boolean;
     isStale?: boolean;
     onCancelSwap?: () => void;
+    onOpenEventRegistration?: () => void;
     onShowAllRanksChange?: (showAllRanks: boolean) => void;
     showAllRanks?: boolean;
     userSheetByBattleTag?: Map<string, UserSheetEntry>;
@@ -49,8 +51,10 @@ const MatchResult = ({
     alternatives = [],
     onSelectAlternative,
     isGeneratingAlternatives = false,
+    isEventRegistrationAvailable = true,
     isStale = false,
     onCancelSwap,
+    onOpenEventRegistration,
     onShowAllRanksChange,
     showAllRanks = false,
     userSheetByBattleTag,
@@ -58,6 +62,7 @@ const MatchResult = ({
     const captureRef = useRef<HTMLDivElement>(null);
     const [isAlternativeDialogOpen, setIsAlternativeDialogOpen] = useState(false);
     const { copyStatus, handleCopyImage } = useCopyImage(captureRef);
+    const canRegisterEvent = isEventRegistrationAvailable && Boolean(onOpenEventRegistration);
     const selectedSwapPlayer = getSelectedSwapPlayer(matchResult, swapSource);
     const currentResultKey = getMatchResultKey(matchResult);
     const previewAlternatives = alternatives
@@ -155,6 +160,22 @@ const MatchResult = ({
                             }`}
                         />
                     </span>
+                </button>
+                <button
+                    type="button"
+                    disabled={isStale || !canRegisterEvent}
+                    onClick={onOpenEventRegistration}
+                    title={!isEventRegistrationAvailable
+                        ? '원격 저장소에 연결된 실행 모드에서 등록할 수 있습니다.'
+                        : !onOpenEventRegistration
+                            ? '이벤트 참여 등록을 사용할 수 없습니다.'
+                        : isStale
+                            ? '변경된 명단으로 다시 매칭한 뒤 등록해 주세요.'
+                            : '현재 팀 배정 인원을 이벤트 실제 참여자로 등록합니다.'}
+                    className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-cyan-400/30 bg-cyan-400/10 px-3 text-xs font-medium text-cyan-200 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-800 disabled:text-slate-500"
+                >
+                    <CalendarCheck2 size={14} aria-hidden="true" />
+                    이번 내전 참여 등록
                 </button>
                 <CopyButton status={copyStatus} onClick={handleCopyImage} />
             </div>

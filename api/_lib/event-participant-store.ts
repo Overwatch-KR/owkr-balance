@@ -12,6 +12,27 @@ interface StoredEventParticipation {
     updatedAt: number;
 }
 
+const parseParticipants = (rawParticipants: unknown): ScrimRosterParticipant[] | null => {
+    if (!Array.isArray(rawParticipants) || rawParticipants.length < 1 || rawParticipants.length > 10) {
+        return null;
+    }
+    const participants: ScrimRosterParticipant[] = [];
+    const ids = new Set<string>();
+    for (const raw of rawParticipants) {
+        if (!raw || typeof raw !== 'object') return null;
+        const input = raw as Partial<ScrimRosterParticipant>;
+        const id = typeof input.id === 'string' ? input.id.trim().slice(0, 200) : '';
+        const name = typeof input.name === 'string' ? input.name.trim().slice(0, 100) : '';
+        const discordName = typeof input.discordName === 'string'
+            ? input.discordName.trim().slice(0, 100)
+            : '';
+        if (!id || !name || ids.has(id)) return null;
+        ids.add(id);
+        participants.push({ id, name, discordName: discordName || undefined });
+    }
+    return participants;
+};
+
 const readStoredParticipation = async (redis: Redis): Promise<StoredEventParticipation> => {
     const stored = await redis.get<StoredEventParticipation>(EVENT_PARTICIPANTS_KEY);
     if (!stored || !Array.isArray(stored.participants)) {
@@ -33,7 +54,7 @@ const buildSnapshot = (
 ): EventParticipationSnapshot => {
     const candidatesById = new Map(candidates.map(participant => [participant.id, participant]));
     stored.participants.forEach(participant => {
-        if (!candidatesById.has(participant.id)) candidatesById.set(participant.id, participant);
+        candidatesById.set(participant.id, participant);
     });
     return {
         candidates: [...candidatesById.values()].sort((a, b) => a.name.localeCompare(b.name, 'ko-KR')),
@@ -76,6 +97,31 @@ export const saveEventParticipation = async (
 
     const next: StoredEventParticipation = {
         participants: rawParticipantIds.map(id => available.get(id)!),
+        updatedAt: Date.now(),
+    };
+    await redis.set(EVENT_PARTICIPANTS_KEY, next);
+    return buildSnapshot(getEventParticipantCandidates(scrims), next);
+};
+
+/**
+ * @description 팀 결과에서 확정한 이번 내전 참여자를 기존 이벤트 참여자와 중복 없이 합쳐 저장한다.
+ */
+export const addEventParticipation = async (
+    redis: Redis,
+    scrims: ScrimRecord[],
+    rawParticipants: unknown,
+): Promise<EventParticipationSnapshot | null> => {
+    const participants = parseParticipants(rawParticipants);
+    if (!participants) return null;
+
+    const stored = await readStoredParticipation(redis);
+    const participantsById = new Map(stored.participants.map(participant => [
+        participant.id,
+        participant,
+    ]));
+    participants.forEach(participant => participantsById.set(participant.id, participant));
+    const next: StoredEventParticipation = {
+        participants: [...participantsById.values()],
         updatedAt: Date.now(),
     };
     await redis.set(EVENT_PARTICIPANTS_KEY, next);
