@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ScrimRecord } from '../../domains/scrim/shared/public';
-import { getEventParticipants } from './event-participants';
+import { getEventParticipantCandidates } from './event-participants';
 
 const createScrim = (
     id: string,
@@ -22,7 +22,7 @@ const createScrim = (
     satisfactionResponses: [],
 });
 
-describe('getEventParticipants', () => {
+describe('getEventParticipantCandidates', () => {
     it('includes both event boundary dates and excludes outside dates', () => {
         const scrims = [
             createScrim('before', '2026-08-17', [{ id: 'outside-before', name: '이전' }]),
@@ -31,7 +31,7 @@ describe('getEventParticipants', () => {
             createScrim('after', '2026-09-19', [{ id: 'outside-after', name: '이후' }]),
         ];
 
-        expect(getEventParticipants(scrims).map(participant => participant.id).sort()).toEqual([
+        expect(getEventParticipantCandidates(scrims).map(participant => participant.id).sort()).toEqual([
             'end',
             'start',
         ]);
@@ -46,7 +46,7 @@ describe('getEventParticipants', () => {
             ]),
         ];
 
-        expect(getEventParticipants(scrims)).toEqual([
+        expect(getEventParticipantCandidates(scrims)).toEqual([
             { id: 'another-id', name: '다른사람' },
             { id: 'same-id', name: '현재이름', discordName: 'current' },
         ]);
