@@ -99,7 +99,7 @@ export function EventParticipantsPage({ csrfToken, onClose }: EventParticipantsP
             <div className="mx-auto max-w-4xl">
                 <header className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                        <p className="text-xs font-semibold text-cyan-300">2026 여름 이벤트</p>
+                        <p className="text-xs font-semibold text-cyan-300">2026 넥슨 이벤트</p>
                         <h1 className="mt-1 text-2xl font-bold text-white">이벤트 참여자</h1>
                         <p className="mt-1 text-sm text-slate-400">내전 로스터 후보에서 실제 참여한 사람을 직접 확정합니다.</p>
                     </div>
