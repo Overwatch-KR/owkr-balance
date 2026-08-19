@@ -46,7 +46,10 @@ interface MatchAppProps {
     authMode: AuthMode;
     csrfToken: string;
     dataMode: DataMode;
+    isPageNavigating: boolean;
     logout: () => Promise<void>;
+    navigate: (pathname: string) => void;
+    pathname: string;
     user: AuthUser;
 }
 
@@ -61,7 +64,16 @@ const PageLoadingBar = () => (
     />
 );
 
-const MatchApp = ({ authMode, csrfToken, dataMode, logout, user }: MatchAppProps) => {
+const MatchApp = ({
+    authMode,
+    csrfToken,
+    dataMode,
+    isPageNavigating,
+    logout,
+    navigate,
+    pathname,
+    user,
+}: MatchAppProps) => {
     const {
         alternatives,
         balanceTeams,
@@ -82,26 +94,10 @@ const MatchApp = ({ authMode, csrfToken, dataMode, logout, user }: MatchAppProps
     const [ignorePreferences, setIgnorePreferences] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [errorDetails, setErrorDetails] = useState<ErrorDetails | null>(null);
-    const [pathname, setPathname] = useState(() => window.location.pathname.replace(/\/+$/, '') || '/');
-    const [isPageNavigating, setIsPageNavigating] = useState(false);
     const playerEditReturnPathRef = useRef(pathname);
     const isGuideActiveRef = useRef(false);
     const userSheet = useUserSheet();
     const { dismissToast, showToast, toast } = useToast();
-    useEffect(() => {
-        const syncPathname = () => setPathname(window.location.pathname.replace(/\/+$/, '') || '/');
-        window.addEventListener('popstate', syncPathname);
-        return () => window.removeEventListener('popstate', syncPathname);
-    }, []);
-    const navigate = useCallback((nextPathname: string) => {
-        if (nextPathname === pathname) return;
-        setIsPageNavigating(true);
-        window.setTimeout(() => {
-            window.history.pushState({}, '', nextPathname);
-            setPathname(nextPathname);
-            window.setTimeout(() => setIsPageNavigating(false), 180);
-        }, 120);
-    }, [pathname]);
     const showDetailedError = useCallback((message: string, details: ErrorDetails) => {
         showToast('error', message, {
             label: '자세히 보기',
@@ -335,15 +331,6 @@ const MatchApp = ({ authMode, csrfToken, dataMode, logout, user }: MatchAppProps
         );
     }
 
-    if (pathname === '/event-participants') {
-        return (
-            <MotionConfig reducedMotion="user">
-                <EventParticipantsPage onClose={() => navigate('/')} />
-                <AnimatePresence>{isPageNavigating && <PageLoadingBar />}</AnimatePresence>
-            </MotionConfig>
-        );
-    }
-
     return (
         <MotionConfig reducedMotion="user">
         <div className="min-h-screen bg-surface text-slate-200 font-sans">
@@ -519,12 +506,64 @@ const MatchApp = ({ authMode, csrfToken, dataMode, logout, user }: MatchAppProps
     );
 };
 
+type AuthenticatedAppProps = Omit<
+    MatchAppProps,
+    'isPageNavigating' | 'navigate' | 'pathname'
+>;
+
+/**
+ * @description 경로를 먼저 분기해 이벤트 화면에서 매칭·유저 시트 데이터를 불필요하게 불러오지 않는다.
+ */
+const AuthenticatedApp = (props: AuthenticatedAppProps) => {
+    const [pathname, setPathname] = useState(() => (
+        window.location.pathname.replace(/\/+$/, '') || '/'
+    ));
+    const [isPageNavigating, setIsPageNavigating] = useState(false);
+
+    useEffect(() => {
+        const syncPathname = () => setPathname(window.location.pathname.replace(/\/+$/, '') || '/');
+        window.addEventListener('popstate', syncPathname);
+        return () => window.removeEventListener('popstate', syncPathname);
+    }, []);
+
+    const navigate = useCallback((nextPathname: string) => {
+        if (nextPathname === pathname) return;
+        setIsPageNavigating(true);
+        window.setTimeout(() => {
+            window.history.pushState({}, '', nextPathname);
+            setPathname(nextPathname);
+            window.setTimeout(() => setIsPageNavigating(false), 180);
+        }, 120);
+    }, [pathname]);
+
+    if (pathname === '/event-participants') {
+        return (
+            <MotionConfig reducedMotion="user">
+                <EventParticipantsPage
+                    csrfToken={props.csrfToken}
+                    onClose={() => navigate('/')}
+                />
+                <AnimatePresence>{isPageNavigating && <PageLoadingBar />}</AnimatePresence>
+            </MotionConfig>
+        );
+    }
+
+    return (
+        <MatchApp
+            {...props}
+            isPageNavigating={isPageNavigating}
+            navigate={navigate}
+            pathname={pathname}
+        />
+    );
+};
+
 const App = () => {
     const { authMode, csrfToken, dataMode, error, isLoading, logout, retry, user } = useAuth();
     if (isLoading) return <LoadingScreen />;
     if (!user) return <LoginScreen serviceError={error} onRetry={retry} />;
     return (
-        <MatchApp
+        <AuthenticatedApp
             authMode={authMode}
             csrfToken={csrfToken}
             dataMode={dataMode}

@@ -6,10 +6,16 @@ import type {
 export const EVENT_PARTICIPATION_START_DATE = '2026-08-18';
 export const EVENT_PARTICIPATION_END_DATE = '2026-09-18';
 
+export interface EventParticipationSnapshot {
+    candidates: ScrimRosterParticipant[];
+    participantIds: string[];
+    updatedAt?: number;
+}
+
 /**
- * @description 이벤트 기간 내 내전 로스터에서 한 번이라도 참여한 사람을 중복 없이 반환한다.
+ * @description 이벤트 기간 내 내전 로스터에서 실제 참여 여부를 확인할 후보를 중복 없이 반환한다.
  */
-export const getEventParticipants = (
+export const getEventParticipantCandidates = (
     scrims: ScrimRecord[],
     startDate = EVENT_PARTICIPATION_START_DATE,
     endDate = EVENT_PARTICIPATION_END_DATE,
