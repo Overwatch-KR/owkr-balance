@@ -1,6 +1,7 @@
 import {
     Copy,
     ExternalLink,
+    LoaderCircle,
     TimerReset,
 } from 'lucide-react';
 import type {
@@ -14,6 +15,7 @@ interface LinkControlCardProps {
     link?: PublicParticipationLink;
     onAction: (action: string, payload?: Record<string, unknown>) => void;
     onCopy: (kind: PublicParticipationKind) => void;
+    pendingActionKey: string;
     satisfactionExpiresAt?: number;
 }
 
@@ -22,10 +24,12 @@ function LinkControlCard({
     link,
     onAction,
     onCopy,
+    pendingActionKey,
     satisfactionExpiresAt,
 }: LinkControlCardProps) {
     const title = kind === 'vote' ? '영웅 밴 투표 링크' : '만족도 조사 링크';
     const href = link ? `${window.location.origin}/participate/${link.token}` : '';
+    const isDeactivating = pendingActionKey === `deactivateLink:${kind}`;
 
     return (
         <section className="rounded-xl border border-slate-800 bg-slate-950/50 p-4">
@@ -88,9 +92,15 @@ function LinkControlCard({
                     <button
                         type="button"
                         className="btn-danger w-full"
+                        disabled={isDeactivating}
                         onClick={() => onAction('deactivateLink', { kind })}
                     >
-                        링크 비활성화
+                        {isDeactivating ? (
+                            <>
+                                <LoaderCircle size={15} className="mr-1 inline animate-spin" aria-hidden="true" />
+                                비활성화 중
+                            </>
+                        ) : '링크 비활성화'}
                     </button>
                     <button
                         type="button"
@@ -108,13 +118,19 @@ function LinkControlCard({
 interface ScrimOperationsTabProps {
     onAction: (action: string, payload?: Record<string, unknown>) => void;
     onCopy: (kind: PublicParticipationKind) => void;
+    pendingActionKey: string;
     scrim: ScrimRecord;
 }
 
 /**
  * @description 내전의 투표 및 만족도 공개 링크 상태와 운영 동작을 표시한다.
  */
-export function ScrimOperationsTab({ onAction, onCopy, scrim }: ScrimOperationsTabProps) {
+export function ScrimOperationsTab({
+    onAction,
+    onCopy,
+    pendingActionKey,
+    scrim,
+}: ScrimOperationsTabProps) {
     return (
         <section className="card" role="tabpanel" id="scrim-panel-operations" aria-labelledby="scrim-tab-operations">
             <h2 className="text-lg font-semibold text-white">운영 및 참여 링크</h2>
@@ -125,6 +141,7 @@ export function ScrimOperationsTab({ onAction, onCopy, scrim }: ScrimOperationsT
                     link={scrim.publicLinks?.vote}
                     onAction={onAction}
                     onCopy={onCopy}
+                    pendingActionKey={pendingActionKey}
                 />
                 <LinkControlCard
                     kind="satisfaction"
@@ -132,6 +149,7 @@ export function ScrimOperationsTab({ onAction, onCopy, scrim }: ScrimOperationsT
                     satisfactionExpiresAt={scrim.satisfactionExpiresAt}
                     onAction={onAction}
                     onCopy={onCopy}
+                    pendingActionKey={pendingActionKey}
                 />
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
