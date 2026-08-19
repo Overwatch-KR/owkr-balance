@@ -1,4 +1,4 @@
-import { BookOpen, CalendarDays, FileSpreadsheet, LogOut } from 'lucide-react';
+import { BookOpen, CalendarCheck2, CalendarDays, FileSpreadsheet, LogOut } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { AuthMode, DataMode } from '../../hooks/use-auth';
 
@@ -9,6 +9,7 @@ interface AppHeaderProps {
     isLoggingOut: boolean;
     isUserSheetOpen: boolean;
     onLogout: () => void;
+    onOpenEventParticipants: () => void;
     onOpenScrims: () => void;
     onOpenGuide: () => void;
     onOpenUserSheet: () => void;
@@ -26,6 +27,7 @@ export function AppHeader({
     isLoggingOut,
     isUserSheetOpen,
     onLogout,
+    onOpenEventParticipants,
     onOpenScrims,
     onOpenGuide,
     onOpenUserSheet,
@@ -60,6 +62,15 @@ export function AppHeader({
                 </div>
 
                 <nav className="flex shrink-0 items-center gap-0.5 sm:gap-1" aria-label="주요 메뉴">
+                    <button
+                        type="button"
+                        onClick={onOpenEventParticipants}
+                        aria-label="이벤트 참여자"
+                        className="inline-flex min-h-9 items-center gap-1.5 rounded-md px-2 text-sm font-medium text-cyan-300 transition-colors hover:bg-cyan-500/10 hover:text-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 sm:px-2.5"
+                    >
+                        <CalendarCheck2 size={15} aria-hidden="true" />
+                        <span className="hidden sm:inline">이벤트 참여</span>
+                    </button>
                     <button
                         type="button"
                         onClick={onOpenScrims}
