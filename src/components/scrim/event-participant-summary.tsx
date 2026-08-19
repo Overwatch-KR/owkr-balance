@@ -36,7 +36,7 @@ export function EventParticipantSummary({
                         <h2 id="event-participant-title" className="font-semibold text-white">실제 참여자 확인</h2>
                     </div>
                     <p className="mt-1 text-sm text-slate-400">
-                        {formatDate(EVENT_PARTICIPATION_START_DATE)}~{formatDate(EVENT_PARTICIPATION_END_DATE)} 로스터 후보 중 실제 참여자만 선택해 주세요.
+                        {formatDate(EVENT_PARTICIPATION_START_DATE)}~{formatDate(EVENT_PARTICIPATION_END_DATE)} 등록 후보 중 실제 참여자만 선택해 주세요.
                     </p>
                 </div>
                 {isLoading ? (

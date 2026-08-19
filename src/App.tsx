@@ -41,6 +41,11 @@ import { ScrimManager } from './components/scrim/scrim-manager';
 const UserSheetModal = lazy(() => import('./components/user-sheet/user-sheet-modal').then(module => ({
     default: module.UserSheetModal,
 })));
+const EventParticipantRegistrationModal = lazy(() => (
+    import('./components/match/event-participant-registration-modal').then(module => ({
+        default: module.EventParticipantRegistrationModal,
+    }))
+));
 
 interface MatchAppProps {
     authMode: AuthMode;
@@ -93,6 +98,7 @@ const MatchApp = ({
     const [showAllRanks, setShowAllRanks] = useState(false);
     const [ignorePreferences, setIgnorePreferences] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const [isEventRegistrationOpen, setIsEventRegistrationOpen] = useState(false);
     const [errorDetails, setErrorDetails] = useState<ErrorDetails | null>(null);
     const playerEditReturnPathRef = useRef(pathname);
     const isGuideActiveRef = useRef(false);
@@ -390,11 +396,13 @@ const MatchApp = ({
                             alternatives={alternatives}
                             ignorePreferences={ignorePreferences}
                             isBalancing={isBalancing}
+                            isEventRegistrationAvailable={dataMode === 'remote'}
                             isReady={isReady}
                             isResultStale={isResultStale}
                             onCancelSwap={() => setSwapSource(null)}
                             onClearResult={handleClearResult}
                             onIgnorePreferencesChange={setIgnorePreferences}
+                            onOpenEventRegistration={() => setIsEventRegistrationOpen(true)}
                             onRunMatching={() => void handleRunMatching({ ignorePreferences })}
                             onSelectAlternative={handleSelectAlternative}
                             onShowAllRanksChange={setShowAllRanks}
@@ -445,6 +453,30 @@ const MatchApp = ({
                         />
                     </Suspense>
                 )}
+            </AnimatePresence>
+            <AnimatePresence>
+                {isEventRegistrationOpen ? (
+                    <Suspense
+                        fallback={(
+                            <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/85 text-sm text-slate-400 backdrop-blur-sm">
+                                이벤트 참여 등록을 여는 중…
+                            </div>
+                        )}
+                    >
+                        <EventParticipantRegistrationModal
+                            csrfToken={csrfToken}
+                            players={participants}
+                            onClose={() => setIsEventRegistrationOpen(false)}
+                            onSuccess={(addedCount, totalCount) => {
+                                setIsEventRegistrationOpen(false);
+                                showToast(
+                                    'success',
+                                    `이번 내전 ${addedCount}명을 등록했습니다. 누적 참여자 ${totalCount}명`,
+                                );
+                            }}
+                        />
+                    </Suspense>
+                ) : null}
             </AnimatePresence>
             <AnimatePresence>
                 {pendingIdentityImport && (

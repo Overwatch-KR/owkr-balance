@@ -111,8 +111,10 @@ describe('MatchResult', () => {
         expect(markup).toContain('aria-checked="false"');
         expect(markup).toContain('탱·딜·힐 티어 표시');
         expect(markup).toContain('id="result-share-controls"');
+        expect(markup).toContain('이번 내전 참여 등록');
         expect(markup).toContain('이미지 복사');
         expect(markup.indexOf('탱·딜·힐 티어 표시')).toBeLessThan(markup.indexOf('이미지 복사'));
+        expect(markup.indexOf('이번 내전 참여 등록')).toBeLessThan(markup.indexOf('이미지 복사'));
         expect(markup.indexOf('이미지 복사')).toBeLessThan(markup.indexOf('data-capture-content="true"'));
         expect(markup).toContain('밸런스 요약');
         expect(markup).toContain('선호 역할 이탈 1명');
@@ -121,6 +123,21 @@ describe('MatchResult', () => {
         expect(markup).toContain('비선호 배정');
         expect(markup).not.toContain('data-export-render');
         expect(markup).not.toContain('data-display-mode');
+    });
+
+    it('현재 명단과 결과가 달라진 경우 이벤트 참여 등록을 비활성화한다', () => {
+        const markup = renderToStaticMarkup(
+            <MatchResult
+                isStale
+                matchResult={matchResult}
+                onOpenEventRegistration={vi.fn()}
+                onSlotClick={vi.fn()}
+                swapSource={null}
+            />,
+        );
+
+        expect(markup).toContain('변경된 명단으로 다시 매칭한 뒤 등록해 주세요.');
+        expect(markup).toMatch(/disabled=""[^>]*>.*이번 내전 참여 등록/s);
     });
 
     it('역할별 티어 점수 차이를 밸런스 요약에 함께 표시한다', () => {
