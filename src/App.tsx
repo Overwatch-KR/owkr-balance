@@ -35,6 +35,7 @@ import {
 } from './components/common/error-details-modal';
 import { AppHeader } from './components/layout/app-header';
 import { MatchResultPanel } from './components/match/match-result-panel';
+import { EventParticipantsPage } from './components/scrim/event-participants-page';
 import { ScrimManager } from './components/scrim/scrim-manager';
 
 const UserSheetModal = lazy(() => import('./components/user-sheet/user-sheet-modal').then(module => ({
@@ -334,6 +335,15 @@ const MatchApp = ({ authMode, csrfToken, dataMode, logout, user }: MatchAppProps
         );
     }
 
+    if (pathname === '/event-participants') {
+        return (
+            <MotionConfig reducedMotion="user">
+                <EventParticipantsPage onClose={() => navigate('/')} />
+                <AnimatePresence>{isPageNavigating && <PageLoadingBar />}</AnimatePresence>
+            </MotionConfig>
+        );
+    }
+
     return (
         <MotionConfig reducedMotion="user">
         <div className="min-h-screen bg-surface text-slate-200 font-sans">
@@ -350,6 +360,7 @@ const MatchApp = ({ authMode, csrfToken, dataMode, logout, user }: MatchAppProps
                 isLoggingOut={isLoggingOut}
                 isUserSheetOpen={userSheet.isOpen}
                 onLogout={() => void handleLogout()}
+                onOpenEventParticipants={() => navigate('/event-participants')}
                 onOpenGuide={handleToggleGuide}
                 onOpenScrims={() => navigate('/scrims')}
                 onOpenUserSheet={() => {

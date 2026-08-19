@@ -9,6 +9,10 @@
       "destination": "/index.html"
     },
     {
+      "source": "/event-participants",
+      "destination": "/index.html"
+    },
+    {
       "source": "/participate/:token",
       "destination": "/index.html"
     },

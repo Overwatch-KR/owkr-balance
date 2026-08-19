@@ -12,6 +12,7 @@ const renderHeader = (authMode: 'discord' | 'local', dataMode: DataMode = 'remot
             isLoggingOut={false}
             isUserSheetOpen={false}
             onLogout={vi.fn()}
+            onOpenEventParticipants={vi.fn()}
             onOpenGuide={vi.fn()}
             onOpenScrims={vi.fn()}
             onOpenUserSheet={vi.fn()}
@@ -22,6 +23,13 @@ const renderHeader = (authMode: 'discord' | 'local', dataMode: DataMode = 'remot
 );
 
 describe('AppHeader authentication mode', () => {
+    it('이벤트 참여자 바로가기를 표시한다', () => {
+        const markup = renderHeader('discord');
+
+        expect(markup).toContain('aria-label="이벤트 참여자"');
+        expect(markup).toContain('이벤트 참여');
+    });
+
     it('로컬 모드에서는 인증 배지를 표시하고 로그아웃을 숨긴다', () => {
         const markup = renderHeader('local');
 
