@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import {
     ArrowLeftRight,
     BarChart3,
+    CheckCircle2,
     ChevronLeft,
     ChevronRight,
     Copy,
@@ -47,6 +48,13 @@ interface MeasuredGuideLayout {
 
 const START_GUIDE_STEPS: readonly GuideStep[] = [
     {
+        id: 'start-workspace',
+        icon: CheckCircle2,
+        target: '#participant-workspace-header',
+        title: '참가자 입력은 작업실에서 시작해요',
+        description: '명단을 추가하거나 수정하면 이 브라우저에 30분 동안 바로 저장됩니다. 10명을 채운 뒤 팀 편성 화면으로 이동하면 팀 배정을 시작할 수 있어요.',
+    },
+    {
         id: 'start-discord',
         icon: MessageSquareText,
         target: '#discord-input-tab',
@@ -58,7 +66,7 @@ const START_GUIDE_STEPS: readonly GuideStep[] = [
         icon: User,
         target: '#manual-input-tab',
         title: '한 명씩 직접 입력할 수도 있어요',
-        description: '배틀태그와 탱커·딜러·힐러 티어를 입력하고 선호, 비선호, 마이크 미사용 상태를 선택할 수 있습니다.',
+        description: '배틀태그와 탱커·딜러·힐러 티어를 입력하고 선호·비선호 역할을 선택할 수 있습니다.',
     },
     {
         id: 'start-mentions',
@@ -71,15 +79,22 @@ const START_GUIDE_STEPS: readonly GuideStep[] = [
         id: 'start-roster',
         icon: Users,
         target: '#player-management',
-        title: '참가자 10명을 확인하세요',
-        description: '명단이 비어 있으면 가이드용 참가자 10명을 자동으로 구성합니다. 이후 인원은 대기열에 들어가 참가자 삭제 시 자동 승격됩니다.',
+        title: '참가자 10명과 대기열을 관리하세요',
+        description: '명단이 비어 있으면 가이드용 참가자 10명을 자동으로 구성합니다. 11번째부터는 대기열에 들어가며, 참가자를 삭제하면 대기열의 첫 사람이 자동으로 올라옵니다.',
+    },
+    {
+        id: 'start-continue',
+        icon: ChevronRight,
+        target: '#participant-next-step',
+        title: '준비가 끝나면 팀 편성으로 이어가세요',
+        description: '참가자 10명이 준비되면 이 영역의 팀 편성 화면으로 이동 버튼을 누르세요. 저장 버튼을 따로 누를 필요는 없습니다.',
     },
     {
         id: 'start-matching',
         icon: Shuffle,
         target: '#matching-action',
         title: '팀 자동 배정을 실행하세요',
-        description: '강조된 팀 자동 배정 버튼을 직접 눌러주세요. 역할 선호, 티어 차이, 마이크 인원을 함께 고려해 여러 팀 조합을 계산합니다.',
+        description: '팀 편성 화면에서 강조된 팀 자동 배정 버튼을 눌러주세요. 역할 선호와 티어 차이를 고려해 여러 팀 조합을 계산합니다.',
     },
 ] as const;
 
@@ -92,11 +107,18 @@ const RESULT_GUIDE_STEPS: readonly GuideStep[] = [
         description: '총점 차이와 탱커·딜러·힐러의 맞대결 차이를 보고 어느 팀이 얼마나 앞서는지 확인합니다.',
     },
     {
+        id: 'result-preferences',
+        icon: Shuffle,
+        target: '#matching-preference-option',
+        title: '선호 무시 옵션은 필요할 때만 사용하세요',
+        description: '선호 역할 이탈을 후보 평가에서 제외해 다른 조합을 찾습니다. 비선호 역할은 계속 피하므로, 기본 결과가 마음에 들지 않을 때만 켜 보세요.',
+    },
+    {
         id: 'result-exceptions',
         icon: ListChecks,
         target: '#balance-exceptions',
         title: '배정 예외를 확인하세요',
-        description: '선호 역할 이탈, 비선호 배정, 미배치 역할 인원이 있다면 실제 플레이가 가능한 구성인지 확인합니다.',
+        description: '선호 역할 이탈이나 비선호 배정 인원이 있다면 실제 플레이가 가능한 구성인지 확인합니다.',
     },
     {
         id: 'result-alternatives',
@@ -416,7 +438,7 @@ export const OnboardingGuide = ({
                         </span>
                         <div className="min-w-0 flex-1" aria-live="polite">
                             <p className="text-xs font-semibold text-cyan-300">
-                                {variant === 'result' ? '결과 활용 가이드' : '입력 가이드'} · {stepIndex + 1}/{steps.length}
+                                {variant === 'result' ? '결과 활용 가이드' : '참가자·팀 편성 가이드'} · {stepIndex + 1}/{steps.length}
                             </p>
                             <h2 id="onboarding-guide-title" className="mt-1 text-pretty text-base font-bold text-white sm:text-lg">
                                 {step.title}
@@ -429,7 +451,7 @@ export const OnboardingGuide = ({
                             type="button"
                             onClick={onDismiss}
                             className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-white/5 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
-                            aria-label="사용 가이드 닫기"
+                            aria-label="매칭 가이드 닫기"
                         >
                             <X size={16} aria-hidden="true" />
                         </button>

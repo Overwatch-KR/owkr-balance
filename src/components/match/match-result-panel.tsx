@@ -1,16 +1,19 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Loader2, RefreshCcw, Shuffle } from 'lucide-react';
+import { Loader2, RefreshCcw, Shuffle, StarOff } from 'lucide-react';
 import type { MatchResultData, Role, SwapSource } from '../../types';
 import type { UserSheetEntry } from '../../utils/user-sheet';
+import { DouMascot } from '../common/dou-mascot';
 import MatchResult from './result';
 
 interface MatchResultPanelProps {
     alternatives: MatchResultData[];
+    ignorePreferences: boolean;
     isBalancing: boolean;
     isReady: boolean;
     isResultStale: boolean;
     onCancelSwap: () => void;
     onClearResult: () => void;
+    onIgnorePreferencesChange: (ignore: boolean) => void;
     onRunMatching: () => void;
     onSelectAlternative: (index: number) => void;
     onShowAllRanksChange: (show: boolean) => void;
@@ -27,11 +30,13 @@ interface MatchResultPanelProps {
  */
 export function MatchResultPanel({
     alternatives,
+    ignorePreferences,
     isBalancing,
     isReady,
     isResultStale,
     onCancelSwap,
     onClearResult,
+    onIgnorePreferencesChange,
     onRunMatching,
     onSelectAlternative,
     onShowAllRanksChange,
@@ -46,7 +51,23 @@ export function MatchResultPanel({
         <section className="grid min-w-0 content-start gap-6" aria-labelledby="match-result-title">
             <div className="flex min-h-11 flex-wrap items-center justify-between gap-3">
                 <h2 id="match-result-title" className="text-lg font-semibold text-white">팀 배정 결과</h2>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap justify-end gap-2">
+                    <button
+                        id="matching-preference-option"
+                        type="button"
+                        onClick={() => onIgnorePreferencesChange(!ignorePreferences)}
+                        disabled={isBalancing}
+                        aria-pressed={ignorePreferences}
+                        title="선호 역할 위반 수를 후보 평가에서 제외합니다. 비선호 역할은 계속 피합니다."
+                        className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                            ignorePreferences
+                                ? 'border-amber-400/50 bg-amber-500/10 text-amber-200'
+                                : 'border-slate-700 text-slate-400 hover:border-slate-600 hover:text-slate-200'
+                        }`}
+                    >
+                        <StarOff size={14} aria-hidden="true" />
+                        선호 무시
+                    </button>
                     {result && (
                         <button type="button" onClick={onClearResult} className="btn-ghost flex items-center gap-2 text-sm">
                             <RefreshCcw size={14} aria-hidden="true" />
@@ -81,14 +102,12 @@ export function MatchResultPanel({
                     >
                         {isBalancing ? (
                             <div className="flex flex-col items-center gap-4">
-                                <Loader2 size={40} className="animate-spin text-accent" aria-hidden="true" />
+                                <DouMascot variant="loading" size={128} className="animate-pulse" decorative />
                                 <p className="animate-pulse text-slate-500">최적의 조합을 계산 중…</p>
                             </div>
                         ) : (
                             <div className="flex flex-col items-center gap-3">
-                                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-800/50">
-                                    <Shuffle size={24} className="text-slate-600" aria-hidden="true" />
-                                </div>
+                                <DouMascot variant="empty" size={128} decorative />
                                 <p className="text-center text-slate-500">
                                     {isReady
                                         ? '“팀 자동 배정” 버튼을 눌러주세요'
@@ -100,9 +119,11 @@ export function MatchResultPanel({
                 ) : (
                     <motion.div
                         key="result"
+                        data-result-viewport="true"
                         initial={{ opacity: 0, scale: 0.98 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.3 }}
+                        className="min-w-0 max-w-full overflow-hidden"
                     >
                         <MatchResult
                             matchResult={result}

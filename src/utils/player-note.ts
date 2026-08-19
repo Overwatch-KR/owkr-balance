@@ -1,5 +1,4 @@
 import { requestJson } from './api';
-import { IS_LOCAL_REVIEW_MODE } from '../config/runtime';
 import {
     createPlayerNoteSync,
     type PlayerNoteSyncEvent,
@@ -42,40 +41,6 @@ const noteListeners = new Map<string, Set<PlayerNoteListener>>();
 const noteRevisions = new Map<string, number>();
 const noteSync = createPlayerNoteSync<PlayerNote>(handlePlayerNoteSyncMessage);
 let noteCacheGeneration = 0;
-
-const getLocalNoteStorageKey = (reference: PlayerNoteReference): string => (
-    `owkr_local_review_player_note:${getReferenceKey(reference)}`
-);
-
-const readLocalPlayerNote = (reference: PlayerNoteReference): PlayerNote | null => {
-    try {
-        const stored = localStorage.getItem(getLocalNoteStorageKey(reference));
-        return stored ? JSON.parse(stored) as PlayerNote : null;
-    } catch {
-        return null;
-    }
-};
-
-const writeLocalPlayerNote = (
-    reference: PlayerNoteReference,
-    content: string,
-): PlayerNote | null => {
-    const storageKey = getLocalNoteStorageKey(reference);
-    const cleanContent = content.trim();
-    if (!cleanContent) {
-        localStorage.removeItem(storageKey);
-        return null;
-    }
-    const note: PlayerNote = {
-        battleTag: reference.battleTag,
-        entryId: reference.entryId,
-        content: cleanContent,
-        authorName: '로컬 검수',
-        updatedAt: Date.now(),
-    };
-    localStorage.setItem(storageKey, JSON.stringify(note));
-    return note;
-};
 
 const getReferenceKey = ({ battleTag, entryId }: PlayerNoteReference): string => (
     entryId?.trim()
@@ -173,12 +138,9 @@ const requestPlayerNote = (
     const referenceKey = getReferenceKey(reference);
     const params = new URLSearchParams({ battleTag: reference.battleTag });
     if (reference.entryId) params.set('entryId', reference.entryId);
-    const responseRequest = IS_LOCAL_REVIEW_MODE
-        ? Promise.resolve({ note: readLocalPlayerNote(reference) })
-        : requestJson<PlayerNoteResponse>(`/api/notes?${params.toString()}`, {
-            credentials: 'same-origin',
-        });
-    const request = responseRequest
+    const request = requestJson<PlayerNoteResponse>(`/api/notes?${params.toString()}`, {
+        credentials: 'same-origin',
+    })
         .then((response) => {
             if (
                 requestGeneration !== noteCacheGeneration
@@ -292,21 +254,19 @@ export const savePlayerNote = async (
     cacheScope: string = csrfToken,
 ): Promise<PlayerNote | null> => {
     noteSync.ensure();
-    const response = IS_LOCAL_REVIEW_MODE
-        ? { note: writeLocalPlayerNote(reference, content) }
-        : await requestJson<PlayerNoteResponse>('/api/notes', {
-            method: 'PUT',
-            credentials: 'same-origin',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': csrfToken,
-            },
-            body: JSON.stringify({
-                battleTag: reference.battleTag,
-                entryId: reference.entryId,
-                content,
-            }),
-        });
+    const response = await requestJson<PlayerNoteResponse>('/api/notes', {
+        method: 'PUT',
+        credentials: 'same-origin',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken,
+        },
+        body: JSON.stringify({
+            battleTag: reference.battleTag,
+            entryId: reference.entryId,
+            content,
+        }),
+    });
     const key = getCacheKey(reference, cacheScope);
     bumpNoteRevision(key);
     noteRequests.delete(key);

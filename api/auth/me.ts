@@ -1,7 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSessionUser } from '../_lib/auth.js';
+import { getSessionUser, isLocalAuthRequest } from '../_lib/auth.js';
 import { disableResponseCache } from '../_lib/http.js';
 import { sendUnexpectedError } from '../_lib/error.js';
+import { isLocalDataOnly } from '../_lib/redis.js';
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
     disableResponseCache(res);
@@ -12,15 +13,18 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
 
     try {
         const user = getSessionUser(req);
-        if (!user) return res.status(200).json({ loggedIn: false });
+        const authMode = isLocalAuthRequest(req) ? 'local' : 'discord';
+        const dataMode = isLocalDataOnly() ? 'local' : 'remote';
+        if (!user) return res.status(200).json({ authMode, dataMode, loggedIn: false });
 
         return res.status(200).json({
+            authMode,
+            dataMode,
             loggedIn: true,
             user: {
                 id: user.id,
                 username: user.username,
                 globalName: user.globalName,
-                avatar: user.avatar,
             },
             csrfToken: user.csrfToken,
         });

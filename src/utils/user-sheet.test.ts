@@ -42,7 +42,7 @@ describe('parseUserSheetRows', () => {
     it('헤더가 포함된 Google Sheets 6열을 유저 행으로 변환한다', () => {
         const rows = parseUserSheetRows([
             '디스코드 이름\t배틀태그\t탱커\t딜러\t힐러\t특이사항',
-            '상민\tPlayer#1234\t다3\t플2\t마5\t마이크X',
+            '상민\tPlayer#1234\t다3\t플2\t마5\t운영 메모',
         ].join('\n'));
         expect(rows).toHaveLength(1);
         expect(rows[0]).toMatchObject({
@@ -51,14 +51,14 @@ describe('parseUserSheetRows', () => {
             tank: '다3',
             dps: '플2',
             support: '마5',
-            note: '마이크X',
+            note: '운영 메모',
         });
     });
 
     it('Discord ID가 포함된 Google Sheets 7열을 유저 행으로 변환한다', () => {
         const rows = parseUserSheetRows([
             '디스코드 이름\tDiscord ID\t배틀태그\t탱커\t딜러\t힐러\t특이사항',
-            '상민\t123456789012345678\tPlayer#1234\t다3\t플2\t마5\t마이크X',
+            '상민\t123456789012345678\tPlayer#1234\t다3\t플2\t마5\t운영 메모',
         ].join('\n'));
 
         expect(rows[0]).toMatchObject({
@@ -68,7 +68,7 @@ describe('parseUserSheetRows', () => {
             tank: '다3',
             dps: '플2',
             support: '마5',
-            note: '마이크X',
+            note: '운영 메모',
         });
     });
 

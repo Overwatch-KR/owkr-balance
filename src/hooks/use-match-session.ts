@@ -8,6 +8,7 @@ import {
 } from '../utils/player';
 import { normalizePlayerRolePreferences } from '../utils/role-preference';
 import { cleanupExpired, getWithExpiry, removeItem, setWithExpiry } from '../utils/storage';
+import { getTierScore, TIERS } from '../constants';
 
 interface StoredMatchState {
     result: MatchResultData;
@@ -15,11 +16,32 @@ interface StoredMatchState {
 }
 
 const MATCH_SESSION_EXPIRY_MS = 30 * 60 * 1000;
+const RANK_KEYS = ['tank', 'dps', 'sup'] as const;
+
+/**
+ * @description 저장 명단에서 지원하는 세 역할 티어만 남기고 현재 점수표로 갱신한다.
+ */
+const normalizeStoredPlayer = (player: Player): Player | null => {
+    const hasCompleteRanks = RANK_KEYS.every((rankKey) => {
+        const rank = player[rankKey];
+        return TIERS.includes(rank.tier)
+            && ['1', '2', '3', '4', '5'].includes(String(rank.div));
+    });
+    if (!hasCompleteRanks) return null;
+
+    return {
+        ...player,
+        tank: { ...player.tank, score: getTierScore(player.tank.tier, player.tank.div) },
+        dps: { ...player.dps, score: getTierScore(player.dps.tier, player.dps.div) },
+        sup: { ...player.sup, score: getTierScore(player.sup.tier, player.sup.div) },
+    };
+};
 
 const getStorageKeys = (userId: string) => ({
     PLAYERS: `owkr_players:${userId}`,
     RESULT: `owkr_result:${userId}`,
     PARTICIPANT_MENTIONS: `owkr_participant_mentions:${userId}`,
+    PARTICIPANT_INCLUDES_ADMIN: `owkr_participant_includes_admin:${userId}`,
 });
 
 /**
@@ -31,6 +53,8 @@ export const useMatchSession = (userId: string) => {
         const savedPlayers = (
             getWithExpiry<Player[]>(storageKeys.PLAYERS, MATCH_SESSION_EXPIRY_MS) || []
         )
+            .map(normalizeStoredPlayer)
+            .filter((player): player is Player => player !== null)
             .map(normalizePlayerRolePreferences);
         return reconcilePlayers([], savedPlayers, 'replace').players;
     });
@@ -40,6 +64,12 @@ export const useMatchSession = (userId: string) => {
             MATCH_SESSION_EXPIRY_MS,
         ) || ''
     ));
+    const [participantIncludesAdmin, setParticipantIncludesAdmin] = useState(() => (
+        getWithExpiry<boolean>(
+            storageKeys.PARTICIPANT_INCLUDES_ADMIN,
+            MATCH_SESSION_EXPIRY_MS,
+        ) ?? false
+    ));
     const [initialMatchState] = useState<StoredMatchState | null>(() => {
         const savedState = getWithExpiry<MatchResultData | StoredMatchState>(
             storageKeys.RESULT,
@@ -47,6 +77,7 @@ export const useMatchSession = (userId: string) => {
         );
         if (!savedState) return null;
         const savedResult = 'result' in savedState ? savedState.result : savedState;
+        if (isMatchResultStale(savedResult, players)) return null;
         const savedAlternatives = 'result' in savedState ? savedState.alternatives : [];
         return {
             result: syncMatchResultPlayerIdentities(savedResult, players),
@@ -106,6 +137,18 @@ export const useMatchSession = (userId: string) => {
     }, [participantMentions, storageKeys.PARTICIPANT_MENTIONS]);
 
     useEffect(() => {
+        if (participantIncludesAdmin) {
+            setWithExpiry(
+                storageKeys.PARTICIPANT_INCLUDES_ADMIN,
+                true,
+                MATCH_SESSION_EXPIRY_MS,
+            );
+        } else {
+            removeItem(storageKeys.PARTICIPANT_INCLUDES_ADMIN);
+        }
+    }, [participantIncludesAdmin, storageKeys.PARTICIPANT_INCLUDES_ADMIN]);
+
+    useEffect(() => {
         if (!isMounted.current) return;
         if (result) {
             setWithExpiry<StoredMatchState>(
@@ -122,10 +165,12 @@ export const useMatchSession = (userId: string) => {
         alternatives,
         balanceTeams,
         isBalancing,
+        participantIncludesAdmin,
         participantMentions,
         players,
         result,
         setAlternatives,
+        setParticipantIncludesAdmin,
         setParticipantMentions,
         setPlayers,
         setResult,

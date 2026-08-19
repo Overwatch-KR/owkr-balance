@@ -3,7 +3,20 @@ import { getSessionUser, hasValidCsrfToken } from '../_lib/auth.js';
 import { sendUnexpectedError } from '../_lib/error.js';
 import { disableResponseCache } from '../_lib/http.js';
 import { getRedis } from '../_lib/redis.js';
-import { activatePublicLink, addUsedBans, closeVote, confirmFinalBans, createScrim, deactivatePublicLink, deleteScrim, getScrims, openVote, resolveTiedBansRandomly } from '../_lib/scrim-store.js';
+import {
+    activatePublicLink,
+    addUsedBans,
+    closeVote,
+    confirmFinalBans,
+    createScrim,
+    deactivatePublicLink,
+    deleteScrim,
+    extendSatisfaction,
+    getScrims,
+    openVote,
+    resolveTiedBansRandomly,
+    updateScrimReview,
+} from '../_lib/scrim-store.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     disableResponseCache(res);
@@ -38,6 +51,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 : action === 'addUsedBans' ? await addUsedBans(redis, id, body?.heroIds)
                 : action === 'confirmFinalBans' ? await confirmFinalBans(redis, id, body?.heroIds)
                 : action === 'resolveTieRandom' ? await resolveTiedBansRandomly(redis, id)
+                : action === 'extendSatisfaction' ? await extendSatisfaction(redis, id)
+                : action === 'updateReview'
+                    ? await updateScrimReview(
+                        redis,
+                        id,
+                        body?.adminReview,
+                        user.globalName ?? user.username,
+                    )
                 : null;
             return record ? res.status(200).json({ scrim: record }) : res.status(400).json({ error: '내전 상태 또는 요청 내용을 확인해 주세요.' });
         }

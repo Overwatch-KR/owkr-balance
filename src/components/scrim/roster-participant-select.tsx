@@ -7,7 +7,7 @@ import {
 } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, ChevronDown, UserRound } from 'lucide-react';
-import type { ScrimRosterParticipant } from '../../types/scrim';
+import type { ScrimRosterParticipant } from '../../../domains/scrim/shared/public';
 
 interface RosterParticipantSelectProps {
     onChange: (participantId: string) => void;

@@ -11,7 +11,7 @@ const createRank = (
 ): Rank => ({
     tier,
     div,
-    score: tier === 'UNRANKED' ? 0 : 2000,
+    score: 2000,
     isPreferred: state.isPreferred ?? false,
     isAvoided: state.isAvoided ?? false,
 });
@@ -22,8 +22,7 @@ const createPlayer = (id: number): Player => ({
     discordName: `아주 긴 디스코드 닉네임 ${id}`,
     tank: createRank('BRONZE', 1, id === 1 ? { isPreferred: true } : {}),
     dps: createRank('DIAMOND', 3, id === 3 ? { isAvoided: true } : {}),
-    sup: createRank('UNRANKED', 0),
-    noMic: id === 1,
+    sup: createRank('EMERALD', 3),
 });
 
 const players = Array.from({ length: 10 }, (_, index) => createPlayer(index + 1));
@@ -70,12 +69,10 @@ describe('MatchupTable', () => {
         );
 
         expect(markup).not.toContain('현재 배정');
-        expect(countMatches(markup, /<img /g)).toBe(12);
-        expect(countMatches(markup, /data-tier-icon="unranked"/g)).toBe(8);
-        expect(markup).toContain('미배치');
+        expect(countMatches(markup, /<img /g)).toBe(20);
+        expect(markup).toContain('/tier/emerald.png');
         expect(markup).toContain('sm:hidden');
         expect(markup).toContain('hidden w-full min-w-0');
-        expect(markup).toContain('aria-label="마이크 미사용"');
         expect(markup).toContain('id="matchup-table"');
         expect(markup).toContain('id="matchup-tank-row"');
         expect(countMatches(markup, /data-match-player-id=/g)).toBe(10);
@@ -99,14 +96,13 @@ describe('MatchupTable', () => {
         expect(countMatches(markup, /title="딜러 /g)).toBe(10);
         expect(countMatches(markup, /title="힐러 /g)).toBe(10);
         expect(countMatches(markup, /· 현재 배정"/g)).toBe(10);
-        expect(countMatches(markup, /border-cyan-400\/40/g)).toBe(6);
-        expect(countMatches(markup, /ring-slate-300\/40/g)).toBe(4);
-        expect(countMatches(markup, /data-tier="UNRANKED"/g)).toBe(10);
+        expect(countMatches(markup, /border-cyan-400\/40/g)).toBe(10);
+        expect(countMatches(markup, /data-tier="EMERALD"/g)).toBe(10);
         expect(countMatches(markup, /<img /g)).toBe(0);
         expectEqualHeightMatchupSlots(markup);
     });
 
-    it('선호·비선호·미배치·마이크 상태와 긴 이름을 전체 티어 모드에 유지한다', () => {
+    it('선호·비선호 상태와 긴 이름을 전체 티어 모드에 유지한다', () => {
         const markup = renderToStaticMarkup(
             <MatchupTable
                 matchResult={matchResult}
@@ -118,8 +114,7 @@ describe('MatchupTable', () => {
 
         expect(markup).toContain('title="탱커 브1★ · 현재 배정"');
         expect(markup).toContain('title="딜러 다3? · 현재 배정"');
-        expect(markup).toContain('title="힐러 미배치');
-        expect(markup).toContain('aria-label="마이크 미사용"');
+        expect(markup).toContain('title="힐러 에3');
         expect(markup).toContain('아주 긴 디스코드 닉네임 1');
         expect(markup).toContain('VeryLongBattleTag1#12345');
     });
@@ -131,7 +126,7 @@ describe('MatchupTable', () => {
             battleTag: players[0].name,
             tank: '브1',
             dps: '다3',
-            support: '미배치',
+            support: '에메랄드',
             note: '탱커 픽 조율 필요',
             createdAt: 1,
             updatedAt: 1,
@@ -160,5 +155,37 @@ describe('MatchupTable', () => {
                 /data-exclude-export="true" data-html2canvas-ignore="true"[^>]*>[\s\S]*탱커 픽 조율 필요/,
             );
         }
+    });
+
+    it('긴 특이사항이 플레이어 열 너비를 늘리지 않고 말줄임 처리된다', () => {
+        const longNote = '공백 없이'.repeat(40);
+        const sheetEntry: UserSheetEntry = {
+            id: 'sheet-long-note',
+            discordName: '시트 닉네임',
+            battleTag: players[0].name,
+            tank: '브1',
+            dps: '다3',
+            support: '에메랄드',
+            note: longNote,
+            createdAt: 1,
+            updatedAt: 1,
+            updatedByName: '관리자',
+        };
+        const markup = renderToStaticMarkup(
+            <MatchupTable
+                matchResult={matchResult}
+                onSlotClick={() => undefined}
+                swapSource={null}
+                userSheetByBattleTag={new Map([
+                    [sheetEntry.battleTag.toLowerCase(), sheetEntry],
+                ])}
+            />,
+        );
+
+        expect(markup).toContain('data-match-note="true"');
+        expect(markup).toContain('w-full min-w-0 max-w-full');
+        expect(markup).toContain('gap-1 overflow-hidden');
+        expect(markup).toContain('min-w-0 flex-1 truncate');
+        expect(markup).toContain(longNote);
     });
 });

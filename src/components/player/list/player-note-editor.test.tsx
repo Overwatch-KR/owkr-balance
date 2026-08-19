@@ -19,6 +19,7 @@ describe('PlayerNoteForm', () => {
         expect(markup).toContain('현재 로그인한 계정에만 표시됩니다.');
         expect(markup).toContain('개인적으로 참고할 운영 메모를 입력하세요…');
         expect(markup).toContain('개인 메모 저장</button>');
+        expect(markup).not.toContain('개인 운영 메모 새로고침');
         expect(markup).not.toContain('관리자 공유');
     });
 

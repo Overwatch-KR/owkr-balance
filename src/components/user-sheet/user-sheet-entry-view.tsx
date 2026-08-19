@@ -40,6 +40,24 @@ interface UserSheetEntryConflict {
     resolutions: UserSheetMergeResolutions;
 }
 
+const EDITABLE_FIELDS: ReadonlyArray<keyof UserSheetDraftEntry> = [
+    'discordUserId',
+    'discordName',
+    'battleTag',
+    'tank',
+    'dps',
+    'support',
+    'note',
+];
+
+/**
+ * @description 공용 정보 초안에 저장할 변경이 있는지 확인한다.
+ */
+const hasUserSheetEntryChanges = (
+    draft: UserSheetDraftEntry,
+    baseEntry: UserSheetDraftEntry,
+): boolean => EDITABLE_FIELDS.some(field => draft[field] !== baseEntry[field]);
+
 /**
  * @description 선택한 유저의 정보를 조회하고 같은 상세 화면에서 바로 수정한다.
  */
@@ -201,6 +219,7 @@ export function UserSheetEntryView({
     };
 
     const handleSave = async () => {
+        if (!hasUserSheetEntryChanges(draft, editBaseEntryRef.current)) return;
         const validationError = validateDraft(draft);
         if (validationError) {
             setValidationMessage(validationError);
@@ -276,6 +295,7 @@ export function UserSheetEntryView({
             draft={draft}
             entry={entry}
             isCurrentParticipant={isCurrentParticipant}
+            isDirty={hasUserSheetEntryChanges(draft, editBaseEntryRef.current)}
             isEditing={isEditing}
             isSaving={isSaving}
             noteCacheScope={noteCacheScope}

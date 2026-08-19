@@ -1,11 +1,14 @@
-import { useRef } from 'react';
-import { AlertTriangle, ArrowLeftRight, Loader2, X } from 'lucide-react';
-import type { MatchResultData, Role, SwapSource, TeamResult } from '../../../types';
+import { useRef, useState } from 'react';
+import { AlertTriangle, ArrowLeftRight, Layers3, Loader2, X } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
+import type { MatchResultData, Role, SwapSource } from '../../../types';
 import type { UserSheetEntry } from '../../../utils/user-sheet';
 import { useCopyImage } from '../../../hooks/use-copy-image';
 import MatchupTable from './matchup-table';
 import CopyButton from './copy-button';
 import BalanceSummary from './balance-summary';
+import { AlternativeResultCard } from './alternative-result-card';
+import { AlternativeResultsDialog } from './alternative-results-dialog';
 
 interface MatchResultProps {
     matchResult: MatchResultData;
@@ -20,14 +23,6 @@ interface MatchResultProps {
     showAllRanks?: boolean;
     userSheetByBattleTag?: Map<string, UserSheetEntry>;
 }
-
-const NUMBER_FORMATTER = new Intl.NumberFormat('ko-KR');
-
-const getTeamRosterLabel = (team: TeamResult): string => [
-    ...team.assignment.TANK,
-    ...team.assignment.DPS,
-    ...team.assignment.SUPPORT,
-].map((player) => player.discordName ?? player.name.split('#')[0]).join(' · ');
 
 const getMatchResultKey = (result: MatchResultData): string => [
     ...result.teamA.assignment.TANK,
@@ -61,8 +56,19 @@ const MatchResult = ({
     userSheetByBattleTag,
 }: MatchResultProps) => {
     const captureRef = useRef<HTMLDivElement>(null);
+    const [isAlternativeDialogOpen, setIsAlternativeDialogOpen] = useState(false);
     const { copyStatus, handleCopyImage } = useCopyImage(captureRef);
     const selectedSwapPlayer = getSelectedSwapPlayer(matchResult, swapSource);
+    const currentResultKey = getMatchResultKey(matchResult);
+    const previewAlternatives = alternatives
+        .map((alternative, index) => ({ alternative, index }))
+        .filter(({ alternative }) => getMatchResultKey(alternative) !== currentResultKey)
+        .toSorted((first, second) => (
+            (first.alternative.evaluation?.rank ?? first.index + 2)
+            - (second.alternative.evaluation?.rank ?? second.index + 2)
+        ))
+        .slice(0, 2);
+    const candidateCount = alternatives.length + 1;
 
     return (
         <div id="match-result" className="space-y-4">
@@ -120,7 +126,11 @@ const MatchResult = ({
                 )}
             </div>
 
-            <div data-exclude-export className="flex justify-end px-1">
+            <div
+                id="result-share-controls"
+                data-exclude-export
+                className="flex flex-wrap items-center justify-end gap-2 px-1"
+            >
                 <button
                     type="button"
                     role="switch"
@@ -146,6 +156,7 @@ const MatchResult = ({
                         />
                     </span>
                 </button>
+                <CopyButton status={copyStatus} onClick={handleCopyImage} />
             </div>
 
             <div
@@ -171,36 +182,35 @@ const MatchResult = ({
                 {/* 다른 조합 (캡처 제외) */}
                 <div id="alternative-results" className="rounded-lg">
                 {alternatives.length > 0 ? (
-                    <div className="space-y-2 px-1">
-                        <div className="text-sm text-slate-500">다른 팀 조합</div>
+                    <div className="space-y-3 px-1">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                                <p className="text-sm font-medium text-slate-300">다른 추천 조합</p>
+                                <p className="mt-0.5 text-[11px] text-slate-600">
+                                    현재 조합과 팀 구성이 의미 있게 다른 후보입니다.
+                                </p>
+                            </div>
+                            {candidateCount > previewAlternatives.length + 1 && (
+                                <button
+                                    type="button"
+                                    onClick={() => setIsAlternativeDialogOpen(true)}
+                                    className="inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-cyan-300 transition-colors hover:bg-cyan-400/10 hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+                                >
+                                    <Layers3 size={14} aria-hidden="true" />
+                                    전체 {candidateCount}개 자세히 보기
+                                </button>
+                            )}
+                        </div>
                         <div className="grid gap-2 sm:grid-cols-2">
-                            {alternatives.map((alternative, idx) => {
-                                const teamARoster = getTeamRosterLabel(alternative.teamA);
-                                const teamBRoster = getTeamRosterLabel(alternative.teamB);
-
-                                return (
-                                    <button
-                                        type="button"
-                                        key={getMatchResultKey(alternative)}
-                                        onClick={() => onSelectAlternative?.(idx)}
-                                        aria-label={`조합 ${idx + 2} 선택. 1팀 ${teamARoster}. 2팀 ${teamBRoster}`}
-                                        className="min-w-0 rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2.5 text-left transition-colors hover:border-slate-600 hover:bg-slate-700/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70"
-                                    >
-                                        <div className="mb-1.5 flex items-center justify-between gap-2">
-                                            <span className="text-xs font-medium text-slate-300">조합 {idx + 2}</span>
-                                            <span className="rounded-full bg-slate-900/70 px-2 py-0.5 font-mono text-[10px] tabular-nums text-cyan-300">
-                                                총점 차 {NUMBER_FORMATTER.format(Math.round(alternative.metrics?.totalDiff ?? alternative.diff))}
-                                            </span>
-                                        </div>
-                                        <p className="truncate text-[11px] text-slate-400" title={`1팀 · ${teamARoster}`}>
-                                            <span className="text-blue-400">1팀</span> · {teamARoster}
-                                        </p>
-                                        <p className="mt-0.5 truncate text-[11px] text-slate-500" title={`2팀 · ${teamBRoster}`}>
-                                            <span className="text-red-400">2팀</span> · {teamBRoster}
-                                        </p>
-                                    </button>
-                                );
-                            })}
+                            {previewAlternatives.map(({ alternative, index }) => (
+                                <AlternativeResultCard
+                                    key={getMatchResultKey(alternative)}
+                                    candidate={alternative}
+                                    currentResult={matchResult}
+                                    showComposition
+                                    onApply={() => onSelectAlternative?.(index)}
+                                />
+                            ))}
                         </div>
                     </div>
                 ) : isGeneratingAlternatives ? (
@@ -210,12 +220,18 @@ const MatchResult = ({
                     </div>
                 ) : null}
                 </div>
-
-                {/* 하단 컨트롤 (캡처 제외) */}
-                <div id="result-share-controls" className="flex justify-end rounded-lg px-1">
-                    <CopyButton status={copyStatus} onClick={handleCopyImage} />
-                </div>
             </div>
+
+            <AnimatePresence>
+                {isAlternativeDialogOpen && (
+                    <AlternativeResultsDialog
+                        alternatives={alternatives}
+                        currentResult={matchResult}
+                        onClose={() => setIsAlternativeDialogOpen(false)}
+                        onSelectAlternative={index => onSelectAlternative?.(index)}
+                    />
+                )}
+            </AnimatePresence>
         </div>
     );
 };

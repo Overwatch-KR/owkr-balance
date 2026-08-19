@@ -71,6 +71,21 @@ PlayerName#1234 다3! 플2 골1         # ! = preferred
 - **JSDoc:** Flow-focused, concise, and every JSDoc block must include an `@description` tag; avoid exhaustive narration
 - **CSS:** Keep style files free of comments
 
+## Changelog
+
+- Update the root `CHANGELOG.md` for every user-facing feature, fix, behavior change, operational change, and policy change.
+- Record completed but not yet deployed work under `미배포` using the current `Asia/Seoul` date.
+- After a production deployment, move the corresponding entries into that date's deployment section and include the deployed commit.
+- Preserve existing deployment history; do not rewrite or remove past entries unless correcting inaccurate information.
+
+## Commit Messages
+
+- Write every commit message in English.
+- Follow Conventional Commits using the format `<type>(<optional scope>): <description>`.
+- Keep the description concise, imperative, and lowercase.
+- Use established types such as `feat`, `fix`, `docs`, `refactor`, `test`, `build`, `ci`, and `chore`.
+- Example: `feat(auth): restore random login background rotation`.
+
 ## Important Files
 
 - `src/utils/balance/index.ts` - Core balancing algorithm (most complex logic)

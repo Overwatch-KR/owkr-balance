@@ -9,11 +9,12 @@ import type {
     ScrimRecord,
     ScrimRosterParticipant,
     PublicParticipationKind,
-} from '../../src/types/scrim.js';
+} from '../../domains/scrim/shared/public.js';
 import { getScrimTimes } from '../../src/utils/scrim.js';
 
 const SCRIMS_KEY = 'scrims:v1:records';
 const SCRIM_SEQUENCE_KEY = 'scrims:v1:sequence';
+const SATISFACTION_EXTENSION_MS = 24 * 60 * 60 * 1_000;
 const heroById = new Map(HEROES.map(hero => [hero.id, hero]));
 
 const cleanText = (value: unknown, length: number): string => (
@@ -96,14 +97,20 @@ export const getPublicScrims = async (redis: Redis, token: string): Promise<{ sc
     const records = await closeExpiredVotes(redis);
     for (const kind of ['vote', 'satisfaction'] as const) {
         const scrims = records.filter(scrim => scrim.publicLinks?.[kind]?.active && scrim.publicLinks[kind]?.token === token)
-            .map(scrim => ({
-                ...scrim,
-                submittedRosterParticipantIds: kind === 'vote'
-                    ? scrim.votes.map(vote => vote.rosterParticipantId)
-                    : [],
-                votes: [],
-                satisfactionResponses: [],
-            }));
+            .map(scrim => {
+                const publicScrim = { ...scrim };
+                delete publicScrim.adminReview;
+                delete publicScrim.adminReviewUpdatedAt;
+                delete publicScrim.adminReviewUpdatedBy;
+                return {
+                    ...publicScrim,
+                    submittedRosterParticipantIds: kind === 'vote'
+                        ? scrim.votes.map(vote => vote.rosterParticipantId)
+                        : [],
+                    votes: [],
+                    satisfactionResponses: [],
+                };
+            });
         if (scrims.length) return { scrims, kind };
     }
     return null;
@@ -123,13 +130,48 @@ export const updateScrim = async (
 
 export const activatePublicLink = async (redis: Redis, id: string, kind: PublicParticipationKind, regenerate: boolean): Promise<ScrimRecord | null> => (
     updateScrim(redis, id, record => {
+        const now = Date.now();
         const current = record.publicLinks?.[kind];
         record.publicLinks = {
             ...record.publicLinks,
             [kind]: (!current || regenerate)
-                ? { token: buildToken(), active: true, createdAt: Date.now() }
+                ? { token: buildToken(), active: true, createdAt: now }
                 : { ...current, active: true },
         };
+        if (kind === 'satisfaction' && record.satisfactionExpiresAt < now) {
+            record.satisfactionExpiresAt = now + SATISFACTION_EXTENSION_MS;
+        }
+        return true;
+    })
+);
+
+export const extendSatisfaction = async (redis: Redis, id: string): Promise<ScrimRecord | null> => (
+    updateScrim(redis, id, record => {
+        const now = Date.now();
+        const currentLink = record.publicLinks?.satisfaction;
+        record.satisfactionExpiresAt = Math.max(record.satisfactionExpiresAt, now)
+            + SATISFACTION_EXTENSION_MS;
+        record.publicLinks = {
+            ...record.publicLinks,
+            satisfaction: currentLink
+                ? { ...currentLink, active: true }
+                : { token: buildToken(), active: true, createdAt: now },
+        };
+        return true;
+    })
+);
+
+export const updateScrimReview = async (
+    redis: Redis,
+    id: string,
+    review: unknown,
+    actorName: string,
+): Promise<ScrimRecord | null> => (
+    updateScrim(redis, id, record => {
+        const nextReview = cleanText(review, 4_000);
+        record.adminReview = nextReview || undefined;
+        record.adminReviewUpdatedAt = Date.now();
+        record.adminReviewUpdatedBy = actorName;
         return true;
     })
 );
@@ -271,7 +313,7 @@ export const submitSatisfaction = async (redis: Redis, token: string, id: string
     const disappointments = Array.isArray(input.disappointments) ? input.disappointments.filter(item => typeof item === 'string').slice(0, 7) : [];
     const otherOpinion = cleanText(input.otherOpinion, 1000);
     const allowed = new Set(['팀 밸런스', '영웅 밴 방식', '진행 속도', '음성채팅 분위기', '참가자 매너', '경기 수', '기타']);
-    if (!Number.isInteger(score) || score! < 1 || score! > 5 || disappointments.some(item => !allowed.has(item)) || new Set(disappointments).size !== disappointments.length || (score! < 3 && disappointments.length === 0) || (!disappointments.includes('기타') && otherOpinion)) return 'INVALID';
+    if (!Number.isInteger(score) || score! < 1 || score! > 5 || disappointments.some(item => !allowed.has(item)) || new Set(disappointments).size !== disappointments.length || (score! < 3 && disappointments.length === 0)) return 'INVALID';
     record.satisfactionResponses.push({ score: score!, disappointments, otherOpinion: otherOpinion || undefined, submittedAt: now });
     await writeRecords(redis, records);
     return 'OK';

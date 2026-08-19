@@ -61,8 +61,18 @@ export const extractMentionedParticipantNames = (text: string): string[] => {
 export const compareMentionedParticipants = (
     text: string,
     players: Player[],
+    additionalNames: string[] = [],
 ): ParticipantCheckResult => {
     const mentionedNames = extractMentionedParticipantNames(text);
+    const seenMentionedNames = new Set(
+        mentionedNames.map(normalizeParticipantIdentity),
+    );
+    for (const additionalName of additionalNames) {
+        const normalizedName = normalizeParticipantIdentity(additionalName);
+        if (!normalizedName || seenMentionedNames.has(normalizedName)) continue;
+        mentionedNames.push(additionalName.trim());
+        seenMentionedNames.add(normalizedName);
+    }
     const playerIdentities = players.map((player) => {
         const identities = new Set([
             player.discordName,

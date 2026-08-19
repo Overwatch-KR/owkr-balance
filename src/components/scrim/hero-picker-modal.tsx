@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { HEROES } from '../../constants/hero';
+import { useDialogFocus } from '../../hooks/use-dialog-focus';
 import { HeroGrid } from './hero-grid';
 
 interface HeroPickerModalProps {
@@ -22,6 +23,7 @@ export function HeroPickerModal({
     onClose,
     onConfirm,
 }: HeroPickerModalProps) {
+    const dialogRef = useDialogFocus({ onClose });
     const [selectedHeroIds, setSelectedHeroIds] = useState(initialHeroIds);
     const isFinalMode = mode === 'final';
     const canConfirm = isFinalMode ? selectedHeroIds.length === 2 : selectedHeroIds.length > 0;
@@ -44,19 +46,25 @@ export function HeroPickerModal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            role="dialog"
-            aria-modal="true"
-            aria-label={isFinalMode ? '최종 밴 영웅 선택' : '사용된 밴 영웅 선택'}
+            role="presentation"
+            onMouseDown={event => {
+                if (event.target === event.currentTarget) onClose();
+            }}
         >
             <motion.section
+                ref={dialogRef}
                 initial={{ opacity: 0, y: 20, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 12, scale: 0.98 }}
-                className="mx-auto max-w-5xl rounded-2xl border border-slate-800 bg-surface-elevated p-4 shadow-2xl shadow-black/40 md:p-6"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="hero-picker-title"
+                tabIndex={-1}
+                className="mx-auto max-w-5xl overscroll-contain rounded-2xl border border-slate-800 bg-surface-elevated p-4 shadow-2xl shadow-black/40 focus:outline-none md:p-6"
             >
                 <header className="mb-5 flex items-start justify-between gap-4">
                     <div>
-                        <h2 className="text-xl font-bold text-white">
+                        <h2 id="hero-picker-title" className="text-pretty text-xl font-bold text-white">
                             {isFinalMode ? '최종 밴 영웅 선택' : '사용된 밴 영웅 기록'}
                         </h2>
                         <p className="mt-1 text-sm text-slate-400">
@@ -66,7 +74,7 @@ export function HeroPickerModal({
                         </p>
                     </div>
                     <button type="button" className="btn-ghost p-2" onClick={onClose} aria-label="닫기">
-                        <X size={18} />
+                        <X size={18} aria-hidden="true" />
                     </button>
                 </header>
                 <HeroGrid

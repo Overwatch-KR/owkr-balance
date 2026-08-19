@@ -7,23 +7,30 @@
   "scripts": {
     "dev": "vite",
     "dev:full": "dotenv -e .env.local -- vercel dev",
+    "dev:local": "dotenv -e .env.local -v NODE_ENV=development -v OWKR_LOCAL_AUTH_BYPASS=true -- vercel dev --local",
+    "dev:local-only": "dotenv -e .env.example -v NODE_ENV=development -v OWKR_LOCAL_AUTH_BYPASS=true -v OWKR_LOCAL_DATA_ONLY=true -- vercel dev --local",
     "build": "vite build",
     "lint": "eslint .",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "check": "npm run typecheck && npm run lint && npm run test && npm run build",
+    "boundaries": "boundra check-boundaries --root . --format json",
+    "domains:graph": "boundra graph-domains --root . --format mermaid",
+    "check": "npm run typecheck && npm run lint && npm run test && npm run boundaries && npm run build",
     "preview": "vite preview"
   },
   "dependencies": {
     "@upstash/redis": "^1.38.0",
     "@vercel/node": "^5.8.27",
+    "boundra": "0.2.1",
     "cookie": "^2.0.1",
     "framer-motion": "^12.26.2",
     "html-to-image": "^1.11.13",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^0.562.0",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "recharts": "^3.10.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
@@ -42,7 +49,7 @@
     "tailwindcss": "^3.4.17",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.63.0",
-    "vercel": "^57.0.0",
+    "vercel": "^58.9.0",
     "vite": "npm:rolldown-vite@7.2.5",
     "vitest": "^4.1.10"
   },

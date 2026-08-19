@@ -1,5 +1,4 @@
 import { formatRank } from '../constants';
-import { IS_LOCAL_REVIEW_MODE } from '../config/runtime';
 import type { Player } from '../types';
 import { ApiError, requestJson } from './api';
 
@@ -54,97 +53,9 @@ const USER_SHEET_DRAFT_FIELDS: ReadonlyArray<keyof UserSheetDraftEntry> = [
     'note',
 ];
 
-const LOCAL_USER_SHEET_STORAGE_KEY = 'owkr_local_review_user_sheet_v3';
-const LEGACY_LOCAL_USER_SHEET_STORAGE_KEY = 'owkr_local_review_user_sheet';
-const LOCAL_REVIEW_USER_NAME = '로컬 검수';
-
 const normalizeDiscordUserId = (value: string | undefined): string => (
     value?.replace(/\D/g, '').trim() ?? ''
 );
-
-const normalizeLocalEntry = (
-    entry: Partial<UserSheetEntry>,
-    index: number,
-): UserSheetEntry | null => {
-    if (
-        typeof entry.discordName !== 'string'
-        || typeof entry.battleTag !== 'string'
-        || typeof entry.tank !== 'string'
-        || typeof entry.dps !== 'string'
-        || typeof entry.support !== 'string'
-        || typeof entry.note !== 'string'
-    ) {
-        return null;
-    }
-    const now = Date.now();
-    return {
-        id: typeof entry.id === 'string' && entry.id
-            ? entry.id
-            : `local-sheet-${now}-${index}`,
-        discordUserId: normalizeDiscordUserId(entry.discordUserId) || undefined,
-        discordName: entry.discordName,
-        battleTag: entry.battleTag,
-        tank: entry.tank,
-        dps: entry.dps,
-        support: entry.support,
-        note: entry.note,
-        createdAt: typeof entry.createdAt === 'number' ? entry.createdAt : now,
-        updatedAt: typeof entry.updatedAt === 'number' ? entry.updatedAt : now,
-        updatedByName: typeof entry.updatedByName === 'string'
-            ? entry.updatedByName
-            : LOCAL_REVIEW_USER_NAME,
-    };
-};
-
-const readLocalUserSheet = (): UserSheetSnapshot => {
-    try {
-        const stored = localStorage.getItem(LOCAL_USER_SHEET_STORAGE_KEY);
-        if (stored) {
-            const parsed = JSON.parse(stored) as Partial<UserSheetSnapshot>;
-            return {
-                entries: Array.isArray(parsed.entries)
-                    ? parsed.entries
-                        .map((entry, index) => normalizeLocalEntry(
-                            entry as Partial<UserSheetEntry>,
-                            index,
-                        ))
-                        .filter((entry): entry is UserSheetEntry => Boolean(entry))
-                    : [],
-                sheetVersion: Number.isSafeInteger(parsed.sheetVersion)
-                    ? parsed.sheetVersion as number
-                    : 0,
-            };
-        }
-
-        const legacy = localStorage.getItem(LEGACY_LOCAL_USER_SHEET_STORAGE_KEY);
-        const legacyEntries = legacy ? JSON.parse(legacy) as unknown : [];
-        return {
-            entries: Array.isArray(legacyEntries)
-                ? legacyEntries
-                    .map((entry, index) => normalizeLocalEntry(
-                        entry as Partial<UserSheetEntry>,
-                        index,
-                    ))
-                    .filter((entry): entry is UserSheetEntry => Boolean(entry))
-                : [],
-            sheetVersion: 0,
-        };
-    } catch {
-        return { entries: [], sheetVersion: 0 };
-    }
-};
-
-const writeLocalUserSheet = (
-    entries: UserSheetEntry[],
-    previousVersion: number,
-): UserSheetSnapshot => {
-    const snapshot = {
-        entries,
-        sheetVersion: previousVersion + 1,
-    };
-    localStorage.setItem(LOCAL_USER_SHEET_STORAGE_KEY, JSON.stringify(snapshot));
-    return snapshot;
-};
 
 export const isActiveUserSheetEntry = (entry: UserSheetDraftEntry): boolean => (
     USER_SHEET_DRAFT_FIELDS.some(field => (entry[field] ?? '').trim())
@@ -212,8 +123,6 @@ export const cleanUserSheetRank = (value: string): string => (
  * @description 관리자들이 함께 사용하는 유저 정보 시트를 가져온다.
  */
 export const fetchUserSheet = async (): Promise<UserSheetSnapshot> => {
-    if (IS_LOCAL_REVIEW_MODE) return readLocalUserSheet();
-
     return requestJson<UserSheetSnapshot>('/api/user-sheet', {
         credentials: 'same-origin',
     });
@@ -266,33 +175,6 @@ export const saveUserSheet = async (
     sheetVersion: number,
     csrfToken: string,
 ): Promise<UserSheetSnapshot> => {
-    if (IS_LOCAL_REVIEW_MODE) {
-        const validation = validateUserSheetEntries(entries);
-        if (validation.errors.size > 0) {
-            throw new ApiError('모든 유저의 Discord ID를 올바르게 입력해 주세요.', 400);
-        }
-        const current = readLocalUserSheet();
-        const previousById = new Map(current.entries.map(entry => [entry.id, entry]));
-        const now = Date.now();
-        const savedEntries = entries.map((entry, index): UserSheetEntry => {
-            const previous = previousById.get(entry.id);
-            const didChange = !previous || USER_SHEET_DRAFT_FIELDS.some(
-                field => previous[field] !== entry[field],
-            ) || previous.discordUserId !== entry.discordUserId;
-            return {
-                ...entry,
-                id: entry.id || `local-sheet-${now}-${index}`,
-                discordUserId: normalizeDiscordUserId(entry.discordUserId) || undefined,
-                createdAt: previous?.createdAt ?? now,
-                updatedAt: didChange ? now : previous.updatedAt,
-                updatedByName: didChange
-                    ? LOCAL_REVIEW_USER_NAME
-                    : previous.updatedByName,
-            };
-        });
-        return writeLocalUserSheet(savedEntries, current.sheetVersion);
-    }
-
     return requestJson<UserSheetSnapshot>('/api/user-sheet', {
         method: 'PUT',
         credentials: 'same-origin',
@@ -312,24 +194,6 @@ export const updateUserSheetEntry = async (
     expectedUpdatedAt: number,
     csrfToken: string,
 ): Promise<UserSheetSnapshot> => {
-    if (IS_LOCAL_REVIEW_MODE) {
-        const current = readLocalUserSheet();
-        const targetIndex = current.entries.findIndex(item => item.id === entry.id);
-        const drafts: UserSheetDraftEntry[] = current.entries.map(item => ({
-            id: item.id,
-            discordUserId: item.discordUserId,
-            discordName: item.discordName,
-            battleTag: item.battleTag,
-            tank: item.tank,
-            dps: item.dps,
-            support: item.support,
-            note: item.note,
-        }));
-        if (targetIndex >= 0) drafts[targetIndex] = entry;
-        else drafts.push(entry);
-        return saveUserSheet(drafts, current.sheetVersion, csrfToken);
-    }
-
     return requestJson<UserSheetSnapshot>('/api/user-sheet', {
         method: 'PATCH',
         credentials: 'same-origin',
@@ -356,141 +220,6 @@ export const syncRosterPlayersToUserSheet = async (
     sheetVersion: number,
     csrfToken: string,
 ): Promise<SyncRosterUserSheetResult> => {
-    if (IS_LOCAL_REVIEW_MODE) {
-        const current = readLocalUserSheet();
-        if (current.sheetVersion !== sheetVersion) {
-            throw new ApiError('로컬 유저 시트가 먼저 변경되었습니다.', 409, {
-                code: 'USER_SHEET_CONFLICT',
-                body: { snapshot: current },
-            });
-        }
-        const entries = [...current.entries];
-        const entryIndexById = new Map(entries.map((entry, index) => [entry.id, index]));
-        const entryIndexByDiscordId = new Map(
-            entries.flatMap((entry, index) => (
-                entry.discordUserId ? [[entry.discordUserId, index] as const] : []
-            )),
-        );
-        const entryIndexesByBattleTag = new Map<string, number[]>();
-        entries.forEach((entry, index) => {
-            const key = normalizeUserSheetBattleTag(entry.battleTag);
-            const indexes = entryIndexesByBattleTag.get(key) ?? [];
-            indexes.push(index);
-            entryIndexesByBattleTag.set(key, indexes);
-        });
-        const now = Date.now();
-        let addedCount = 0;
-        let tierUpdatedCount = 0;
-        let updatedCount = 0;
-
-        for (const [playerIndex, player] of players.entries()) {
-            const discordUserId = normalizeDiscordUserId(player.discordUserId);
-            if (!/^\d{17,20}$/.test(discordUserId)) {
-                throw new ApiError('모든 참가자의 Discord ID가 필요합니다.', 400);
-            }
-            const battleTagKey = normalizeUserSheetBattleTag(player.name);
-            const uniqueBattleTagIndexes = entryIndexesByBattleTag.get(battleTagKey) ?? [];
-            const entryIdIndex = (
-                player.userSheetEntryId
-                    ? entryIndexById.get(player.userSheetEntryId)
-                    : undefined
-            );
-            const discordIdIndex = entryIndexByDiscordId.get(discordUserId);
-            if (
-                entryIdIndex !== undefined
-                && discordIdIndex !== undefined
-                && entryIdIndex !== discordIdIndex
-            ) {
-                throw new ApiError(
-                    '선택한 유저와 Discord ID가 서로 다른 시트 행을 가리킵니다.',
-                    400,
-                );
-            }
-            const existingIndex = entryIdIndex ?? discordIdIndex ?? (
-                uniqueBattleTagIndexes.length === 1
-                    ? uniqueBattleTagIndexes[0]
-                    : undefined
-            );
-
-            if (existingIndex !== undefined) {
-                const previous = entries[existingIndex];
-                const shouldSyncTiers = syncTierPlayerIds.has(player.id);
-                const nextDiscordName = player.discordName?.trim() || previous.discordName;
-                const nextBattleTag = player.name.trim();
-                const nextTank = shouldSyncTiers
-                    ? cleanUserSheetRank(formatRank(player.tank))
-                    : previous.tank;
-                const nextDps = shouldSyncTiers
-                    ? cleanUserSheetRank(formatRank(player.dps))
-                    : previous.dps;
-                const nextSupport = shouldSyncTiers
-                    ? cleanUserSheetRank(formatRank(player.sup))
-                    : previous.support;
-                const didTierChange = previous.tank !== nextTank
-                    || previous.dps !== nextDps
-                    || previous.support !== nextSupport;
-                const didChange = previous.discordUserId !== (discordUserId || previous.discordUserId)
-                    || previous.discordName !== nextDiscordName
-                    || previous.battleTag !== nextBattleTag
-                    || didTierChange;
-                entries[existingIndex] = {
-                    ...previous,
-                    discordUserId: discordUserId || previous.discordUserId,
-                    discordName: nextDiscordName,
-                    battleTag: nextBattleTag,
-                    tank: nextTank,
-                    dps: nextDps,
-                    support: nextSupport,
-                    updatedAt: didChange ? now : previous.updatedAt,
-                    updatedByName: didChange
-                        ? LOCAL_REVIEW_USER_NAME
-                        : previous.updatedByName,
-                };
-                if (discordUserId) entryIndexByDiscordId.set(discordUserId, existingIndex);
-                if (didChange) updatedCount += 1;
-                if (shouldSyncTiers && didTierChange) tierUpdatedCount += 1;
-                continue;
-            }
-
-            const newEntry: UserSheetEntry = {
-                id: player.userSheetEntryId || `local-sheet-${now}-${playerIndex}`,
-                discordUserId: discordUserId || undefined,
-                discordName: player.discordName?.trim() ?? '',
-                battleTag: player.name.trim(),
-                tank: cleanUserSheetRank(formatRank(player.tank)),
-                dps: cleanUserSheetRank(formatRank(player.dps)),
-                support: cleanUserSheetRank(formatRank(player.sup)),
-                note: '',
-                createdAt: now,
-                updatedAt: now,
-                updatedByName: LOCAL_REVIEW_USER_NAME,
-            };
-            entries.push(newEntry);
-            const newIndex = entries.length - 1;
-            entryIndexById.set(newEntry.id, newIndex);
-            if (discordUserId) entryIndexByDiscordId.set(discordUserId, newIndex);
-            const indexes = entryIndexesByBattleTag.get(battleTagKey) ?? [];
-            indexes.push(newIndex);
-            entryIndexesByBattleTag.set(battleTagKey, indexes);
-            addedCount += 1;
-        }
-
-        if (addedCount === 0 && updatedCount === 0) {
-            return {
-                ...current,
-                addedCount,
-                tierUpdatedCount,
-                updatedCount,
-            };
-        }
-        return {
-            ...writeLocalUserSheet(entries, current.sheetVersion),
-            addedCount,
-            tierUpdatedCount,
-            updatedCount,
-        };
-    }
-
     const entries = players.map(player => ({
         entryId: player.userSheetEntryId,
         clientPlayerId: player.id,

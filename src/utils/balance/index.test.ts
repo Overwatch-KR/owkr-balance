@@ -60,23 +60,23 @@ const createTankSafeguardPlayers = (secondTankScore: number): Player[] => {
     ];
 };
 
-const getAssignmentSlots = (result: MatchResultData): Map<number, string> => {
-    const slots = new Map<number, string>();
+const getAssignmentTeams = (result: MatchResultData): Map<number, string> => {
+    const teams = new Map<number, string>();
     const addTeam = (team: 'A' | 'B', assignment: MatchResultData['teamA']['assignment']) => {
-        slots.set(assignment.TANK[0].id, `${team}:TANK`);
-        for (const player of assignment.DPS) slots.set(player.id, `${team}:DPS`);
-        for (const player of assignment.SUPPORT) slots.set(player.id, `${team}:SUPPORT`);
+        for (const players of Object.values(assignment)) {
+            for (const player of players) teams.set(player.id, team);
+        }
     };
 
     addTeam('A', result.teamA.assignment);
     addTeam('B', result.teamB.assignment);
-    return slots;
+    return teams;
 };
 
-const countAssignmentChanges = (first: MatchResultData, second: MatchResultData): number => {
-    const firstSlots = getAssignmentSlots(first);
-    const secondSlots = getAssignmentSlots(second);
-    return [...firstSlots].filter(([playerId, slot]) => secondSlots.get(playerId) !== slot).length;
+const countTeamChanges = (first: MatchResultData, second: MatchResultData): number => {
+    const firstTeams = getAssignmentTeams(first);
+    const secondTeams = getAssignmentTeams(second);
+    return [...firstTeams].filter(([playerId, team]) => secondTeams.get(playerId) !== team).length;
 };
 
 describe('balancePlayers', () => {
@@ -107,10 +107,13 @@ describe('balancePlayers', () => {
             const rank = role === 'TANK' ? player.tank : role === 'DPS' ? player.dps : player.sup;
             return rank.isPreferred;
         })).toBe(true);
-        expect(balanceResult.alternatives).toHaveLength(4);
+        expect(balanceResult.alternatives).toHaveLength(11);
         const results = [balanceResult.result, ...balanceResult.alternatives];
+        expect(results.map(result => result.evaluation?.rank)).toEqual(
+            Array.from({ length: 12 }, (_, index) => index + 1),
+        );
         expect(results.every((result, index) => results.slice(index + 1).every(
-            (otherResult) => countAssignmentChanges(result, otherResult) >= 3,
+            (otherResult) => countTeamChanges(result, otherResult) >= 2,
         ))).toBe(true);
     });
 
@@ -119,6 +122,29 @@ describe('balancePlayers', () => {
         const players = roles.map((role, index) => createPlayer(index + 1, role));
 
         expect(balancePlayers(players)).toEqual(balancePlayers(players));
+    });
+
+    it('선호 무시 옵션을 켜면 선호 위반 수를 후보 우선순위에서 제외한다', () => {
+        const roles: Role[] = [
+            'TANK',
+            'TANK',
+            'DPS',
+            'DPS',
+            'DPS',
+            'DPS',
+            'SUPPORT',
+            'SUPPORT',
+            'SUPPORT',
+            'SUPPORT',
+        ];
+        const players = roles.map((role, index) => createPlayer(index + 1, role));
+
+        const preferredResult = balancePlayers(players).result;
+        const ignoredResult = balancePlayers(players, { ignorePreferences: true }).result;
+
+        expect(preferredResult.metrics?.preferenceViolations).toBe(0);
+        expect(ignoredResult.metrics?.preferenceViolations).toBeGreaterThan(0);
+        expect(ignoredResult).not.toEqual(preferredResult);
     });
 
     it('탱커 차이가 600점을 넘으면 비선호 배정을 허용해 안전 범위로 줄인다', () => {
@@ -155,7 +181,6 @@ describe('balancePlayers', () => {
         expect(recalculated.metrics).toMatchObject({
             preferenceViolations: expect.any(Number),
             avoidedAssignments: expect.any(Number),
-            unrankedAssignments: expect.any(Number),
         });
     });
 

@@ -15,7 +15,6 @@ interface DiscordUserResponse {
     id: string;
     username: string;
     global_name?: string | null;
-    avatar?: string | null;
 }
 
 const fetchDiscordJson = async <T>(url: string, accessToken: string): Promise<T> => {
@@ -74,7 +73,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             id: discordUser.id,
             username: discordUser.username,
             globalName: discordUser.global_name ?? undefined,
-            avatar: discordUser.avatar ?? undefined,
         });
         res.setHeader('Set-Cookie', [sessionCookie, createClearedOAuthStateCookie(req)]);
         return res.redirect(302, origin);

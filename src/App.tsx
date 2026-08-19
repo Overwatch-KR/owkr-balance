@@ -1,40 +1,29 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
-import { SAMPLE_ROSTER, getTierScore } from './constants';
-import {
-    getEligibleRosterPlayers,
-    parseMultipleLines,
-} from './utils/parser';
 import { swapMatchResultPlayers } from './utils/balance';
 import {
     isMatchResultStale,
-    reconcilePlayers,
-    syncMatchResultPlayerIdentities,
 } from './utils/player';
-import { normalizePlayerRolePreferences } from './utils/role-preference';
 import {
     createUserSheetPlayerLookup,
-    fetchUserSheetConflictSnapshot,
     normalizeUserSheetBattleTag,
-    syncRosterPlayersToUserSheet,
-    type SyncRosterUserSheetResult,
 } from './utils/user-sheet';
 import { useOnboardingGuide } from './hooks/use-onboarding-guide';
-import { usePlayerInput } from './hooks/use-player-input';
 import { useToast } from './hooks/use-toast';
-import { useAuth, type AuthUser } from './hooks/use-auth';
+import { useMatchActions } from './hooks/use-match-actions';
+import { useRosterManagement } from './hooks/use-roster-management';
+import { useAuth, type AuthMode, type AuthUser, type DataMode } from './hooks/use-auth';
 import { useMatchSession } from './hooks/use-match-session';
 import { useUserSheet } from './hooks/use-user-sheet';
 import { getErrorMessage } from './utils/api';
 import { clearPlayerNoteCache } from './utils/player-note';
-import type { Player, Role, SwapSource } from './types';
-import type { RosterImportMode } from './utils/player';
-import PlayerForm from './components/player/form';
+import type { SwapSource } from './types';
 import {
     RosterIdentityResolver,
-    type RosterIdentityResolution,
 } from './components/player/form/roster-identity-resolver';
 import PlayerList from './components/player/list';
+import { ParticipantDashboardSummary } from './components/player/participant-dashboard-summary';
+import { ParticipantWorkspace } from './components/player/participant-workspace';
 import { OnboardingGuide } from './components/onboarding-guide';
 import { GuideResumePrompt } from './components/guide-resume-prompt';
 import { AppToast } from './components/app-toast';
@@ -52,17 +41,12 @@ const UserSheetModal = lazy(() => import('./components/user-sheet/user-sheet-mod
     default: module.UserSheetModal,
 })));
 
-const normalizePlayerName = (name: string) => name.trim().toLowerCase();
-
 interface MatchAppProps {
+    authMode: AuthMode;
     csrfToken: string;
+    dataMode: DataMode;
     logout: () => Promise<void>;
     user: AuthUser;
-}
-
-interface PendingIdentityImport {
-    failedLines: string[];
-    incoming: Player[];
 }
 
 const PageLoadingBar = () => (
@@ -76,51 +60,31 @@ const PageLoadingBar = () => (
     />
 );
 
-const MatchApp = ({ csrfToken, logout, user }: MatchAppProps) => {
+const MatchApp = ({ authMode, csrfToken, dataMode, logout, user }: MatchAppProps) => {
     const {
         alternatives,
         balanceTeams,
         isBalancing,
+        participantIncludesAdmin,
         participantMentions,
         players,
         result,
         setAlternatives,
+        setParticipantIncludesAdmin,
         setParticipantMentions,
         setPlayers,
         setResult,
     } = useMatchSession(user.id);
 
-    const {
-        editingPlayerId,
-        editPlayer: handleEditPlayer,
-        failedParses,
-        inputMode,
-        inputSummary,
-        inputs,
-        isInputCollapsed,
-        isPasteValidationPending,
-        pasteText,
-        pasteAvoidedRoleWarnings,
-        resetInputs: handleCancelEdit,
-        selectInputMode: handleGuideInputMode,
-        setFailedParses,
-        setInputMode,
-        setInputSummary,
-        setInputs,
-        setIsInputCollapsed,
-        setPasteText,
-        updatePasteText,
-    } = usePlayerInput(players.length);
     const [swapSource, setSwapSource] = useState<SwapSource | null>(null);
     const [showAllRanks, setShowAllRanks] = useState(false);
+    const [ignorePreferences, setIgnorePreferences] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [errorDetails, setErrorDetails] = useState<ErrorDetails | null>(null);
-    const [manualInputError, setManualInputError] = useState('');
-    const [pendingIdentityImport, setPendingIdentityImport] = useState<PendingIdentityImport | null>(null);
-    const [identityImportError, setIdentityImportError] = useState('');
-    const [isApplyingIdentityImport, setIsApplyingIdentityImport] = useState(false);
     const [pathname, setPathname] = useState(() => window.location.pathname.replace(/\/+$/, '') || '/');
     const [isPageNavigating, setIsPageNavigating] = useState(false);
+    const playerEditReturnPathRef = useRef(pathname);
+    const isGuideActiveRef = useRef(false);
     const userSheet = useUserSheet();
     const { dismissToast, showToast, toast } = useToast();
     useEffect(() => {
@@ -137,451 +101,100 @@ const MatchApp = ({ csrfToken, logout, user }: MatchAppProps) => {
             window.setTimeout(() => setIsPageNavigating(false), 180);
         }, 120);
     }, [pathname]);
-    const resetPlayerInputs = useCallback(() => {
-        handleCancelEdit();
-        setManualInputError('');
-    }, [handleCancelEdit]);
-    const startEditingPlayer = useCallback((player: Player) => {
-        handleEditPlayer(player);
-        setManualInputError('');
-    }, [handleEditPlayer]);
     const showDetailedError = useCallback((message: string, details: ErrorDetails) => {
         showToast('error', message, {
             label: '자세히 보기',
             onClick: () => setErrorDetails(details),
         });
     }, [showToast]);
+    const handlePlayerEditCompleted = useCallback(() => {
+        navigate(playerEditReturnPathRef.current);
+    }, [navigate]);
+    const handleRosterCompleted = useCallback(() => {
+        if (!isGuideActiveRef.current) navigate('/');
+    }, [navigate]);
+    const {
+        addPlayer,
+        cancelIdentityImport,
+        editingPlayerId,
+        failedParses,
+        handleApplyIdentityRosterOnly,
+        handleIdentityImportConfirm,
+        handlePaste,
+        identityImportError,
+        inputMode,
+        inputSummary,
+        inputs,
+        isApplyingIdentityImport,
+        isInputCollapsed,
+        isPasteValidationPending,
+        manualInputError,
+        pasteValidationIssues,
+        pasteText,
+        pendingIdentityImport,
+        requestRosterIdentityReview,
+        resetPlayerInputs,
+        selectInputMode: handleGuideInputMode,
+        setFailedParses,
+        setInputMode,
+        setInputSummary,
+        setInputs,
+        setIsInputCollapsed,
+        setManualInputError,
+        startEditingPlayer,
+        updatePasteText,
+    } = useRosterManagement({
+        csrfToken,
+        match: {
+            alternatives,
+            players,
+            result,
+            setAlternatives,
+            setPlayers,
+            setResult,
+        },
+        onPlayerEditCompleted: handlePlayerEditCompleted,
+        onRosterCompleted: handleRosterCompleted,
+        setSwapSource,
+        showDetailedError,
+        userSheet: {
+            sheetVersion: userSheet.sheetVersion,
+            updateSnapshot: userSheet.updateSnapshot,
+        },
+    });
 
-    const addPlayer = () => {
-        if (!inputs.name.trim()) {
-            setIsInputCollapsed(false);
-            setManualInputError('배틀태그를 Player#1234 형식으로 입력해 주세요.');
-            return;
-        }
-        const normalizedName = normalizePlayerName(inputs.name);
-        if (players.some(player => (
-            player.id !== editingPlayerId
-            && normalizePlayerName(player.name) === normalizedName
-        ))) {
-            setIsInputCollapsed(false);
-            const duplicate = players.find(player => (
-                player.id !== editingPlayerId
-                && normalizePlayerName(player.name) === normalizedName
-            ));
-            setManualInputError(
-                `${duplicate?.discordName ?? duplicate?.name ?? inputs.name} 참가자가 이미 명단에 있습니다. 기존 참가자 카드를 수정해 주세요.`,
-            );
-            return;
-        }
-        const tTier = inputs.tTier;
-        const dTier = inputs.dTier;
-        const sTier = inputs.sTier;
-        const existingPlayer = editingPlayerId === null
-            ? undefined
-            : players.find(player => player.id === editingPlayerId);
-        if (editingPlayerId !== null && !existingPlayer) {
-            resetPlayerInputs();
-            showDetailedError('수정할 참가자를 찾지 못했습니다.', {
-                title: '참가자 정보가 변경되었습니다',
-                description: '수정 중이던 참가자가 이미 삭제되었거나 명단이 갱신되었습니다.',
-                hint: '현재 참가자 목록에서 대상을 다시 선택해 주세요.',
-            });
-            return;
-        }
-        const willJoinWaitlist = editingPlayerId === null && players.length >= 10;
-        const newPlayer = normalizePlayerRolePreferences({
-            id: editingPlayerId ?? Date.now(),
-            name: inputs.name.trim(),
-            discordName: inputs.discordName.trim() || undefined,
-            discordUserId: existingPlayer?.discordUserId,
-            userSheetEntryId: existingPlayer?.userSheetEntryId,
-            tank: { tier: tTier, div: inputs.tDiv, score: getTierScore(tTier, inputs.tDiv), isPreferred: inputs.tPref, isAvoided: inputs.tAvoid },
-            dps: { tier: dTier, div: inputs.dDiv, score: getTierScore(dTier, inputs.dDiv), isPreferred: inputs.dPref, isAvoided: inputs.dAvoid },
-            sup: { tier: sTier, div: inputs.sDiv, score: getTierScore(sTier, inputs.sDiv), isPreferred: inputs.sPref, isAvoided: inputs.sAvoid },
-            noMic: inputs.noMic,
-        });
-        const isEditing = editingPlayerId !== null;
-        setPlayers(prev => isEditing
-            ? prev.map(player => player.id === editingPlayerId ? newPlayer : player)
-            : [...prev, newPlayer]);
-        setFailedParses(previous => previous.filter((entry) => {
-            const battleTag = entry.match(/[^\s·]+#\d{4,}/)?.[0];
-            return !battleTag || normalizePlayerName(battleTag) !== normalizePlayerName(newPlayer.name);
-        }));
-        resetPlayerInputs();
-        const hasOtherFailedParses = failedParses.some((entry) => {
-            const battleTag = entry.match(/[^\s·]+#\d{4,}/)?.[0];
-            return !battleTag || normalizePlayerName(battleTag) !== normalizePlayerName(newPlayer.name);
-        });
-        if (!hasOtherFailedParses) {
-            setInputSummary(isEditing
-                ? `참가자 수정 완료 · ${newPlayer.discordName ?? newPlayer.name}`
-                : willJoinWaitlist
-                    ? `대기열에 추가 완료 · ${newPlayer.discordName ?? newPlayer.name}`
-                    : `참가자 1명 추가 완료 · ${newPlayer.discordName ?? newPlayer.name}`);
-            setIsInputCollapsed(true);
-        } else {
-            setIsInputCollapsed(false);
-        }
-    };
-
-    const commitRosterImport = (
-        incoming: Player[],
-        failedLines: string[],
-        mode: RosterImportMode,
-        sheetResult?: Pick<SyncRosterUserSheetResult, 'addedCount' | 'tierUpdatedCount' | 'updatedCount'>,
-    ): void => {
-        const eligibleIncoming = getEligibleRosterPlayers(
-            incoming,
-            failedLines,
-            [],
-        );
-        const reconciled = reconcilePlayers(players, eligibleIncoming, mode);
-        const waitlistCount = Math.max(reconciled.players.length - 10, 0);
-        const hasIssues = failedLines.length > 0 || failedParses.length > 0;
-        const syncedResult = result
-            ? syncMatchResultPlayerIdentities(result, reconciled.players)
-            : null;
-        const shouldClearMatchResult = syncedResult
-            ? isMatchResultStale(syncedResult, reconciled.players.slice(0, 10))
-            : false;
-
-        if (failedLines.length > 0) {
-            setFailedParses(previous => [...new Set([...previous, ...failedLines])]);
-        }
-        setPlayers(reconciled.players);
-        setResult(shouldClearMatchResult ? null : syncedResult);
-        setAlternatives(shouldClearMatchResult
-            ? []
-            : alternatives.map(alternative => (
-                syncMatchResultPlayerIdentities(alternative, reconciled.players)
-            )));
-        setSwapSource(null);
-        setPendingIdentityImport(null);
-        setIdentityImportError('');
-        resetPlayerInputs();
-
-        const summaryParts = mode === 'replace'
-            ? [
-                `유지 ${reconciled.unchangedCount}명`,
-                `갱신 ${reconciled.updatedCount}명`,
-                `신규 ${reconciled.addedCount}명`,
-                `제외 ${reconciled.removedCount}명`,
-            ]
-            : [
-                `갱신 ${reconciled.updatedCount}명`,
-                `신규 ${reconciled.addedCount}명`,
-            ];
-        if (waitlistCount > 0) summaryParts.push(`대기열 ${waitlistCount}명`);
-        if (failedLines.length > 0) {
-            summaryParts.push(`보완 ${failedLines.length}명`);
-        }
-        if (shouldClearMatchResult && reconciled.players.length >= 10) {
-            summaryParts.push('팀 재배정 필요');
-        }
-        if (sheetResult) {
-            if (sheetResult.addedCount > 0) {
-                summaryParts.push(`시트 신규 ${sheetResult.addedCount}명`);
-            }
-            if (sheetResult.updatedCount > 0) {
-                summaryParts.push(`시트 갱신 ${sheetResult.updatedCount}명`);
-            }
-            if (sheetResult.tierUpdatedCount > 0) {
-                summaryParts.push(`티어 반영 ${sheetResult.tierUpdatedCount}명`);
-            }
-        }
-        const importSummary = `${mode === 'replace' ? '새 명단 적용' : '기존 명단에 추가'} · ${summaryParts.join(' · ')}`;
-        setInputSummary(importSummary);
-
-        if (hasIssues) {
-            setIsInputCollapsed(false);
-        } else {
-            setIsInputCollapsed(true);
-            setPasteText('');
-        }
-    };
-
-    const requestRosterIdentityReview = (
-        incoming: Player[],
-        failedLines: string[],
-    ) => {
-        setIdentityImportError('');
-        setPendingIdentityImport({ incoming, failedLines });
-        setIsInputCollapsed(false);
-    };
-
-    const attachUserSheetEntryIds = (
-        incoming: Player[],
-        sheetResult: SyncRosterUserSheetResult,
-    ): Player[] => {
-        const byEntryId = new Map(sheetResult.entries.map(entry => [entry.id, entry]));
-        const byDiscordId = new Map(sheetResult.entries.flatMap(entry => (
-            entry.discordUserId ? [[entry.discordUserId, entry] as const] : []
-        )));
-        const byBattleTag = new Map<string, typeof sheetResult.entries>();
-        sheetResult.entries.forEach(entry => {
-            const key = normalizeUserSheetBattleTag(entry.battleTag);
-            const matches = byBattleTag.get(key) ?? [];
-            matches.push(entry);
-            byBattleTag.set(key, matches);
-        });
-
-        return incoming.map(player => {
-            const battleTagMatches = byBattleTag.get(
-                normalizeUserSheetBattleTag(player.name),
-            ) ?? [];
-            const entry = (
-                player.userSheetEntryId
-                    ? byEntryId.get(player.userSheetEntryId)
-                    : undefined
-            ) ?? (
-                player.discordUserId
-                    ? byDiscordId.get(player.discordUserId)
-                    : undefined
-            ) ?? (battleTagMatches.length === 1 ? battleTagMatches[0] : undefined);
-            return entry ? { ...player, userSheetEntryId: entry.id } : player;
-        });
-    };
-
-    const handleIdentityImportConfirm = async (
-        resolution: RosterIdentityResolution,
-    ): Promise<void> => {
-        if (!pendingIdentityImport || isApplyingIdentityImport) return;
-        setIsApplyingIdentityImport(true);
-        setIdentityImportError('');
-        try {
-            const sheetResult = await syncRosterPlayersToUserSheet(
-                resolution.players,
-                new Set(resolution.syncTierPlayerIds),
-                userSheet.sheetVersion,
-                csrfToken,
-            );
-            userSheet.updateSnapshot(sheetResult);
-            const syncedPlayers = attachUserSheetEntryIds(resolution.players, sheetResult);
-            commitRosterImport(
-                syncedPlayers,
-                pendingIdentityImport.failedLines,
-                resolution.mode,
-                sheetResult,
-            );
-        } catch (error) {
-            const conflictSnapshot = await fetchUserSheetConflictSnapshot(error).catch(() => null);
-            if (conflictSnapshot) userSheet.updateSnapshot(conflictSnapshot);
-            const message = getErrorMessage(
-                error,
-                '유저 시트 변경을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.',
-            );
-            setIdentityImportError(conflictSnapshot
-                ? `${message} 최신 시트를 불러왔습니다. 연결과 변경 내용을 확인한 뒤 다시 시도해 주세요.`
-                : message);
-        } finally {
-            setIsApplyingIdentityImport(false);
-        }
-    };
-
-    const handleApplyIdentityRosterOnly = (
-        resolution: RosterIdentityResolution,
-    ) => {
-        if (!pendingIdentityImport || isApplyingIdentityImport) return;
-        commitRosterImport(
-            resolution.players,
-            pendingIdentityImport.failedLines,
-            resolution.mode,
-        );
-    };
-
-    const handlePaste = () => {
-        if (!pasteText.trim()) {
-            showDetailedError('붙여넣을 디스코드 채팅이 없습니다.', {
-                title: '가져올 명단이 비어 있습니다',
-                description: '채팅 붙여넣기 입력란에서 읽어낼 내용이 없습니다.',
-                hint: 'Discord에서 참가자 명단이 포함된 채팅을 복사해 입력란에 붙여넣어 주세요.',
-            });
-            return;
-        }
-        const { players: parsedPlayers, failedLines, avoidedRoleWarnings: importWarnings } = parseMultipleLines(pasteText);
-
-        if (importWarnings.length > 0) {
-            setIsInputCollapsed(false);
-            return;
-        }
-
-        if (parsedPlayers.length === 0) {
-            if (failedLines.length > 0) {
-                setFailedParses(previous => [...new Set([...previous, ...failedLines])]);
-            }
-            setIsInputCollapsed(false);
-            showDetailedError(
-                '읽어낸 플레이어가 없습니다.',
-                {
-                    title: 'Discord 명단을 해석하지 못했습니다',
-                    description: '붙여넣은 내용에서 올바른 배틀태그와 세 역할 티어를 찾지 못했습니다.',
-                    items: failedLines,
-                    hint: 'Player#1234 다3/플2/마5 형식이 포함되어 있는지 확인해 주세요.',
-                },
-            );
-            return;
-        }
-
-        requestRosterIdentityReview(parsedPlayers, failedLines);
-    };
-
-    const handleRunMatching = async (): Promise<boolean> => {
-        if (!isReady) {
-            showToast('error', '팀을 짜려면 참가자 10명이 필요합니다.');
-            return false;
-        }
-        setAlternatives([]);
-        setSwapSource(null);
-        const participants = players.slice(0, 10);
-        try {
-            await balanceTeams(participants);
-            return true;
-        } catch (error) {
-            const errorMessage = getErrorMessage(error, '매칭 중 오류가 발생했습니다.');
-            showDetailedError(errorMessage, {
-                title: '팀 자동 배정을 완료하지 못했습니다',
-                description: errorMessage,
-                hint: '참가자 역할 티어를 확인한 뒤 다시 시도해 주세요. 계속 실패하면 페이지를 새로고침해 주세요.',
-            });
-            return false;
-        }
-    };
-
-    const handleSlotClick = (teamIdx: number, role: Role, idx: number) => {
-        if (!result) return;
-        if (swapSource) {
-            if (swapSource.teamIdx === teamIdx && swapSource.role === role && swapSource.index === idx) {
-                setSwapSource(null);
-                return;
-            }
-            setResult(swapMatchResultPlayers(
-                result,
-                swapSource,
-                { teamIdx, role, index: idx },
-            ));
-            setSwapSource(null);
-        } else {
-            setSwapSource({ teamIdx, role, index: idx });
-        }
-    };
-
-    // 참여자 제거 시 대기자 자동 승격 처리
-    const handleRemovePlayer = (playerId: number) => {
-        const removedIndex = players.findIndex(player => player.id === playerId);
-        const removedPlayer = players[removedIndex];
-        if (!removedPlayer) return;
-        const previousResult = result;
-        const previousAlternatives = alternatives;
-        const previousSwapSource = swapSource;
-
-        setPlayers(prev => prev.filter(p => p.id !== playerId));
-        if (removedIndex < 10) {
-            setResult(null);
-            setAlternatives([]);
-            setSwapSource(null);
-        }
-        if (editingPlayerId === playerId) {
-            resetPlayerInputs();
-        }
-        showToast(
-            'success',
-            `${removedPlayer.discordName ?? removedPlayer.name}을 명단에서 제외했습니다.`,
-            {
-                label: '실행 취소',
-                onClick: () => {
-                    setPlayers(current => {
-                        if (current.some(player => player.id === removedPlayer.id)) return current;
-                        const restored = [...current];
-                        restored.splice(Math.min(removedIndex, restored.length), 0, removedPlayer);
-                        return restored;
-                    });
-                    if (removedIndex < 10) {
-                        setResult(previousResult);
-                        setAlternatives(previousAlternatives);
-                        setSwapSource(previousSwapSource);
-                    }
-                },
-            },
-        );
-    };
-
-    const handleClearAll = () => {
-        if (players.length === 0) return;
-        const previousPlayers = players;
-        const previousInputSummary = inputSummary;
-        const previousInputCollapsed = isInputCollapsed;
-        const previousResult = result;
-        const previousAlternatives = alternatives;
-        const previousSwapSource = swapSource;
-
-        setPlayers([]);
-        setResult(null);
-        setAlternatives([]);
-        setInputSummary('');
-        setIsInputCollapsed(false);
-        setSwapSource(null);
-        resetPlayerInputs();
-        showToast('success', '전체 참여 명단을 비웠습니다.', {
-            label: '실행 취소',
-            onClick: () => {
-                setPlayers(previousPlayers);
-                setInputSummary(previousInputSummary);
-                setIsInputCollapsed(previousInputCollapsed);
-                setResult(previousResult);
-                setAlternatives(previousAlternatives);
-                setSwapSource(previousSwapSource);
-            },
-        });
-    };
-
-    const handleClearResult = () => {
-        if (!result) return;
-        const previousResult = result;
-        const previousAlternatives = alternatives;
-        const previousSwapSource = swapSource;
-
-        setResult(null);
-        setAlternatives([]);
-        setSwapSource(null);
-        showToast('success', '팀 배정 결과를 지웠습니다.', {
-            label: '실행 취소',
-            onClick: () => {
-                setResult(previousResult);
-                setAlternatives(previousAlternatives);
-                setSwapSource(previousSwapSource);
-            },
-        });
-    };
-
-    const handleUseExampleRoster = () => {
-        if (players.length > 0) {
-            showToast('error', '기존 명단이 있어 더미 참가자를 추가하지 않았습니다.');
-            return;
-        }
-
-        const {
-            players: examplePlayers,
-            failedLines,
-            avoidedRoleWarnings: exampleWarnings,
-        } = parseMultipleLines(SAMPLE_ROSTER);
-        if (examplePlayers.length !== 10 || failedLines.length > 0 || exampleWarnings.length > 0) {
-            showToast('error', '더미 참가자 명단을 불러오지 못했습니다.');
-            return;
-        }
-
-        requestRosterIdentityReview(examplePlayers, []);
-    };
-
-    const handleSelectAlternative = (idx: number) => {
-        const alternative = alternatives[idx];
-        if (!alternative || !result) return;
-        const remaining = alternatives.filter((_, index) => index !== idx);
-        remaining.unshift(result);
-        setResult(alternative);
-        setAlternatives(remaining);
-        setSwapSource(null);
-    };
+    const {
+        handleClearAll,
+        handleClearResult,
+        handleRemovePlayer,
+        handleRunMatching,
+        handleSelectAlternative,
+        handleSlotClick,
+        handleUseExampleRoster,
+    } = useMatchActions({
+        balanceTeams,
+        match: {
+            alternatives,
+            players,
+            result,
+            setAlternatives,
+            setPlayers,
+            setResult,
+        },
+        playerInput: {
+            editingPlayerId,
+            inputSummary,
+            isInputCollapsed,
+            resetPlayerInputs,
+            setInputSummary,
+            setIsInputCollapsed,
+        },
+        requestRosterIdentityReview,
+        setSwapSource,
+        showDetailedError,
+        showToast,
+        swapSource,
+    });
 
     const {
         activeGuide,
@@ -602,8 +215,12 @@ const MatchApp = ({ csrfToken, logout, user }: MatchAppProps) => {
         onPrepareOpen: () => {
             setSwapSource(null);
             if (!result) setIsInputCollapsed(false);
+            navigate(result ? '/' : '/participants');
         },
-        onSelectInputMode: handleGuideInputMode,
+        onSelectInputMode: (mode) => {
+            handleGuideInputMode(mode);
+            navigate('/participants');
+        },
         onSwapExample: () => {
             if (!result) return;
             setResult(swapMatchResultPlayers(
@@ -616,9 +233,19 @@ const MatchApp = ({ csrfToken, logout, user }: MatchAppProps) => {
         onUseExampleRoster: handleUseExampleRoster,
         playerCount: players.length,
     });
+    useEffect(() => {
+        isGuideActiveRef.current = isGuideOpen || isGuideResumePromptOpen;
+    }, [isGuideOpen, isGuideResumePromptOpen]);
     const handleInterruptGuide = useCallback(() => {
         handleDismissGuide();
     }, [handleDismissGuide]);
+    const handleAppGuideStepChange = useCallback((
+        step: Parameters<typeof handleGuideStepChange>[0],
+    ) => {
+        if (step === 'start-matching' || step.startsWith('result-')) navigate('/');
+        else if (step.startsWith('start-')) navigate('/participants');
+        handleGuideStepChange(step);
+    }, [handleGuideStepChange, navigate]);
 
     // 참여 명단 (첫 10명)과 대기 명단 (나머지) 분리
     const participants = players.slice(0, 10);
@@ -643,6 +270,54 @@ const MatchApp = ({ csrfToken, logout, user }: MatchAppProps) => {
             showToast('error', getErrorMessage(error, '로그아웃하지 못했습니다. 다시 시도해 주세요.'));
             setIsLoggingOut(false);
         }
+    };
+    const currentAdminName = user.globalName ?? user.username;
+    const handleStartEditingPlayer = useCallback((player: Parameters<typeof startEditingPlayer>[0]) => {
+        playerEditReturnPathRef.current = pathname;
+        startEditingPlayer(player);
+        navigate('/participants');
+    }, [navigate, pathname, startEditingPlayer]);
+    const playerFormProps = {
+        players,
+        participantMentions,
+        setParticipantMentions,
+        participantIncludesAdmin,
+        setParticipantIncludesAdmin,
+        currentAdminName,
+        inputs,
+        setInputs,
+        addPlayer,
+        pasteText,
+        pasteValidationIssues,
+        isPasteValidationPending,
+        onPasteTextChange: updatePasteText,
+        handlePaste,
+        failedParses,
+        setFailedParses,
+        isCollapsed: isInputCollapsed,
+        summary: inputSummary,
+        onExpand: () => setIsInputCollapsed(false),
+        onCollapse: () => setIsInputCollapsed(true),
+        mode: inputMode,
+        onModeChange: setInputMode,
+        isEditing: editingPlayerId !== null,
+        manualInputError,
+        onCancelEdit: resetPlayerInputs,
+        onClearManualInputError: () => setManualInputError(''),
+        onRemovePlayer: handleRemovePlayer,
+    };
+    const playerListProps = {
+        participants,
+        waitlist,
+        onEditPlayer: handleStartEditingPlayer,
+        onRemovePlayer: handleRemovePlayer,
+        onClearAll: handleClearAll,
+        csrfToken,
+        noteCacheScope: user.id,
+        userSheetByBattleTag,
+        onOpenUserSheet: (battleTag: string, entryId?: string) => {
+            userSheet.open(battleTag, entryId);
+        },
     };
 
     if (pathname === '/scrims') {
@@ -669,6 +344,8 @@ const MatchApp = ({ csrfToken, logout, user }: MatchAppProps) => {
                 본문으로 건너뛰기
             </a>
             <AppHeader
+                authMode={authMode}
+                dataMode={dataMode}
                 isGuideOpen={isGuideOpen || isGuideResumePromptOpen}
                 isLoggingOut={isLoggingOut}
                 isUserSheetOpen={userSheet.isOpen}
@@ -679,7 +356,7 @@ const MatchApp = ({ csrfToken, logout, user }: MatchAppProps) => {
                     setSwapSource(null);
                     userSheet.open();
                 }}
-                userName={user.globalName ?? user.username}
+                userName={currentAdminName}
                 userSheetHasError={Boolean(userSheet.error)}
             />
 
@@ -689,68 +366,49 @@ const MatchApp = ({ csrfToken, logout, user }: MatchAppProps) => {
                 tabIndex={-1}
                 className="mx-auto max-w-[1600px] scroll-mt-20 px-4 py-6 focus:outline-none md:px-8 md:py-8"
             >
-                <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(400px,460px)_minmax(0,1fr)] xl:items-start">
-                    {/* Left Panel - Player Input */}
-                    <div className="flex min-h-0 min-w-0 flex-col gap-4 xl:sticky xl:top-24 xl:h-[calc(100dvh-8rem)]">
-                        <PlayerForm
-                            players={players}
-                            participantMentions={participantMentions}
-                            setParticipantMentions={setParticipantMentions}
-                            inputs={inputs}
-                            setInputs={setInputs}
-                            addPlayer={addPlayer}
-                            pasteText={pasteText}
-                            pasteAvoidedRoleWarnings={pasteAvoidedRoleWarnings}
-                            isPasteValidationPending={isPasteValidationPending}
-                            onPasteTextChange={updatePasteText}
-                            handlePaste={handlePaste}
-                            failedParses={failedParses}
-                            setFailedParses={setFailedParses}
-                            isCollapsed={isInputCollapsed}
-                            summary={inputSummary}
-                            onExpand={() => setIsInputCollapsed(false)}
-                            onCollapse={() => setIsInputCollapsed(true)}
-                            mode={inputMode}
-                            onModeChange={setInputMode}
-                            isEditing={editingPlayerId !== null}
-                            manualInputError={manualInputError}
-                            onCancelEdit={resetPlayerInputs}
-                            onClearManualInputError={() => setManualInputError('')}
-                            onRemovePlayer={handleRemovePlayer}
-                        />
-                        <PlayerList
-                            participants={participants}
-                            waitlist={waitlist}
-                            onEditPlayer={startEditingPlayer}
-                            onRemovePlayer={handleRemovePlayer}
-                            onClearAll={handleClearAll}
-                            csrfToken={csrfToken}
-                            noteCacheScope={user.id}
+                {pathname === '/participants' ? (
+                    <ParticipantWorkspace
+                        formProps={playerFormProps}
+                        listProps={playerListProps}
+                        participantCount={participants.length}
+                        waitlistCount={waitlist.length}
+                        reviewCount={failedParses.length}
+                        onContinueToMatching={() => navigate('/')}
+                        onClose={() => navigate('/')}
+                    />
+                ) : (
+                    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(380px,430px)_minmax(0,1fr)] xl:items-start">
+                        <div className="flex min-h-0 min-w-0 flex-col gap-4 xl:sticky xl:top-24 xl:h-[calc(100dvh-8rem)]">
+                            <ParticipantDashboardSummary
+                                participantCount={participants.length}
+                                waitlistCount={waitlist.length}
+                                reviewCount={failedParses.length}
+                                onOpen={() => navigate('/participants')}
+                            />
+                            <PlayerList {...playerListProps} />
+                        </div>
+
+                        <MatchResultPanel
+                            alternatives={alternatives}
+                            ignorePreferences={ignorePreferences}
+                            isBalancing={isBalancing}
+                            isReady={isReady}
+                            isResultStale={isResultStale}
+                            onCancelSwap={() => setSwapSource(null)}
+                            onClearResult={handleClearResult}
+                            onIgnorePreferencesChange={setIgnorePreferences}
+                            onRunMatching={() => void handleRunMatching({ ignorePreferences })}
+                            onSelectAlternative={handleSelectAlternative}
+                            onShowAllRanksChange={setShowAllRanks}
+                            onSlotClick={handleSlotClick}
+                            participantCount={participants.length}
+                            result={result}
+                            showAllRanks={showAllRanks}
+                            swapSource={swapSource}
                             userSheetByBattleTag={userSheetByBattleTag}
-                            onOpenUserSheet={(battleTag, entryId) => {
-                                userSheet.open(battleTag, entryId);
-                            }}
                         />
                     </div>
-
-                    <MatchResultPanel
-                        alternatives={alternatives}
-                        isBalancing={isBalancing}
-                        isReady={isReady}
-                        isResultStale={isResultStale}
-                        onCancelSwap={() => setSwapSource(null)}
-                        onClearResult={handleClearResult}
-                        onRunMatching={() => void handleRunMatching()}
-                        onSelectAlternative={handleSelectAlternative}
-                        onShowAllRanksChange={setShowAllRanks}
-                        onSlotClick={handleSlotClick}
-                        participantCount={participants.length}
-                        result={result}
-                        showAllRanks={showAllRanks}
-                        swapSource={swapSource}
-                        userSheetByBattleTag={userSheetByBattleTag}
-                    />
-                </div>
+                )}
             </main>
             <AnimatePresence>
                 {userSheet.isOpen && (
@@ -797,14 +455,11 @@ const MatchApp = ({ csrfToken, logout, user }: MatchAppProps) => {
                         entries={userSheet.entries}
                         failedLines={pendingIdentityImport.failedLines}
                         isSubmitting={isApplyingIdentityImport}
+                        isLocalOnly={dataMode === 'local'}
                         players={pendingIdentityImport.incoming}
                         submitError={identityImportError}
                         onApplyRosterOnly={handleApplyIdentityRosterOnly}
-                        onCancel={() => {
-                            if (isApplyingIdentityImport) return;
-                            setPendingIdentityImport(null);
-                            setIdentityImportError('');
-                        }}
+                        onCancel={cancelIdentityImport}
                         onConfirm={resolution => void handleIdentityImportConfirm(resolution)}
                     />
                 )}
@@ -830,7 +485,7 @@ const MatchApp = ({ csrfToken, logout, user }: MatchAppProps) => {
                         onComplete={handleCompleteGuide}
                         onDismiss={handleDismissGuide}
                         onInterrupt={handleInterruptGuide}
-                        onStepChange={handleGuideStepChange}
+                        onStepChange={handleAppGuideStepChange}
                     />
                 )}
             </AnimatePresence>
@@ -854,10 +509,18 @@ const MatchApp = ({ csrfToken, logout, user }: MatchAppProps) => {
 };
 
 const App = () => {
-    const { csrfToken, error, isLoading, logout, retry, user } = useAuth();
+    const { authMode, csrfToken, dataMode, error, isLoading, logout, retry, user } = useAuth();
     if (isLoading) return <LoadingScreen />;
     if (!user) return <LoginScreen serviceError={error} onRetry={retry} />;
-    return <MatchApp csrfToken={csrfToken} logout={logout} user={user} />;
+    return (
+        <MatchApp
+            authMode={authMode}
+            csrfToken={csrfToken}
+            dataMode={dataMode}
+            logout={logout}
+            user={user}
+        />
+    );
 };
 
 export default App;

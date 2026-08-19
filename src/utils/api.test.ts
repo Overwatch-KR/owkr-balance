@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { requestJson } from './api';
+import { BoundraRuntimeError } from 'boundra';
+import { ApiError, findApiError, getErrorMessage, requestJson } from './api';
 
 afterEach(() => {
     vi.unstubAllGlobals();
@@ -51,5 +52,34 @@ describe('requestJson', () => {
                 status: 409,
             }),
         );
+    });
+
+    it('계약 계층이 감싼 API 오류의 상태와 사용자 메시지를 복원한다', () => {
+        const original = new ApiError('참여 링크를 찾지 못했습니다.', 404);
+        const wrapped = new BoundraRuntimeError({
+            code: 'RUNTIME-003',
+            contract: 'get-public-participation',
+            phase: 'transport',
+            message: 'transport failed',
+            suggestion: 'check transport',
+            cause: original,
+        });
+
+        expect(findApiError(wrapped)).toBe(original);
+        expect(findApiError(wrapped)?.status).toBe(404);
+        expect(getErrorMessage(wrapped, 'fallback')).toBe('참여 링크를 찾지 못했습니다.');
+    });
+
+    it('계약 검증 상세 대신 사용자용 fallback 메시지를 반환한다', () => {
+        const error = new BoundraRuntimeError({
+            code: 'RUNTIME-002',
+            contract: 'get-public-participation',
+            phase: 'result',
+            message: 'result validation failed',
+            suggestion: 'check schema',
+        });
+
+        expect(getErrorMessage(error, '응답을 확인하지 못했습니다.'))
+            .toBe('응답을 확인하지 못했습니다.');
     });
 });

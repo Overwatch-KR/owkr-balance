@@ -29,9 +29,10 @@ export function PlayerSheetNote({
 
     return (
         <div
+            data-match-note
             data-exclude-export
             data-html2canvas-ignore="true"
-            className={`mt-1 flex min-h-[13px] min-w-0 shrink-0 items-center gap-1 text-[10px] leading-tight text-emerald-300/80 ${
+            className={`mt-1 flex min-h-[13px] w-full min-w-0 max-w-full shrink-0 items-center gap-1 overflow-hidden text-[10px] leading-tight text-emerald-300/80 ${
                 align === 'right' ? 'justify-end' : 'justify-start'
             }`}
             title={`시트 특이사항: ${cleanNote}`}
@@ -40,7 +41,7 @@ export function PlayerSheetNote({
             {align === 'left' && (
                 <MessageSquareText size={11} className="shrink-0" aria-hidden="true" />
             )}
-            <span className="max-w-full truncate">{cleanNote}</span>
+            <span className="min-w-0 flex-1 truncate">{cleanNote}</span>
             {align === 'right' && (
                 <MessageSquareText size={11} className="shrink-0" aria-hidden="true" />
             )}

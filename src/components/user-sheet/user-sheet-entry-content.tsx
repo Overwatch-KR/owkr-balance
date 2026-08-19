@@ -32,6 +32,7 @@ interface UserSheetEntryContentProps {
     draft: UserSheetDraftEntry;
     entry: UserSheetEntry;
     isCurrentParticipant: boolean;
+    isDirty: boolean;
     isEditing: boolean;
     isSaving: boolean;
     noteCacheScope: string;
@@ -60,6 +61,7 @@ export function UserSheetEntryContent({
     draft,
     entry,
     isCurrentParticipant,
+    isDirty,
     isEditing,
     isSaving,
     noteCacheScope,
@@ -76,102 +78,109 @@ export function UserSheetEntryContent({
             aria-labelledby="user-sheet-entry-title"
         >
             <div className="mx-auto max-w-3xl">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div className="min-w-0">
-                        <div className="mb-2 flex flex-wrap items-center gap-2">
-                            {isCurrentParticipant && (
-                                <span className="rounded-full bg-cyan-500/15 px-2 py-1 text-[11px] font-medium text-cyan-300">
-                                    현재 참가자
+                {isEditing ? (
+                    <>
+                        <div className="grid grid-cols-2 items-center gap-3">
+                            <div className="flex min-w-0 flex-wrap items-center gap-2">
+                                {isCurrentParticipant && (
+                                    <span className="rounded-full bg-cyan-500/15 px-2 py-1 text-[11px] font-medium text-cyan-300">
+                                        현재 참가자
+                                    </span>
+                                )}
+                                <span className="truncate text-xs text-slate-600">
+                                    최종 수정 · {entry.updatedByName} · {new Date(entry.updatedAt).toLocaleString('ko-KR')}
                                 </span>
-                            )}
-                            <span className="text-xs text-slate-600">
-                                {entry.updatedByName} 수정 · {new Date(entry.updatedAt).toLocaleString('ko-KR')}
-                            </span>
+                            </div>
+                            <div className="flex justify-end gap-2">
+                                <button
+                                    type="button"
+                                    onClick={onCancel}
+                                    disabled={isSaving}
+                                    className="btn-ghost inline-flex min-h-9 items-center gap-2 disabled:opacity-40"
+                                >
+                                    <X size={14} aria-hidden="true" />
+                                    취소
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={onSave}
+                                    disabled={isSaving || !csrfToken || !isDirty}
+                                    className="btn-primary inline-flex min-h-9 items-center gap-2 disabled:opacity-40"
+                                >
+                                    {isSaving
+                                        ? <Loader2 size={14} className="animate-spin" aria-hidden="true" />
+                                        : <Save size={14} aria-hidden="true" />}
+                                    {isSaving ? '공용 정보 저장 중…' : '공용 정보 저장'}
+                                </button>
+                            </div>
                         </div>
-                        {isEditing ? (
-                            <>
-                                <h2 id="user-sheet-entry-title" className="sr-only">
-                                    {entry.discordName || entry.battleTag} 정보 수정
-                                </h2>
-                                <div className="grid gap-3 sm:grid-cols-2">
-                                    <label className="grid gap-1.5 text-xs text-slate-500">
-                                        디스코드 이름
-                                        <input
-                                            value={draft.discordName}
-                                            onChange={event => onFieldChange('discordName', event.target.value)}
-                                            className="h-10 rounded-lg border border-slate-700 bg-surface px-3 text-sm text-slate-100 outline-none focus:border-cyan-400"
-                                            autoComplete="off"
-                                        />
-                                    </label>
-                                    <label className="grid gap-1.5 text-xs text-slate-500">
-                                        배틀태그
-                                        <input
-                                            value={draft.battleTag}
-                                            onChange={event => onFieldChange('battleTag', event.target.value)}
-                                            className={`h-10 rounded-lg border bg-surface px-3 font-mono text-sm text-slate-100 outline-none focus:border-cyan-400 ${
-                                                validationMessage ? 'border-rose-400/70' : 'border-slate-700'
-                                            }`}
-                                            autoComplete="off"
-                                            spellCheck={false}
-                                            aria-invalid={Boolean(validationMessage)}
-                                        />
-                                    </label>
-                                    <label className="grid gap-1.5 text-xs text-slate-500 sm:col-span-2">
-                                        Discord 고유 ID <span className="text-rose-300">*</span>
-                                        <input
-                                            value={draft.discordUserId ?? ''}
-                                            onChange={event => onFieldChange('discordUserId', event.target.value.replace(/\D/g, ''))}
-                                            className="h-10 rounded-lg border border-slate-700 bg-surface px-3 font-mono text-sm text-slate-100 outline-none focus:border-cyan-400"
-                                            inputMode="numeric"
-                                            required
-                                            autoComplete="off"
-                                            placeholder="필수 · 17~20자리 숫자"
-                                        />
-                                    </label>
-                                </div>
-                            </>
-                        ) : (
-                            <>
-                                <h2 id="user-sheet-entry-title" className="truncate text-xl font-semibold text-white">
-                                    {entry.discordName || entry.battleTag}
-                                </h2>
-                                <div className="mt-1 flex items-center gap-1">
-                                    <p className="min-w-0 break-all font-mono text-sm text-slate-400">{entry.battleTag}</p>
-                                    <BattleTagCopyButton battleTag={entry.battleTag} />
-                                </div>
-                                <p className={`mt-2 inline-flex items-center gap-1.5 font-mono text-[11px] ${
-                                    entry.discordUserId ? 'text-slate-500' : 'text-rose-300'
-                                }`}>
-                                    <Fingerprint size={12} aria-hidden="true" />
-                                    Discord ID · {entry.discordUserId || '입력 필요'}
-                                </p>
-                            </>
-                        )}
-                    </div>
-                    {isEditing ? (
-                        <div className="flex gap-2">
-                            <button
-                                type="button"
-                                onClick={onCancel}
-                                disabled={isSaving}
-                                className="btn-ghost inline-flex min-h-9 items-center gap-2 disabled:opacity-40"
-                            >
-                                <X size={14} aria-hidden="true" />
-                                취소
-                            </button>
-                            <button
-                                type="button"
-                                onClick={onSave}
-                                disabled={isSaving || !csrfToken}
-                                className="btn-primary inline-flex min-h-9 items-center gap-2 disabled:opacity-40"
-                            >
-                                {isSaving
-                                    ? <Loader2 size={14} className="animate-spin" aria-hidden="true" />
-                                    : <Save size={14} aria-hidden="true" />}
-                                {isSaving ? '공용 정보 저장 중…' : '공용 정보 저장'}
-                            </button>
+                        <h2 id="user-sheet-entry-title" className="sr-only">
+                            {entry.discordName || entry.battleTag} 정보 수정
+                        </h2>
+                        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                            <label className="grid gap-1.5 text-xs text-slate-500">
+                                디스코드 이름
+                                <input
+                                    value={draft.discordName}
+                                    onChange={event => onFieldChange('discordName', event.target.value)}
+                                    className="h-10 rounded-lg border border-slate-700 bg-surface px-3 text-sm text-slate-100 outline-none focus:border-cyan-400"
+                                    autoComplete="off"
+                                />
+                            </label>
+                            <label className="grid gap-1.5 text-xs text-slate-500">
+                                배틀태그
+                                <input
+                                    value={draft.battleTag}
+                                    onChange={event => onFieldChange('battleTag', event.target.value)}
+                                    className={`h-10 rounded-lg border bg-surface px-3 font-mono text-sm text-slate-100 outline-none focus:border-cyan-400 ${
+                                        validationMessage ? 'border-rose-400/70' : 'border-slate-700'
+                                    }`}
+                                    autoComplete="off"
+                                    spellCheck={false}
+                                    aria-invalid={Boolean(validationMessage)}
+                                />
+                            </label>
+                            <label className="grid gap-1.5 text-xs text-slate-500 sm:col-span-2">
+                                Discord 고유 ID <span className="text-rose-300">*</span>
+                                <input
+                                    value={draft.discordUserId ?? ''}
+                                    onChange={event => onFieldChange('discordUserId', event.target.value.replace(/\D/g, ''))}
+                                    className="h-10 rounded-lg border border-slate-700 bg-surface px-3 font-mono text-sm text-slate-100 outline-none focus:border-cyan-400"
+                                    inputMode="numeric"
+                                    required
+                                    autoComplete="off"
+                                    placeholder="필수 · 17~20자리 숫자"
+                                />
+                            </label>
                         </div>
-                    ) : (
+                    </>
+                ) : (
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div className="min-w-0">
+                            <div className="mb-2 flex flex-wrap items-center gap-2">
+                                {isCurrentParticipant && (
+                                    <span className="rounded-full bg-cyan-500/15 px-2 py-1 text-[11px] font-medium text-cyan-300">
+                                        현재 참가자
+                                    </span>
+                                )}
+                                <span className="text-xs text-slate-600">
+                                    최종 수정 · {entry.updatedByName} · {new Date(entry.updatedAt).toLocaleString('ko-KR')}
+                                </span>
+                            </div>
+                            <h2 id="user-sheet-entry-title" className="truncate text-xl font-semibold text-white">
+                                {entry.discordName || entry.battleTag}
+                            </h2>
+                            <div className="mt-1 flex items-center gap-1">
+                                <p className="min-w-0 break-all font-mono text-sm text-slate-400">{entry.battleTag}</p>
+                                <BattleTagCopyButton battleTag={entry.battleTag} />
+                            </div>
+                            <p className={`mt-2 inline-flex items-center gap-1.5 font-mono text-[11px] ${
+                                entry.discordUserId ? 'text-slate-500' : 'text-rose-300'
+                            }`}>
+                                <Fingerprint size={12} aria-hidden="true" />
+                                Discord ID · {entry.discordUserId || '입력 필요'}
+                            </p>
+                        </div>
                         <button
                             id="user-sheet-quick-edit"
                             type="button"
@@ -181,8 +190,8 @@ export function UserSheetEntryContent({
                             <Pencil size={14} aria-hidden="true" />
                             공용 정보 수정
                         </button>
-                    )}
-                </div>
+                    </div>
+                )}
 
                 {validationMessage && (
                     <div className="mt-4 flex items-start gap-2 rounded-lg border border-rose-500/25 bg-rose-500/[0.08] px-3 py-2.5 text-xs text-rose-200" role="alert">

@@ -53,8 +53,8 @@ const USER_SHEET_TOUR_STEPS: readonly UserSheetTourStep[] = [
         id: 'overview',
         icon: KeyRound,
         target: '#user-sheet-overview',
-        title: '시트의 역할부터 확인해요',
-        description: '유저 시트는 운영진이 함께 관리하는 공유 목록입니다. Discord ID를 최종 식별자로 사용하고, 역할별 티어는 참고 정보로 사용합니다.',
+        title: '시트와 현재 매칭 명단을 구분해요',
+        description: '유저 시트는 운영진이 함께 관리하는 공유 목록입니다. 현재 내전의 참가자와 티어는 참가자 작업실에서 관리하고, 여기서는 Discord ID를 기준으로 유저 정보를 유지합니다.',
     },
     {
         id: 'search',
@@ -71,7 +71,7 @@ const USER_SHEET_TOUR_STEPS: readonly UserSheetTourStep[] = [
         target: '#user-sheet-quick-edit',
         fallback: '#user-sheet-actions',
         title: '한 명은 상세 화면에서 수정해요',
-        description: '선택한 유저의 공용 정보 수정을 누르면 이름, BattleTag, 역할 티어와 공용 특이사항을 수정합니다. 개인 운영 메모는 아래의 전용 저장 버튼으로 따로 저장됩니다.',
+        description: '선택한 유저의 공용 정보 수정을 누르면 이름, BattleTag, 역할 티어와 공용 특이사항을 수정합니다. 개인 운영 메모는 별도 저장 버튼으로 관리하며, 이 화면의 티어 수정은 현재 매칭 명단을 바꾸지 않습니다.',
         emptyDescription: '유저를 등록한 뒤 목록에서 선택하면 공용 정보 수정과 개인 운영 메모 저장을 서로 분리해 관리할 수 있습니다.',
     },
     {
@@ -79,7 +79,7 @@ const USER_SHEET_TOUR_STEPS: readonly UserSheetTourStep[] = [
         icon: UserPlus,
         target: '#user-sheet-actions',
         title: '추가와 전체 편집을 구분해요',
-        description: '한 명을 새로 등록할 때는 유저 추가, 여러 명을 한꺼번에 정리할 때는 전체 편집을 사용하세요.',
+        description: '한 명을 새로 등록할 때는 유저 추가, 여러 명을 한꺼번에 정리할 때는 전체 편집을 사용하세요. 시트에 등록해도 이번 내전에 자동으로 참가시키지는 않습니다.',
     },
     {
         id: 'bulk-edit',
@@ -87,7 +87,7 @@ const USER_SHEET_TOUR_STEPS: readonly UserSheetTourStep[] = [
         target: '#user-sheet-import',
         fallback: '#user-sheet-editor',
         title: '명단과 표를 한 번에 반영해요',
-        description: 'Discord 명단 가져오기로 신규 유저를 추가하거나, Discord ID를 포함한 Google Sheets의 7개 열을 편집 표 첫 셀에 붙여넣을 수 있습니다. ID가 없는 행은 저장할 수 없습니다. 이 가이드는 저장을 실행하지 않습니다.',
+        description: 'Discord 명단 가져오기로 신규 유저를 추가하거나, Discord ID를 포함한 Google Sheets의 7개 열을 편집 표 첫 셀에 붙여넣을 수 있습니다. ID가 없는 행은 저장할 수 없으며, 가이드는 저장을 실행하지 않습니다.',
     },
     {
         id: 'notes',
@@ -104,7 +104,7 @@ const USER_SHEET_TOUR_STEPS: readonly UserSheetTourStep[] = [
         target: '#user-sheet-refresh',
         fallback: '#user-sheet-header-actions',
         title: '최신 데이터를 확인하고 마쳐요',
-        description: '시트가 열려 있으면 1분마다 자동으로 확인하고, 창으로 돌아오거나 새로고침을 누르면 즉시 갱신합니다. 여러 운영자가 함께 작업했다면 전체 편집 전에 확인해 주세요.',
+        description: '시트가 열려 있으면 1분마다 자동으로 확인하고, 창으로 돌아오거나 새로고침을 누르면 즉시 갱신합니다. 여러 운영자가 함께 작업했다면 전체 편집 전에 새로고침해 충돌을 줄여 주세요.',
     },
 ] as const;
 

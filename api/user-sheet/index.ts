@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSessionUser, hasValidCsrfToken } from '../_lib/auth.js';
 import { sendUnexpectedError } from '../_lib/error.js';
 import { disableResponseCache } from '../_lib/http.js';
-import { getRedis } from '../_lib/redis.js';
+import { getRedis, isLocalDataOnly } from '../_lib/redis.js';
 import {
     readUserSheetSnapshot,
     replaceUserSheet,
@@ -14,6 +14,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     disableResponseCache(res);
     const user = getSessionUser(req);
     if (!user) return res.status(401).json({ error: '로그인이 필요합니다.' });
+    if (isLocalDataOnly()) {
+        if (req.method === 'GET') {
+            return res.status(200).json({ entries: [], sheetVersion: 0 });
+        }
+        return res.status(503).json({
+            error: '로컬 전용 모드에서는 유저 시트를 저장하지 않습니다.',
+        });
+    }
     const redis = getRedis();
     if (!redis) return res.status(503).json({ error: '유저 시트 저장소가 아직 설정되지 않았습니다.' });
 

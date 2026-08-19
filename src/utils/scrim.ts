@@ -2,7 +2,7 @@ import type {
     SatisfactionParticipationStatus,
     ScrimRecord,
     VoteParticipationStatus,
-} from '../types/scrim';
+} from '../../domains/scrim/shared/public';
 
 /**
  * @description 한국 시간 기준 내전 시작·만족도 종료 시각과 공개 참여 상태를 계산한다.

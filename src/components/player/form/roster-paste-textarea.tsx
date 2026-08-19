@@ -1,24 +1,15 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { UIEvent } from 'react';
-import { AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
-import type { AvoidedRoleWarning } from '../../../utils/parser';
-import {
-    findAvoidedRoleHighlightRanges,
-    type TextHighlightRange,
-} from '../../../utils/parser/avoidance-highlight';
+import { AlertCircle, ChevronDown, ChevronUp, LocateFixed } from 'lucide-react';
+import type { RosterValidationIssue } from '../../../utils/parser';
+import type { TextHighlightRange } from '../../../utils/parser/avoidance-highlight';
 
 interface RosterPasteTextareaProps {
     isValidationPending: boolean;
+    issues: RosterValidationIssue[];
     onChange: (value: string) => void;
     value: string;
-    warnings: AvoidedRoleWarning[];
 }
-
-const ROLE_LABELS: Record<AvoidedRoleWarning['avoidedRoles'][number], string> = {
-    TANK: '탱커',
-    DPS: '딜러',
-    SUPPORT: '힐러',
-};
 
 const renderHighlightedText = (
     text: string,
@@ -57,39 +48,52 @@ const renderHighlightedText = (
     return nodes;
 };
 
+const mergeHighlightRanges = (ranges: TextHighlightRange[]): TextHighlightRange[] => {
+    const merged: TextHighlightRange[] = [];
+    for (const range of [...ranges].sort((left, right) => (
+        left.start - right.start || left.end - right.end
+    ))) {
+        const previous = merged.at(-1);
+        if (!previous || range.start > previous.end) {
+            merged.push({ ...range });
+            continue;
+        }
+        previous.end = Math.max(previous.end, range.end);
+    }
+    return merged;
+};
+
 /**
  * @description Discord 명단 입력과 문제 포지션 구간을 같은 위치에 겹쳐 표시한다.
  */
 const RosterPasteTextarea = ({
     isValidationPending,
+    issues,
     onChange,
     value,
-    warnings,
 }: RosterPasteTextareaProps) => {
     const highlightLayerRef = useRef<HTMLDivElement>(null);
     const shouldAutoNavigateAfterPasteRef = useRef(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
-    const [activeWarningIndex, setActiveWarningIndex] = useState(0);
-    const ranges = useMemo(
-        () => findAvoidedRoleHighlightRanges(value, warnings),
-        [value, warnings],
-    );
-    const navigationTargets = useMemo(() => warnings.flatMap((warning) => {
-        const warningRanges = findAvoidedRoleHighlightRanges(value, [warning]);
-        const firstRange = warningRanges[0];
-        const lastRange = warningRanges.at(-1);
+    const [activeIssueIndex, setActiveIssueIndex] = useState(0);
+    const ranges = useMemo(() => (
+        mergeHighlightRanges(issues.flatMap(issue => issue.ranges))
+    ), [issues]);
+    const navigationTargets = useMemo(() => issues.flatMap((issue) => {
+        const firstRange = issue.ranges[0];
+        const lastRange = issue.ranges.at(-1);
         if (!firstRange || !lastRange) return [];
         return [{
             end: lastRange.end,
             start: firstRange.start,
-            warning,
+            issue,
         }];
-    }), [value, warnings]);
-    const hasWarnings = ranges.length > 0;
-    const currentWarningIndex = navigationTargets.length > 0
-        ? activeWarningIndex % navigationTargets.length
+    }), [issues]);
+    const hasIssues = ranges.length > 0;
+    const currentIssueIndex = navigationTargets.length > 0
+        ? activeIssueIndex % navigationTargets.length
         : 0;
-    const currentTarget = navigationTargets[currentWarningIndex];
+    const currentTarget = navigationTargets[currentIssueIndex];
 
     const syncHighlightScroll = useCallback((textarea: HTMLTextAreaElement) => {
         if (!highlightLayerRef.current) return;
@@ -102,7 +106,7 @@ const RosterPasteTextarea = ({
         if (textareaRef.current) syncHighlightScroll(textareaRef.current);
     }, [ranges, syncHighlightScroll]);
 
-    const scrollToWarning = useCallback((targetIndex: number) => {
+    const scrollToIssue = useCallback((targetIndex: number) => {
         if (!textareaRef.current || navigationTargets.length === 0) return;
         const target = navigationTargets[targetIndex];
         const targetMark = highlightLayerRef.current?.querySelector<HTMLElement>(
@@ -124,22 +128,22 @@ const RosterPasteTextarea = ({
     useLayoutEffect(() => {
         if (isValidationPending || !shouldAutoNavigateAfterPasteRef.current) return;
         shouldAutoNavigateAfterPasteRef.current = false;
-        if (navigationTargets.length > 0) scrollToWarning(0);
-    }, [isValidationPending, navigationTargets.length, scrollToWarning]);
+        if (navigationTargets.length > 0) scrollToIssue(0);
+    }, [isValidationPending, navigationTargets.length, scrollToIssue]);
 
-    const navigateToWarning = (direction: -1 | 1) => {
+    const navigateToIssue = (direction: -1 | 1) => {
         if (navigationTargets.length === 0) return;
         const nextIndex = (
-            currentWarningIndex + direction + navigationTargets.length
+            currentIssueIndex + direction + navigationTargets.length
         ) % navigationTargets.length;
-        setActiveWarningIndex(nextIndex);
-        scrollToWarning(nextIndex);
+        setActiveIssueIndex(nextIndex);
+        scrollToIssue(nextIndex);
     };
 
     return (
         <div className="space-y-2">
             <div className="relative">
-                {hasWarnings && (
+                {hasIssues && (
                     <div
                         className="pointer-events-none absolute inset-y-px left-px right-[9px] z-10 overflow-hidden rounded-[7px]"
                         aria-hidden="true"
@@ -159,22 +163,22 @@ const RosterPasteTextarea = ({
                     autoComplete="off"
                     spellCheck={false}
                     className={`input-base custom-scrollbar h-40 resize-none overflow-y-scroll font-mono text-sm leading-relaxed ${
-                        hasWarnings
+                        hasIssues
                             ? 'border-rose-500/70 focus:border-rose-400 focus:ring-rose-500/20'
                             : ''
                     }`}
-                    placeholder={`예시:\nkimjungun#11853 다5/다1/다5\n학살#38848 다3/마4/다4\nAki#34981 미배치(골)/미배치(플)/플2\n재봉이#31207 그5!/마1!/마4`}
+                    placeholder={`예시:\nkimjungun#11853 다5/다1/다5\n학살#38848 다3/마4/다4\nAki#34981 에3/플1/에2\n재봉이#31207 그5!/마1!/마4`}
                     value={value}
                     onChange={event => onChange(event.target.value)}
                     onPaste={() => {
                         shouldAutoNavigateAfterPasteRef.current = true;
-                        setActiveWarningIndex(0);
+                        setActiveIssueIndex(0);
                     }}
                     onScroll={(event: UIEvent<HTMLTextAreaElement>) => (
                         syncHighlightScroll(event.currentTarget)
                     )}
-                    aria-invalid={hasWarnings || undefined}
-                    aria-describedby={hasWarnings ? 'roster-paste-error-navigation' : undefined}
+                    aria-invalid={hasIssues || undefined}
+                    aria-describedby={hasIssues ? 'roster-paste-error-navigation' : undefined}
                 />
             </div>
             {currentTarget && (
@@ -187,32 +191,43 @@ const RosterPasteTextarea = ({
                     <AlertCircle size={13} className="shrink-0 text-rose-400" aria-hidden="true" />
                     <p className="min-w-0 flex-1 truncate text-[11px] text-rose-200/80">
                         <span className="font-semibold text-rose-200">
-                            오류 {currentWarningIndex + 1}/{navigationTargets.length}
+                            오류 {currentIssueIndex + 1}/{navigationTargets.length}
                         </span>
                         {' · '}
-                        {currentTarget.warning.discordName || currentTarget.warning.playerName}
+                        {currentTarget.issue.discordName || currentTarget.issue.playerName || '입력 형식'}
                         {' · '}
-                        {currentTarget.warning.avoidedRoles.map(role => ROLE_LABELS[role]).join('·')}
+                        {currentTarget.issue.message}
                     </p>
                     <div className="flex shrink-0 items-center gap-0.5">
-                        <button
-                            type="button"
-                            onClick={() => navigateToWarning(-1)}
-                            disabled={navigationTargets.length <= 1}
-                            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-rose-200/70 transition-colors hover:bg-rose-400/10 hover:text-rose-100 disabled:cursor-default disabled:opacity-30"
-                            aria-label="이전 비선호 오류로 이동"
-                        >
-                            <ChevronUp size={15} aria-hidden="true" />
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => navigateToWarning(1)}
-                            disabled={navigationTargets.length <= 1}
-                            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-rose-200/70 transition-colors hover:bg-rose-400/10 hover:text-rose-100 disabled:cursor-default disabled:opacity-30"
-                            aria-label="다음 비선호 오류로 이동"
-                        >
-                            <ChevronDown size={15} aria-hidden="true" />
-                        </button>
+                        {navigationTargets.length === 1 ? (
+                            <button
+                                type="button"
+                                onClick={() => scrollToIssue(0)}
+                                className="inline-flex min-h-7 items-center gap-1 rounded-md px-2 text-[11px] font-medium text-rose-100 transition-colors hover:bg-rose-400/10"
+                            >
+                                <LocateFixed size={13} aria-hidden="true" />
+                                오류 위치로 이동
+                            </button>
+                        ) : (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={() => navigateToIssue(-1)}
+                                    className="inline-flex h-7 w-7 items-center justify-center rounded-md text-rose-200/70 transition-colors hover:bg-rose-400/10 hover:text-rose-100"
+                                    aria-label="이전 입력 오류로 이동"
+                                >
+                                    <ChevronUp size={15} aria-hidden="true" />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => navigateToIssue(1)}
+                                    className="inline-flex h-7 w-7 items-center justify-center rounded-md text-rose-200/70 transition-colors hover:bg-rose-400/10 hover:text-rose-100"
+                                    aria-label="다음 입력 오류로 이동"
+                                >
+                                    <ChevronDown size={15} aria-hidden="true" />
+                                </button>
+                            </>
+                        )}
                     </div>
                 </div>
             )}

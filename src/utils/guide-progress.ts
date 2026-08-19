@@ -1,11 +1,14 @@
 export type GuideVariant = 'start' | 'result';
 export type GuideStepId =
+    | 'start-workspace'
     | 'start-discord'
     | 'start-manual'
     | 'start-mentions'
     | 'start-roster'
+    | 'start-continue'
     | 'start-matching'
     | 'result-summary'
+    | 'result-preferences'
     | 'result-exceptions'
     | 'result-alternatives'
     | 'result-swap'
@@ -14,19 +17,22 @@ export type GuideStepId =
 export interface GuideProgress {
     stepId: GuideStepId;
     variant: GuideVariant;
-    version: 1;
+    version: 2;
 }
 
 export const GUIDE_STEP_IDS: Record<GuideVariant, readonly GuideStepId[]> = {
     start: [
+        'start-workspace',
         'start-discord',
         'start-manual',
         'start-mentions',
         'start-roster',
+        'start-continue',
         'start-matching',
     ],
     result: [
         'result-summary',
+        'result-preferences',
         'result-exceptions',
         'result-alternatives',
         'result-swap',
@@ -48,7 +54,7 @@ export const isValidGuideProgress = (value: unknown): value is GuideProgress => 
     if (!value || typeof value !== 'object') return false;
 
     const progress = value as Partial<GuideProgress>;
-    if (progress.version !== 1 || !progress.variant || !progress.stepId) return false;
+    if (progress.version !== 2 || !progress.variant || !progress.stepId) return false;
 
     return GUIDE_STEP_IDS[progress.variant]?.includes(progress.stepId) ?? false;
 };

@@ -113,4 +113,35 @@ describe('compareMentionedParticipants', () => {
         expect(result.missingNames).toEqual([]);
         expect(result.unmatchedPlayers).toEqual([players[1]]);
     });
+
+    it('관리자 본인 참여를 선택하면 공지의 추가 참가자로 함께 대조한다', () => {
+        const players = [
+            createPlayer(1, 'PlayerOne#1234', '상만'),
+            createPlayer(2, 'Admin#5678', '관리자'),
+        ];
+
+        const result = compareMentionedParticipants(
+            '**@상만**',
+            players,
+            ['관리자'],
+        );
+
+        expect(result.mentionedNames).toEqual(['상만', '관리자']);
+        expect(result.completedNames).toEqual(['상만', '관리자']);
+        expect(result.missingNames).toEqual([]);
+        expect(result.unmatchedPlayers).toEqual([]);
+    });
+
+    it('관리자 이름이 이미 공지에 있으면 본인 참여 이름을 중복 추가하지 않는다', () => {
+        const players = [createPlayer(1, 'Admin#5678', '관리자')];
+
+        const result = compareMentionedParticipants(
+            '**@관리자**',
+            players,
+            ['관리자'],
+        );
+
+        expect(result.mentionedNames).toEqual(['관리자']);
+        expect(result.completedNames).toEqual(['관리자']);
+    });
 });

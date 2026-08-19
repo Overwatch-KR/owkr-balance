@@ -12,7 +12,8 @@ describe('UserSheetGuide', () => {
 
         expect(markup).toContain('유저 시트 전용 가이드');
         expect(markup).toContain('Discord ID가 기준이에요');
-        expect(markup).toContain('팀 밸런스 계산에는 현재 참가 명단에 입력된 티어');
+        expect(markup).toContain('현재 매칭 명단과는 별도예요');
+        expect(markup).toContain('팀 밸런스 계산은 참가자 작업실에 저장된 현재 명단의 티어');
         expect(markup).toContain('특이사항은 모든 관리자와 대진표에 공유');
         expect(markup).toContain('디스코드 표시명');
         expect(markup).toContain('1분마다 자동 확인');
@@ -58,7 +59,7 @@ describe('UserSheetTour', () => {
         );
 
         expect(markup).toContain('시트 가이드 · 1/7');
-        expect(markup).toContain('시트의 역할부터 확인해요');
+        expect(markup).toContain('시트와 현재 매칭 명단을 구분해요');
         expect(markup).toContain('Discord ID');
         expect(markup).toContain('다음');
         expect(markup).toContain('이전');

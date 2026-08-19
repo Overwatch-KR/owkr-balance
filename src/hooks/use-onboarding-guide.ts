@@ -123,7 +123,7 @@ export const useOnboardingGuide = ({
         const progress: GuideProgress = {
             stepId: step,
             variant: getGuideVariant(step),
-            version: 1,
+            version: 2,
         };
         setWithExpiry(
             GUIDE_PROGRESS_STORAGE_KEY,

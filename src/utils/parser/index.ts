@@ -1,11 +1,12 @@
 import type { Player, Rank, Role } from 'src/types';
-import { TIERS, getScore } from 'src/constants';
+import { getScore, TIERS } from 'src/constants';
 import { normalizePlayerRolePreferences } from 'src/utils/role-preference';
+import { findAvoidedRoleHighlightRanges } from './avoidance-highlight';
 
 /**
  * @description 티어 문자열을 정규화해 TIERS 인덱스로 매핑한다.
- * @param tierStr - 티어 문자열 (예: "다이아", "다", "플레", "그마", "마스터" 등)
- * @returns 티어 인덱스 (0-7), 찾지 못하면 -1
+ * @param tierStr - 티어 문자열 (예: "에메랄드", "에메", "다이아", "플레" 등)
+ * @returns 티어 인덱스 (0-8), 찾지 못하면 -1
  */
 const findTierIndex = (tierStr: string): number => {
     const normalized = tierStr.toLowerCase().trim();
@@ -19,14 +20,17 @@ const findTierIndex = (tierStr: string): number => {
         '골드': 2, '골': 2, 'gold': 2, 'go': 2,
         // 플래티넘 (3)
         '플래티넘': 3, '플레티넘': 3, '플래': 3, '플레': 3, '플': 3, 'platinum': 3, 'plat': 3, 'pl': 3,
-        // 다이아몬드 (4)
-        '다이아몬드': 4, '다이아': 4, '다이': 4, '다': 4, 'diamond': 4, 'dia': 4, 'di': 4,
-        // 마스터 (5)
-        '마스터': 5, '마스': 5, '마': 5, 'master': 5, 'ma': 5,
-        // 그랜드마스터 (6)
-        '그랜드마스터': 6, '그마': 6, '그': 6, 'grandmaster': 6, 'gm': 6,
-        // 챔피언 (7)
-        '챔피언': 7, '챔피': 7, '챔': 7, 'champion': 7, 'champ': 7, 'ch': 7
+        // 에메랄드 (4)
+        '에메랄드': 4, '에메': 4, '에매': 4, '애매': 4, '애': 4,
+        'emerald': 4, 'eme': 4, 'em': 4, 'e': 4,
+        // 다이아몬드 (5)
+        '다이아몬드': 5, '다이아': 5, '다이': 5, '다': 5, 'diamond': 5, 'dia': 5, 'di': 5,
+        // 마스터 (6)
+        '마스터': 6, '마스': 6, '마': 6, 'master': 6, 'ma': 6,
+        // 그랜드마스터 (7)
+        '그랜드마스터': 7, '그마': 7, '그': 7, 'grandmaster': 7, 'gm': 7,
+        // 챔피언 (8)
+        '챔피언': 8, '챔피': 8, '챔': 8, 'champion': 8, 'champ': 8, 'ch': 8
     };
 
     if (tierMap[normalized] !== undefined) {
@@ -35,6 +39,7 @@ const findTierIndex = (tierStr: string): number => {
 
     // 부분 매칭 시도
     for (const [key, idx] of Object.entries(tierMap)) {
+        if (key.length === 1) continue;
         if (normalized.startsWith(key) || key.startsWith(normalized)) {
             return idx;
         }
@@ -100,14 +105,9 @@ const parseRankSegment = (segment: string): { tierIdx: number; div: number; isPr
     const isAvoided = segment.includes('?');
     const cleanSegment = segment.replace(/[!?]/g, '').trim();
 
-    // "미배치(골)"은 예상 티어로, "미배치(복귀)"는 미배치 그대로 처리
-    if (cleanSegment.match(/미배치|unranked/i)) {
-        const parentheticalText = cleanSegment.match(/\(([^)]*)\)/)?.[1] ?? '';
-        const estimatedRank = findRankToken(parentheticalText);
-        if (estimatedRank) {
-            return { ...estimatedRank, isPreferred, isAvoided };
-        }
-        return { tierIdx: -1, div: 0, isPreferred, isAvoided };
+    // 미배치 입력은 예상 티어가 함께 적혀 있어도 더 이상 받지 않는다.
+    if (cleanSegment.match(/미배치|언랭|unranked/i)) {
+        return null;
     }
 
     // 예상 티어는 보존하고 영웅, 복귀, 마이크 같은 부가 설명은 제거한다.
@@ -125,35 +125,21 @@ const parseRankSegment = (segment: string): { tierIdx: number; div: number; isPr
 
 /**
  * @description 티어/등급/선호를 받아 Rank 객체로 변환한다.
- * @param tierIdx - 티어 인덱스 (0-7)
+ * @param tierIdx - 티어 인덱스 (0-8)
  * @param div - 등급 (1-5)
  * @param isPreferred - 선호 역할 여부
  * @returns Rank 객체
  */
 const createRank = (tierIdx: number, div: number, isPreferred: boolean, isAvoided: boolean): Rank => {
-    if (tierIdx === -1) {
-        return { tier: 'UNRANKED', div: 0, score: 0, isPreferred, isAvoided };
-    }
+    const tier = TIERS[tierIdx];
     return {
-        tier: TIERS[tierIdx],
+        tier,
         div,
         score: getScore(tierIdx, div),
         isPreferred,
         isAvoided
     };
 };
-
-/**
- * @description 미배치 상태의 기본 Rank 객체를 만든다.
- * @returns 미배치 상태의 Rank 객체
- */
-const createUnrankedRank = (): Rank => ({
-    tier: 'UNRANKED',
-    div: 0,
-    score: 0,
-    isPreferred: false,
-    isAvoided: false
-});
 
 /**
  * @description 티어 이모지를 티어 문자열로 변환한다.
@@ -166,6 +152,7 @@ const emojiToTier = (emoji: string): string | null => {
     if (lower.includes('silver')) return '실';
     if (lower.includes('gold')) return '골';
     if (lower.includes('plat')) return '플';
+    if (lower.includes('emerald')) return '에메';
     if (lower.includes('diamond')) return '다';
     if (lower.includes('master')) return '마';
     if (lower.includes('grand')) return '그';
@@ -217,10 +204,7 @@ const extractEmojiInfo = (text: string): { cleanText: string; emojiRoles: ('TANK
  * @returns Player 객체 또는 파싱 실패 시 null
  */
 const parseRawLineToPlayer = (line: string, discordName?: string): Player | null => {
-    // "마이크x" 또는 설명 앞의 독립된 X 표기를 마이크 미사용으로 처리한다.
     const trimmedLine = line.trim();
-    const noMic = /마이크\s*[:：]?\s*x/i.test(trimmedLine)
-        || /(?:^|\s)x(?=\s|$|\()/i.test(trimmedLine);
     const cleanLine = trimmedLine.replace(/\s+[XO]$/i, '').trim();
 
     // 닉네임#태그 추출 (공백 허용)
@@ -239,9 +223,9 @@ const parseRawLineToPlayer = (line: string, discordName?: string): Player | null
     remainText = cleanText;
 
     // 역할별 랭크 초기화
-    let tank = createUnrankedRank();
-    let dps = createUnrankedRank();
-    let sup = createUnrankedRank();
+    let tank: Rank | null = null;
+    let dps: Rank | null = null;
+    let sup: Rank | null = null;
 
     // 슬래시로 구분된 형식 처리: "다5/다1/다5" 또는 "탱! 실3/ 딜 브1/ 힐(예상)실2"
     const slashParts = remainText.split('/').map(p => p.trim()).filter(p => p.length > 0);
@@ -341,8 +325,8 @@ const parseRawLineToPlayer = (line: string, discordName?: string): Player | null
                 }
             }
 
-            // "미배치" 처리
-            if (tierStr.match(/미배치|unranked|배치/i)) {
+            // 미배치 역할이 포함된 참가자는 마지막 완전성 검사에서 거부한다.
+            if (tierStr.match(/미배치|언랭|unranked|배치/i)) {
                 if (!roleStr) autoIndex++;
                 continue;
             }
@@ -383,8 +367,8 @@ const parseRawLineToPlayer = (line: string, discordName?: string): Player | null
         }
     }
 
-    // 최소 하나의 역할에 점수가 있어야 유효한 플레이어
-    if (tank.score === 0 && dps.score === 0 && sup.score === 0) {
+    // 세 역할 모두 정식 티어가 있어야 유효한 플레이어다.
+    if (!tank || !dps || !sup) {
         return null;
     }
 
@@ -395,7 +379,6 @@ const parseRawLineToPlayer = (line: string, discordName?: string): Player | null
         tank,
         dps,
         sup,
-        noMic
     };
 };
 
@@ -434,7 +417,7 @@ const hasTierInfoOnly = (line: string): boolean => {
 
     const normalized = trimmed.replace(/★/g, '!').replace(/!+/g, '!').replace(/\?+/g, '?');
 
-    if (normalized === '-' || /미배치|unranked|배치/i.test(normalized)) return true;
+    if (normalized === '-' || /미배치|언랭|unranked|배치/i.test(normalized)) return true;
     if (normalized.includes('/') || normalized.includes(':pob_') || normalized.includes(':poc_') || normalized.includes(':pod_')) return true;
     if (/(탱(?:커)?|딜(?:러)?|힐(?:러)?|t|d|s)\s*[!?]?\s*[가-힣a-zA-Z]+\s*\d?/i.test(normalized)) return true;
     if (/^[가-힣a-zA-Z]+\s*\d?\s*[!?]?$/.test(normalized)) return true;
@@ -478,6 +461,7 @@ export interface ParseResult {
     players: Player[];
     failedLines: string[];
     avoidedRoleWarnings: AvoidedRoleWarning[];
+    validationIssues: RosterValidationIssue[];
 }
 
 export interface AvoidedRoleWarning {
@@ -485,6 +469,17 @@ export interface AvoidedRoleWarning {
     discordName?: string;
     avoidedRoleCount: number;
     avoidedRoles: Role[];
+}
+
+export interface RosterValidationIssue {
+    kind: 'invalid-entry' | 'multiple-avoided-roles';
+    message: string;
+    playerName?: string;
+    discordName?: string;
+    ranges: Array<{
+        start: number;
+        end: number;
+    }>;
 }
 
 /**
@@ -538,18 +533,45 @@ const createAvoidedRoleWarning = (player: Player): AvoidedRoleWarning | null => 
  */
 export const parseMultipleLines = (text: string): ParseResult => {
     const lines = text.split('\n');
+    const lineOffsets: number[] = [];
+    let nextLineOffset = 0;
+    for (const line of lines) {
+        lineOffsets.push(nextLineOffset);
+        nextLineOffset += line.length + 1;
+    }
     const players: Player[] = [];
     const failedLines: string[] = [];
     const failedLineSet = new Set<string>();
     const avoidedRoleWarnings: AvoidedRoleWarning[] = [];
+    const validationIssues: RosterValidationIssue[] = [];
     const seenNames = new Set<string>();
     const seenPlayerIdentities = new Set<string>();
     let pendingDiscordName: string | undefined;
-    const addFailedLine = (line: string) => {
+    const getLineRange = (startLineIndex: number, endLineIndex = startLineIndex) => {
+        let start = lineOffsets[startLineIndex] ?? 0;
+        let end = (lineOffsets[endLineIndex] ?? start) + (lines[endLineIndex]?.length ?? 0);
+        while (start < end && /\s/.test(text[start])) start += 1;
+        while (end > start && /\s/.test(text[end - 1])) end -= 1;
+        return { start, end };
+    };
+    const addFailedLine = (
+        line: string,
+        startLineIndex: number,
+        endLineIndex = startLineIndex,
+        message = '배틀태그와 역할 티어 형식을 확인해 주세요.',
+    ) => {
         const normalized = line.trim();
         if (!normalized || failedLineSet.has(normalized)) return;
         failedLines.push(normalized);
         failedLineSet.add(normalized);
+        const range = getLineRange(startLineIndex, endLineIndex);
+        validationIssues.push({
+            kind: 'invalid-entry',
+            message,
+            playerName: normalized.match(/[^\s·()]+\s*#\s*\d+/)?.[0]?.replace(/\s+/g, ''),
+            discordName: pendingDiscordName,
+            ranges: range.start < range.end ? [range] : [],
+        });
     };
 
     for (let i = 0; i < lines.length; i++) {
@@ -565,11 +587,21 @@ export const parseMultipleLines = (text: string): ParseResult => {
         if (line.includes('역할 아이콘') || line.includes('—')) continue;
 
         const trimmedLine = line.trim();
-        const hasBattleTag = line.includes('#') && Boolean(line.match(/\d{4,}/));
+        const hasBattleTag = /[^\s#]+\s*#\s*\d{4,}/.test(line);
+        if (line.includes('#') && !hasBattleTag) {
+            addFailedLine(
+                pendingDiscordName ? `${pendingDiscordName} · ${trimmedLine}` : trimmedLine,
+                i,
+                i,
+                '배틀태그는 Player#1234 형식으로 입력해 주세요.',
+            );
+            pendingDiscordName = undefined;
+            continue;
+        }
         if (!hasBattleTag && hasTierInfoOnly(line)) {
             addFailedLine(pendingDiscordName
                 ? `${pendingDiscordName} · ${trimmedLine}`
-                : trimmedLine);
+                : trimmedLine, i, i, '배틀태그가 없어 가져올 수 없습니다.');
             pendingDiscordName = undefined;
             continue;
         }
@@ -613,14 +645,14 @@ export const parseMultipleLines = (text: string): ParseResult => {
                         // 같은 Discord 이름과 배틀태그로 반복 게시된 항목은 한 번만 사용한다.
                     } else if (!seenNames.has(nameOnly.toLowerCase())) {
                         // 파싱 실패 - 닉네임만 추출해서 실패 목록에 추가
-                        addFailedLine(nameOnly);
+                        addFailedLine(nameOnly, i, j - 1);
                         seenNames.add(nameOnly.toLowerCase());
                     }
                     i = j - 1; // 소비한 티어 줄만큼 스킵
                     continue;
                 } else if (!seenNames.has(nameOnly.toLowerCase())) {
                     // 닉네임만 있고 다음 줄에 티어 정보 없음
-                    addFailedLine(nameOnly);
+                    addFailedLine(nameOnly, i, i, '역할 티어 정보가 없어 가져올 수 없습니다.');
                     seenNames.add(nameOnly.toLowerCase());
                     continue;
                 }
@@ -644,15 +676,31 @@ export const parseMultipleLines = (text: string): ParseResult => {
                 // 같은 Discord 이름과 배틀태그로 반복 게시된 항목은 한 번만 사용한다.
             } else {
                 // 파싱 실패 - 닉네임 추출 시도
-                const nameMatch = line.match(/([^\s]+#\d{4,})/);
-                const failedName = nameMatch?.[1];
+                const nameMatch = line.match(/([^\s#]+\s*#\s*\d{4,})/);
+                const failedName = nameMatch?.[1]?.replace(/\s+/g, '');
                 if (failedName && !seenNames.has(failedName.toLowerCase())) {
-                    addFailedLine(failedName);
+                    addFailedLine(failedName, i);
                     seenNames.add(failedName.toLowerCase());
                 }
             }
         }
     }
 
-    return { players, failedLines, avoidedRoleWarnings };
+    for (const warning of avoidedRoleWarnings) {
+        const ranges = findAvoidedRoleHighlightRanges(text, [warning]);
+        validationIssues.push({
+            kind: 'multiple-avoided-roles',
+            message: '비선호 역할은 한 개만 지정해 주세요.',
+            playerName: warning.playerName,
+            discordName: warning.discordName,
+            ranges,
+        });
+    }
+
+    validationIssues.sort((left, right) => (
+        (left.ranges[0]?.start ?? Number.MAX_SAFE_INTEGER)
+        - (right.ranges[0]?.start ?? Number.MAX_SAFE_INTEGER)
+    ));
+
+    return { players, failedLines, avoidedRoleWarnings, validationIssues };
 };

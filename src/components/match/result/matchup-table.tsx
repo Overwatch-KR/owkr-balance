@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Ban, Star, MicOff, ShieldQuestion } from 'lucide-react';
+import { Ban, Star } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { formatRank } from '../../../constants';
 import type { MatchResultData, Player, Role, SwapSource, Tier } from '../../../types';
@@ -32,14 +32,12 @@ interface RowDef {
 interface PlayerStatusIndicatorsProps {
     isPreferred: boolean;
     isAvoided: boolean;
-    noMic?: boolean;
     className?: string;
 }
 
 const PlayerStatusIndicators = ({
     isPreferred,
     isAvoided,
-    noMic,
     className = '',
 }: PlayerStatusIndicatorsProps) => (
     <div className={`flex shrink-0 items-center gap-1 ${className}`}>
@@ -51,11 +49,6 @@ const PlayerStatusIndicators = ({
         {isAvoided && (
             <span className="inline-flex text-rose-400" aria-label="비선호 역할" title="비선호 역할">
                 <Ban size={12} aria-hidden="true" />
-            </span>
-        )}
-        {noMic && (
-            <span className="inline-flex text-red-400" aria-label="마이크 미사용" title="마이크 미사용">
-                <MicOff size={12} aria-hidden="true" />
             </span>
         )}
     </div>
@@ -81,7 +74,6 @@ const PlayerIdentityWithStatus = ({
         <PlayerStatusIndicators
             isPreferred={rank.isPreferred}
             isAvoided={rank.isAvoided}
-            noMic={player.noMic}
         />
     );
 
@@ -109,25 +101,10 @@ const getRankInfo = (player: Player, role: Role) =>
     role === 'TANK' ? player.tank : role === 'DPS' ? player.dps : player.sup;
 
 /**
- * @description 정식 티어는 기존 이미지를, 미배치는 같은 자리에 중립 방패 아이콘을 표시한다.
+ * @description 정식 티어 이미지를 표시한다.
  */
 const renderTierIcon = (tier: Tier, size: 20 | 24): ReactNode => {
-    if (tier === 'UNRANKED') {
-        return (
-            <span
-                className={`inline-flex shrink-0 items-center justify-center rounded-md border border-slate-600/70 bg-slate-800/80 text-slate-300 ${
-                    size === 24 ? 'h-6 w-6' : 'h-5 w-5'
-                }`}
-                data-tier-icon="unranked"
-                aria-hidden="true"
-            >
-                <ShieldQuestion size={size === 24 ? 16 : 14} strokeWidth={1.75} />
-            </span>
-        );
-    }
-
     const tierImage = getTierImage(tier);
-    if (!tierImage) return null;
 
     return (
         <img
@@ -170,7 +147,6 @@ const PlayerRankSummary = ({ player, assignedRole, align }: PlayerRankSummaryPro
         {roleRankDefs.map(({ role, label }) => {
             const rank = getRankInfo(player, role);
             const isAssigned = role === assignedRole;
-            const isUnranked = rank.tier === 'UNRANKED';
             const rankLabel = formatRank(rank);
 
             return (
@@ -179,11 +155,7 @@ const PlayerRankSummary = ({ player, assignedRole, align }: PlayerRankSummaryPro
                     title={`${label} ${rankLabel}${isAssigned ? ' · 현재 배정' : ''}`}
                     data-tier={rank.tier}
                     className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-1 font-mono text-[11px] leading-none ${
-                        isUnranked
-                            ? isAssigned
-                                ? 'border-slate-400/70 bg-slate-700/70 font-semibold text-slate-100 ring-1 ring-slate-300/40'
-                                : 'border-slate-600/50 bg-slate-800/60 text-slate-400'
-                            : isAssigned
+                        isAssigned
                             ? 'border-cyan-400/40 bg-cyan-400/10 font-semibold text-cyan-200'
                             : rank.isPreferred
                                 ? 'border-transparent text-amber-400'

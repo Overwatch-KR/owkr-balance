@@ -1,11 +1,15 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { createOAuthState } from '../_lib/auth.js';
+import { createOAuthState, isLocalAuthRequest } from '../_lib/auth.js';
 import { getRequestOrigin } from '../_lib/http.js';
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'GET') {
         res.setHeader('Allow', 'GET');
         return res.status(405).json({ error: '허용되지 않는 요청입니다.' });
+    }
+
+    if (isLocalAuthRequest(req)) {
+        return res.redirect(302, '/');
     }
 
     const clientId = process.env.DISCORD_CLIENT_ID;

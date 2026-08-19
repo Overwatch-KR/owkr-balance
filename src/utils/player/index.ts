@@ -26,7 +26,6 @@ const getPlayerFingerprint = (player: Player): string => {
         getPlayerIdentityKey(player),
         normalizeBattleTag(player.name),
         player.discordName?.trim() ?? '',
-        player.noMic ? 1 : 0,
         rankFingerprint(player.tank),
         rankFingerprint(player.dps),
         rankFingerprint(player.sup),
@@ -34,6 +33,20 @@ const getPlayerFingerprint = (player: Player): string => {
 };
 
 export type RosterImportMode = 'replace' | 'append';
+
+const COMPLETE_ROSTER_SIZE = 10;
+
+/**
+ * @description 기존 명단이 있을 때 일부 참가자만 가져오면 안전하게 추가하고, 완성된 명단은 교체하도록 기본 적용 방식을 정한다.
+ */
+export const getDefaultRosterImportMode = (
+    existingPlayerCount: number,
+    incomingPlayerCount: number,
+): RosterImportMode => (
+    existingPlayerCount > 0 && incomingPlayerCount < COMPLETE_ROSTER_SIZE
+        ? 'append'
+        : 'replace'
+);
 
 export interface PlayerReconciliationResult {
     players: Player[];

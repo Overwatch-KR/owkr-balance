@@ -41,23 +41,23 @@ const COLUMNS: ReadonlyArray<{
     { field: 'tank', label: '탱커', placeholder: '다3', width: 'min-w-28' },
     { field: 'dps', label: '딜러', placeholder: '플1', width: 'min-w-28' },
     { field: 'support', label: '힐러', placeholder: '마5', width: 'min-w-28' },
-    { field: 'note', label: '특이사항', placeholder: '마이크X', width: 'min-w-72' },
+    { field: 'note', label: '특이사항', placeholder: '운영 메모', width: 'min-w-72' },
 ];
 
 const ERROR_LABELS: Record<UserSheetValidationError, string> = {
-    REQUIRED_DISCORD_USER_ID: 'ID 필수',
-    INVALID_BATTLE_TAG: '형식 오류',
-    DUPLICATE_BATTLE_TAG: '중복',
-    INVALID_DISCORD_USER_ID: 'ID 형식 오류',
-    DUPLICATE_DISCORD_USER_ID: 'ID 중복',
+    REQUIRED_DISCORD_USER_ID: 'Discord ID를 입력해 주세요',
+    INVALID_BATTLE_TAG: '배틀태그 형식을 확인해 주세요',
+    DUPLICATE_BATTLE_TAG: '같은 배틀태그가 있어요',
+    INVALID_DISCORD_USER_ID: 'Discord ID 자릿수를 확인해 주세요',
+    DUPLICATE_DISCORD_USER_ID: '같은 Discord ID가 있어요',
 };
 
 const ERROR_DETAILS: Record<UserSheetValidationError, string> = {
-    REQUIRED_DISCORD_USER_ID: '모든 유저의 Discord ID를 입력해 주세요.',
+    REQUIRED_DISCORD_USER_ID: '이 유저의 Discord ID를 입력하면 저장할 수 있습니다.',
     INVALID_BATTLE_TAG: '배틀태그에 #과 숫자 태그를 포함해 주세요. 예: Player#1234',
-    DUPLICATE_BATTLE_TAG: '같은 배틀태그를 구분하려면 각 유저의 Discord ID가 필요합니다.',
+    DUPLICATE_BATTLE_TAG: '동일인이면 한 행만 남기고, 다른 사람이면 Discord ID로 구분해 주세요.',
     INVALID_DISCORD_USER_ID: 'Discord ID는 17~20자리 숫자로 입력해 주세요.',
-    DUPLICATE_DISCORD_USER_ID: '같은 Discord ID가 다른 유저에게도 입력되어 있습니다.',
+    DUPLICATE_DISCORD_USER_ID: '동일인이면 한 행만 남기고, 다른 유저라면 올바른 Discord ID를 확인해 주세요.',
 };
 
 /**
@@ -74,7 +74,7 @@ export function UserSheetEditorTable({
 }: UserSheetEditorTableProps) {
     return (
         <div className="custom-scrollbar min-h-0 flex-1 overflow-auto">
-            <table className="w-full min-w-[1390px] border-separate border-spacing-0 text-left text-xs">
+            <table className="w-full min-w-[1490px] border-separate border-spacing-0 text-left text-xs">
                 <caption className="sr-only">
                     디스코드 이름과 고유 ID, 배틀태그, 역할별 티어와 특이사항을 편집하는 유저 시트
                 </caption>
@@ -86,8 +86,8 @@ export function UserSheetEditorTable({
                                 {column.label}
                             </th>
                         ))}
-                        <th className="sticky right-0 z-30 w-40 min-w-40 whitespace-nowrap border-b border-slate-700 bg-slate-900 px-3 py-2.5 font-medium text-slate-500">
-                            상태
+                        <th className="sticky right-0 z-30 w-64 min-w-64 whitespace-nowrap border-b border-slate-700 bg-slate-900 px-3 py-2.5 font-medium text-slate-500">
+                            저장 상태
                         </th>
                     </tr>
                 </thead>
@@ -152,29 +152,35 @@ export function UserSheetEditorTable({
                                         />
                                     </td>
                                 ))}
-                                <td className="sticky right-0 z-10 w-40 min-w-40 border-b border-slate-800 bg-slate-900/95 px-2 py-1">
-                                    <div className="flex items-center justify-between gap-2">
-                                        <span
-                                            id={error ? `user-sheet-row-error-${row.id}` : undefined}
-                                            title={error ? ERROR_DETAILS[error] : undefined}
-                                            className={`inline-flex min-w-0 whitespace-nowrap rounded-full px-2 py-1 text-[11px] font-medium ${
-                                                error
-                                                    ? 'bg-rose-500/15 text-rose-200'
+                                <td className="sticky right-0 z-10 w-64 min-w-64 border-b border-slate-800 bg-slate-900/95 px-2 py-1">
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div className="min-w-0">
+                                            <span
+                                                id={error ? `user-sheet-row-error-${row.id}` : undefined}
+                                                className={`inline-flex min-w-0 whitespace-nowrap rounded-full px-2 py-1 text-[11px] font-medium ${
+                                                    error
+                                                        ? 'bg-rose-500/15 text-rose-200'
+                                                        : isActiveUserSheetEntry(row)
+                                                            ? 'bg-emerald-500/10 text-emerald-300'
+                                                            : 'text-slate-700'
+                                                }`}
+                                            >
+                                                {error && <AlertCircle size={12} className="mr-1 shrink-0" aria-hidden="true" />}
+                                                {!error && isActiveUserSheetEntry(row) && (
+                                                    <CheckCircle2 size={12} className="mr-1 shrink-0" aria-hidden="true" />
+                                                )}
+                                                {error
+                                                    ? ERROR_LABELS[error]
                                                     : isActiveUserSheetEntry(row)
-                                                        ? 'bg-emerald-500/10 text-emerald-300'
-                                                        : 'text-slate-700'
-                                            }`}
-                                        >
-                                            {error && <AlertCircle size={12} className="mr-1 shrink-0" aria-hidden="true" />}
-                                            {!error && isActiveUserSheetEntry(row) && (
-                                                <CheckCircle2 size={12} className="mr-1 shrink-0" aria-hidden="true" />
+                                                        ? '저장할 수 있어요'
+                                                        : '입력을 시작해 주세요'}
+                                            </span>
+                                            {error && (
+                                                <p className="mt-1 px-1 text-[10px] leading-relaxed text-rose-200/65">
+                                                    {ERROR_DETAILS[error]}
+                                                </p>
                                             )}
-                                            {error
-                                                ? ERROR_LABELS[error]
-                                                : isActiveUserSheetEntry(row)
-                                                    ? '준비 완료'
-                                                    : '빈 행'}
-                                        </span>
+                                        </div>
                                         <button
                                             type="button"
                                             onClick={() => onRemoveRow(row.id)}

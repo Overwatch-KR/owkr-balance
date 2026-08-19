@@ -10,17 +10,17 @@ describe('guide progress', () => {
         expect(canResumeGuide({
             stepId: 'start-roster',
             variant: 'start',
-            version: 1,
+            version: 2,
         }, 'start')).toBe(true);
         expect(canResumeGuide({
-            stepId: 'start-discord',
+            stepId: 'start-workspace',
             variant: 'start',
-            version: 1,
+            version: 2,
         }, 'start')).toBe(false);
         expect(canResumeGuide({
             stepId: 'result-alternatives',
             variant: 'result',
-            version: 1,
+            version: 2,
         }, 'start')).toBe(false);
     });
 
@@ -28,24 +28,24 @@ describe('guide progress', () => {
         expect(isValidGuideProgress({
             stepId: 'result-swap',
             variant: 'result',
-            version: 1,
+            version: 2,
         })).toBe(true);
         expect(isValidGuideProgress({
             stepId: 'missing-step',
             variant: 'result',
-            version: 1,
+            version: 2,
         })).toBe(false);
         expect(isValidGuideProgress({
             stepId: 'result-swap',
             variant: 'result',
-            version: 2,
+            version: 1,
         })).toBe(false);
     });
 
     it('현재 단계와 전체 단계 수를 계산한다', () => {
         expect(getGuideStepPosition('result', 'result-alternatives')).toEqual({
-            current: 3,
-            total: 5,
+            current: 4,
+            total: 6,
         });
     });
 });

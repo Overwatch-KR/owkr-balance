@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Player, Tier } from '../types';
-import { parseMultipleLines, type AvoidedRoleWarning } from '../utils/parser';
+import {
+    parseMultipleLines,
+    type ParseResult,
+    type RosterValidationIssue,
+} from '../utils/parser';
 
 export type PlayerInputMode = 'discord' | 'manual' | 'mentions';
 
@@ -9,7 +13,6 @@ const ROSTER_PASTE_VALIDATION_DELAY_MS = 350;
 export interface PlayerInputs {
     name: string;
     discordName: string;
-    noMic: boolean;
     tTier: Tier;
     tDiv: string;
     tPref: boolean;
@@ -30,7 +33,6 @@ export interface PlayerInputs {
 export const createDefaultPlayerInputs = (): PlayerInputs => ({
     name: '',
     discordName: '',
-    noMic: false,
     tTier: 'DIAMOND',
     tDiv: '3',
     tPref: false,
@@ -49,7 +51,6 @@ export const createDefaultPlayerInputs = (): PlayerInputs => ({
  * @description 저장된 등급을 수동 입력 셀렉트에서 사용할 값으로 정규화한다.
  */
 const getEditableDivision = (tier: Tier, division: number | string): string => {
-    if (tier === 'UNRANKED') return '0';
     const value = String(division);
     return ['1', '2', '3', '4', '5'].includes(value) ? value : '3';
 };
@@ -69,20 +70,19 @@ export const usePlayerInput = (initialPlayerCount: number) => {
     );
     const [pasteValidation, setPasteValidation] = useState<{
         sourceText: string;
-        warnings: AvoidedRoleWarning[];
+        result: ParseResult | null;
     }>({
         sourceText: '',
-        warnings: [],
+        result: null,
     });
 
     useEffect(() => {
         if (!pasteText.trim()) return;
 
         const timeoutId = window.setTimeout(() => {
-            const { avoidedRoleWarnings: warnings } = parseMultipleLines(pasteText);
             setPasteValidation({
                 sourceText: pasteText,
-                warnings,
+                result: parseMultipleLines(pasteText),
             });
         }, ROSTER_PASTE_VALIDATION_DELAY_MS);
 
@@ -91,16 +91,16 @@ export const usePlayerInput = (initialPlayerCount: number) => {
 
     const isPasteValidationPending = Boolean(pasteText.trim())
         && pasteValidation.sourceText !== pasteText;
-    const pasteAvoidedRoleWarnings = pasteText.trim() && !isPasteValidationPending
-        ? pasteValidation.warnings
-        : [];
+    const pasteParseResult = pasteText.trim() && !isPasteValidationPending
+        ? pasteValidation.result
+        : null;
+    const pasteValidationIssues: RosterValidationIssue[] = pasteParseResult?.validationIssues ?? [];
 
     useEffect(() => {
         const hasUnsavedInput = Boolean(
             pasteText.trim()
             || inputs.name.trim()
-            || inputs.discordName.trim()
-            || inputs.noMic,
+            || inputs.discordName.trim(),
         );
         if (!hasUnsavedInput) return;
 
@@ -111,7 +111,7 @@ export const usePlayerInput = (initialPlayerCount: number) => {
 
         window.addEventListener('beforeunload', warnBeforeUnload);
         return () => window.removeEventListener('beforeunload', warnBeforeUnload);
-    }, [inputs.discordName, inputs.name, inputs.noMic, pasteText]);
+    }, [inputs.discordName, inputs.name, pasteText]);
 
     const resetInputs = useCallback(() => {
         setEditingPlayerId(null);
@@ -122,7 +122,6 @@ export const usePlayerInput = (initialPlayerCount: number) => {
         setInputs({
             name: player.name,
             discordName: player.discordName ?? '',
-            noMic: player.noMic ?? false,
             tTier: player.tank.tier,
             tDiv: getEditableDivision(player.tank.tier, player.tank.div),
             tPref: player.tank.isPreferred,
@@ -159,7 +158,8 @@ export const usePlayerInput = (initialPlayerCount: number) => {
         inputs,
         isInputCollapsed,
         pasteText,
-        pasteAvoidedRoleWarnings,
+        pasteParseResult,
+        pasteValidationIssues,
         isPasteValidationPending,
         resetInputs,
         selectInputMode,

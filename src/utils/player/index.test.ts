@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { MatchResultData, Player } from '../../types';
-import { isMatchResultStale, reconcilePlayers, syncMatchResultPlayerIdentities } from './index';
+import {
+    getDefaultRosterImportMode,
+    isMatchResultStale,
+    reconcilePlayers,
+    syncMatchResultPlayerIdentities,
+} from './index';
 
 const createPlayer = (id: number, name: string, discordName?: string): Player => ({
     id,
@@ -9,6 +14,20 @@ const createPlayer = (id: number, name: string, discordName?: string): Player =>
     tank: { tier: 'GOLD', div: 3, score: 2200, isPreferred: false, isAvoided: false },
     dps: { tier: 'GOLD', div: 3, score: 2200, isPreferred: false, isAvoided: false },
     sup: { tier: 'GOLD', div: 3, score: 2200, isPreferred: false, isAvoided: false },
+});
+
+describe('getDefaultRosterImportMode', () => {
+    it('기존 9명에 1명만 자동 파싱하면 기존 명단에 추가한다', () => {
+        expect(getDefaultRosterImportMode(9, 1)).toBe('append');
+    });
+
+    it('기존 명단이 있어도 완성된 10명 명단은 교체한다', () => {
+        expect(getDefaultRosterImportMode(9, 10)).toBe('replace');
+    });
+
+    it('기존 명단이 없으면 일부 명단도 교체 방식으로 적용한다', () => {
+        expect(getDefaultRosterImportMode(0, 1)).toBe('replace');
+    });
 });
 
 describe('reconcilePlayers', () => {

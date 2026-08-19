@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { MatchResultData, Player } from '../types';
-import type { BalanceWorkerResponse } from '../utils/balance';
+import type { BalanceOptions, BalanceWorkerResponse } from '../utils/balance';
 
-interface BalanceTeamsOptions {
+interface BalanceTeamsOptions extends BalanceOptions {
     preserveResult?: MatchResultData;
 }
+
+const MAX_ALTERNATIVE_COUNT = 11;
 
 const getTeamAssignmentKey = (assignment: MatchResultData['teamA']['assignment']): string => [
     `T:${assignment.TANK.map(player => player.id).toSorted((a, b) => a - b).join(',')}`,
@@ -79,7 +81,7 @@ export const useBalance = (
                         if (seenResults.has(key)) return false;
                         seenResults.add(key);
                         return true;
-                    }).slice(0, 4);
+                    }).slice(0, MAX_ALTERNATIVE_COUNT);
 
                     setAlternatives(generatedAlternatives);
                 } else {
@@ -94,7 +96,10 @@ export const useBalance = (
                 reject(new Error('밸런싱 워커를 실행하지 못했습니다.'));
             };
 
-            worker.postMessage(players);
+            worker.postMessage({
+                players,
+                options: { ignorePreferences: options.ignorePreferences },
+            });
         });
     }, []);
 

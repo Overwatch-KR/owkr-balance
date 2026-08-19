@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, ClipboardCheck, Copy, Trash2, UserRoundX } from 'lucide-react';
+import { Check, ClipboardCheck, Copy, Trash2, UserCheck, UserRoundX } from 'lucide-react';
 import type { Player } from '../../../types';
 import { compareMentionedParticipants } from '../../../utils/participant-check';
 import { PlayerIdentity } from '../player-identity';
@@ -9,6 +9,9 @@ interface ParticipantCheckerProps {
     mentionText: string;
     setMentionText: (value: string) => void;
     onRemovePlayer: (playerId: number) => void;
+    currentAdminName: string;
+    includesAdmin: boolean;
+    onIncludesAdminChange: (value: boolean) => void;
 }
 
 /**
@@ -19,9 +22,16 @@ const ParticipantChecker = ({
     mentionText,
     setMentionText,
     onRemovePlayer,
+    currentAdminName,
+    includesAdmin,
+    onIncludesAdminChange,
 }: ParticipantCheckerProps) => {
     const [copyState, setCopyState] = useState<'idle' | 'success' | 'error'>('idle');
-    const comparison = compareMentionedParticipants(mentionText, players);
+    const comparison = compareMentionedParticipants(
+        mentionText,
+        players,
+        includesAdmin ? [currentAdminName] : [],
+    );
     const totalCount = comparison.mentionedNames.length;
     const completedCount = comparison.completedNames.length;
 
@@ -57,6 +67,35 @@ const ParticipantChecker = ({
                     }}
                 />
             </div>
+
+            <label
+                htmlFor="participant-includes-admin"
+                className={`flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border px-3.5 py-3 transition-colors ${
+                    includesAdmin
+                        ? 'border-cyan-400/35 bg-cyan-400/10'
+                        : 'border-slate-800 bg-surface/50 hover:border-slate-700 hover:bg-white/[0.025]'
+                }`}
+            >
+                <input
+                    id="participant-includes-admin"
+                    name="participant-includes-admin"
+                    type="checkbox"
+                    checked={includesAdmin}
+                    onChange={(event) => onIncludesAdminChange(event.target.checked)}
+                    className="h-4 w-4 shrink-0 accent-cyan-400"
+                />
+                <UserCheck
+                    size={17}
+                    className={includesAdmin ? 'text-cyan-300' : 'text-slate-500'}
+                    aria-hidden="true"
+                />
+                <span className="min-w-0">
+                    <span className="block text-sm font-medium text-slate-200">나도 이번 내전에 참여합니다</span>
+                    <span className="mt-0.5 block text-xs text-slate-500">
+                        {currentAdminName} 님을 공지 참가자에 포함해 대조합니다
+                    </span>
+                </span>
+            </label>
 
             {totalCount === 0 ? (
                 <div className="rounded-xl border border-slate-800 bg-surface/50 px-4 py-5 text-center">

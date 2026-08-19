@@ -1,0 +1,10 @@
+LocalTank1#1001 마3! / 다2 / 플1?
+LocalTank2#1002 다1! / 마5? / 다3
+LocalDps1#1003 플2? / 마2! / 다4
+LocalDps2#1004 다5 / 마4! / 플1?
+LocalDps3#1005 골1? / 다2! / 마5
+LocalDps4#1006 다3 / 마1! / 플2?
+LocalSup1#1007 플1? / 다4 / 마3!
+LocalSup2#1008 다5 / 골1? / 마1!
+LocalSup3#1009 골2? / 플1 / 다2!
+LocalSup4#1010 다4 / 플3? / 그5!

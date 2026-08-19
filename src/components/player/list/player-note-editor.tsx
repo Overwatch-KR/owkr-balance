@@ -23,9 +23,7 @@ interface PlayerNoteFormProps {
     isSaving: boolean;
     message: string;
     onChange: (value: string) => void;
-    onRefresh?: () => void;
     onSave?: () => void;
-    isRefreshing?: boolean;
 }
 
 interface PlayerNoteViewerProps {
@@ -52,9 +50,7 @@ export const PlayerNoteForm = ({
     isSaving,
     message,
     onChange,
-    onRefresh,
     onSave,
-    isRefreshing = false,
 }: PlayerNoteFormProps) => (
     <div className="mt-2 rounded-lg border border-slate-700/60 bg-slate-950/45 p-3">
         <div className="mb-2 flex items-center justify-between gap-2 rounded-lg bg-cyan-500/10 px-2.5 py-2 text-[11px] text-cyan-200">
@@ -63,24 +59,10 @@ export const PlayerNoteForm = ({
                 <span className="shrink-0 font-medium">나만 보기</span>
                 <span className="truncate text-slate-500">현재 로그인한 계정에만 표시됩니다.</span>
             </span>
-            {onRefresh && (
-                <button
-                    type="button"
-                    onClick={onRefresh}
-                    disabled={isRefreshing || isSaving}
-                    className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-cyan-400/10 hover:text-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 disabled:opacity-40"
-                    aria-label="개인 운영 메모 새로고침"
-                    title="개인 운영 메모 새로고침"
-                >
-                    <RefreshCcw
-                        size={12}
-                        className={isRefreshing ? 'animate-spin' : ''}
-                        aria-hidden="true"
-                    />
-                </button>
-            )}
         </div>
         <textarea
+            name="private-player-note"
+            autoComplete="off"
             value={draft}
             onChange={(event) => onChange(event.target.value)}
             maxLength={1000}
@@ -257,10 +239,8 @@ export const PlayerNoteEditor = ({
             draft={draft}
             isDisabled={!csrfToken || draft.trim() === savedContent}
             isSaving={isSaving}
-            isRefreshing={isLoading}
             message={message}
             onChange={setDraft}
-            onRefresh={() => void retryLoad()}
             onSave={() => void save()}
         />
     );

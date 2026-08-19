@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
 import { AlertTriangle, Lightbulb, X } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useDialogFocus } from '../../hooks/use-dialog-focus';
 
 export interface ErrorDetails {
     description: string;
@@ -18,13 +18,7 @@ interface ErrorDetailsModalProps {
  * @description 짧은 오류 토스트에서 선택한 상세 원인과 해결 방법을 모달로 보여준다.
  */
 export function ErrorDetailsModal({ details, onClose }: ErrorDetailsModalProps) {
-    useEffect(() => {
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') onClose();
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [onClose]);
+    const dialogRef = useDialogFocus({ onClose });
 
     return (
         <motion.div
@@ -38,6 +32,7 @@ export function ErrorDetailsModal({ details, onClose }: ErrorDetailsModalProps) 
             }}
         >
             <motion.section
+                ref={dialogRef}
                 initial={{ opacity: 0, y: 12, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 8, scale: 0.98 }}
@@ -45,7 +40,8 @@ export function ErrorDetailsModal({ details, onClose }: ErrorDetailsModalProps) 
                 aria-modal="true"
                 aria-labelledby="error-details-title"
                 aria-describedby="error-details-description"
-                className="flex max-h-[min(720px,calc(100dvh-2rem))] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-rose-500/25 bg-slate-900 shadow-2xl shadow-black/50"
+                tabIndex={-1}
+                className="flex max-h-[min(720px,calc(100dvh-2rem))] w-full max-w-xl flex-col overscroll-contain overflow-hidden rounded-2xl border border-rose-500/25 bg-slate-900 shadow-2xl shadow-black/50 focus:outline-none"
             >
                 <header className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-800 px-5 py-4">
                     <div className="flex min-w-0 items-start gap-3">

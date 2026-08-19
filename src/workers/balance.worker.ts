@@ -2,13 +2,21 @@
 
 import type { Player } from '../types';
 import { balancePlayers } from '../utils/balance';
-import type { BalanceWorkerResponse } from '../utils/balance';
+import type { BalanceOptions, BalanceWorkerResponse } from '../utils/balance';
 
-self.onmessage = (event: MessageEvent<Player[]>): void => {
+interface BalanceWorkerRequest {
+    options?: BalanceOptions;
+    players: Player[];
+}
+
+self.onmessage = (event: MessageEvent<BalanceWorkerRequest>): void => {
     let response: BalanceWorkerResponse;
 
     try {
-        response = { ok: true, data: balancePlayers(event.data) };
+        response = {
+            ok: true,
+            data: balancePlayers(event.data.players, event.data.options),
+        };
     } catch (error) {
         response = {
             ok: false,
