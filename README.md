@@ -269,20 +269,31 @@ pnpm check
 
 ```text
 api/
-├── auth/                 # Discord OAuth 로그인·로그아웃·콜백
-├── notes/                # 개인 운영 메모
-└── user-sheet/           # 공유 유저 시트
+├── _lib/                 # 인증·Redis·서버 저장소
+├── auth/                 # Discord OAuth
+├── event-participants/   # 이벤트 참여자 API
+├── notes/                # 개인 운영 메모 API
+├── public/               # 공개 참여 API
+├── scrims/               # 내전 운영 API
+└── user-sheet/           # 공유 유저 시트 API
+domains/
+├── balance/              # 팀 밸런싱 알고리즘과 결과 모델
+├── player/               # 플레이어·랭크·역할 모델
+└── scrim/                # 내전 클라이언트·서버·공유 계약과 규칙
 src/
 ├── components/
-│   ├── match/            # 팀 결과, 교체, 이미지 복사
+│   ├── event/            # 이벤트 참여자 등록·조회·편집
+│   ├── match/            # 팀 결과·교체·이미지 복사
 │   ├── player/           # 참가자 입력·대조·목록·메모
+│   ├── scrim/            # 내전 링크·밴·설문·후기
 │   └── user-sheet/       # 유저 시트 조회·직접 수정·전체 편집
 ├── hooks/                # 인증, 저장, 밸런싱과 화면 상태
 └── utils/
-    ├── balance/          # 팀 밸런싱 알고리즘
     ├── parser/           # Discord 채팅 파서
-    └── user-sheet.ts     # 유저 시트 변환·API 클라이언트
+    └── storage/          # 브라우저 세션·UI 환경설정 저장
 ```
+
+세부 책임과 새 파일 배치 기준은 [프로젝트 구조 문서](docs/project-structure.md)를 참고하세요.
 
 ## 배포
 

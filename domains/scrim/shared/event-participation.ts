@@ -1,7 +1,7 @@
 import type {
     ScrimRecord,
     ScrimRosterParticipant,
-} from '../../domains/scrim/shared/public';
+} from './model';
 
 export const EVENT_PARTICIPATION_START_DATE = '2026-08-18';
 export const EVENT_PARTICIPATION_END_DATE = '2026-09-18';

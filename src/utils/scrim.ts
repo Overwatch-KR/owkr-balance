@@ -1,37 +1,6 @@
 import type {
-    SatisfactionParticipationStatus,
     ScrimRecord,
-    VoteParticipationStatus,
 } from '../../domains/scrim/shared/public';
-
-/**
- * @description 한국 시간 기준 내전 시작·만족도 종료 시각과 공개 참여 상태를 계산한다.
- */
-export const getScrimTimes = (date: string, startTime: string) => {
-    const startsAt = Date.parse(`${date}T${startTime}:00+09:00`);
-    const [year, month, day] = date.split('-').map(Number);
-    const satisfactionExpiresAt = Date.UTC(year, month - 1, day + 1, 14, 59, 59, 999);
-    return { customGameStartsAt: startsAt, satisfactionExpiresAt };
-};
-
-export const getVoteParticipationStatus = (
-    scrim: Pick<ScrimRecord, 'customGameStartsAt' | 'voteOpenedAt' | 'voteClosedAt'>,
-    now = Date.now(),
-): VoteParticipationStatus => {
-    if (scrim.voteOpenedAt && !scrim.voteClosedAt && now >= scrim.voteOpenedAt && now < scrim.customGameStartsAt) {
-        return 'VOTING_OPEN';
-    }
-    return 'VOTING_CLOSED';
-};
-
-export const getSatisfactionParticipationStatus = (
-    scrim: Pick<ScrimRecord, 'customGameStartsAt' | 'satisfactionExpiresAt'>,
-    now = Date.now(),
-): SatisfactionParticipationStatus => {
-    if (now < scrim.customGameStartsAt) return 'SATISFACTION_PENDING';
-    if (now <= scrim.satisfactionExpiresAt) return 'SATISFACTION_OPEN';
-    return 'SATISFACTION_EXPIRED';
-};
 
 export const formatRemainingDuration = (remainingMs: number): string => {
     const totalSeconds = Math.max(0, Math.ceil(remainingMs / 1_000));

@@ -1,21 +1,18 @@
 {
   "$schema": "https://boundra.dev/schemas/domain-manifest.v1.json",
-  "dependsOn": [],
-  "name": "scrim",
+  "dependsOn": [
+    "player"
+  ],
+  "name": "balance",
   "policies": {
     "allowCrossDomainServerImport": false,
     "allowMcpWrite": false
   },
   "publicApi": {
-    "client": [
-      "./client/public.ts"
-    ],
-    "server": [
-      "./server/public.ts"
-    ],
+    "client": [],
+    "server": [],
     "shared": [
-      "./shared/public.ts",
-      "./shared/rules.ts"
+      "./shared/public.ts"
     ]
   },
   "version": "0.1.0"

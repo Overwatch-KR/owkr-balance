@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { MatchResultData, Player, Rank, Role } from '../../types';
-import { balancePlayers, recalculateMatchResult, swapMatchResultPlayers } from './index';
+import type { Player, Rank, Role } from '../../player/shared/public';
+import type { MatchResultData } from '../shared/public';
+import { balancePlayers, recalculateMatchResult, swapMatchResultPlayers } from '../shared/public';
 
 const createRank = (role: Role, preferredRole: Role): Rank => ({
     tier: 'DIAMOND',

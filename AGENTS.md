@@ -7,7 +7,7 @@ OWKR Match is a web-based Overwatch 2 team balancing tool for managing competiti
 ## Tech Stack
 
 - **Frontend:** React 19, TypeScript 5.9, Vite (Rolldown), Tailwind CSS 3.4
-- **Hosting:** GitHub Pages (static site)
+- **Hosting:** Vercel (Vite static frontend + Vercel Functions)
 - **Animation:** Framer Motion
 - **Build:** Vite, ESLint 9, PostCSS
 
@@ -16,25 +16,31 @@ OWKR Match is a web-based Overwatch 2 team balancing tool for managing competiti
 ```
 src/
 ├── components/          # React components by feature
-│   ├── player/form/    # Player input + bulk paste
-│   ├── player/list/    # Player list display
-│   ├── match/result/   # Team cards + swap UI
-│   └── roles/icon/     # Role icons
+│   ├── event/           # Event participation registration and management
+│   ├── player/form/     # Player input + bulk paste
+│   ├── player/list/     # Player list display
+│   ├── match/result/    # Team cards + swap UI
+│   ├── scrim/          # Scrim operations, surveys, and reviews
+│   └── roles/icon/      # Role icons
 ├── hooks/
 │   └── use-balance.ts  # Balance worker state
-├── types/              # TypeScript interfaces
+├── types/              # Compatibility exports for domain types
 ├── constants/          # Tier definitions, scoring
 └── utils/
-    ├── balance/        # Core balancing algorithm
-    └── parser/         # Discord chat log parsing
+    ├── parser/         # Discord chat log parsing
+    └── storage/        # Browser session and UI preference storage
 
-.github/workflows/       # GitHub Pages deployment
+api/                     # Vercel Functions and server stores
+domains/balance/         # Core balancing algorithm and result model
+domains/player/          # Player, rank, role, and tier model
+domains/scrim/           # Shared scrim contracts and public boundaries
+.github/workflows/       # CI and deployment workflows
 ```
 
 ## Commands
 
 ```bash
-pnpm dev      # Start dev server (localhost:5173)
+pnpm dev      # Start Vite frontend development server
 pnpm build    # Production build to dist/
 pnpm lint     # ESLint check
 pnpm preview  # Preview production build
@@ -88,15 +94,17 @@ PlayerName#1234 다3! 플2 골1         # ! = preferred
 
 ## Important Files
 
-- `src/utils/balance/index.ts` - Core balancing algorithm (most complex logic)
+- `domains/balance/shared/balance.ts` - Core balancing algorithm (most complex logic)
+- `domains/player/shared/model.ts` - Player, rank, role, and tier model
 - `src/hooks/use-balance.ts` - Balance Web Worker lifecycle
 - `src/utils/parser/index.ts` - Player input parsing
 - `src/App.tsx` - Main component orchestrating state
 - `src/constants/index.ts` - Tier definitions, scoring formula
+- `docs/project-structure.md` - Directory responsibilities and dependency direction
 
 ## Notes
 
 - Tests use Vitest
 - Korean UI throughout
-- Deployed on GitHub Pages through GitHub Actions
+- Deployed on Vercel with Vite static assets and Vercel Functions
 - localStorage keys: `owkr_players`, `owkr_result`

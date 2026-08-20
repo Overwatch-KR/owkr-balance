@@ -8,9 +8,11 @@
 - Vite 개발 overlay와 `pnpm boundaries` 경계 검사를 연결했습니다.
 - `pnpm check`가 타입 검사, 린트, 테스트, 경계 검사, production build를 순서대로 실행합니다.
 
-## Boundra 저장소로 넘길 이슈
+## Boundra 0.2.1에서 확인한 이슈
 
-### 1. 생성된 shared contract가 BR-003을 위반함
+아래 네 항목은 Boundra 0.2.2에서 해결됐습니다. OWKR Match도 0.2.2로 갱신하고 관련 검사 예외를 제거했습니다.
+
+### 1. 생성된 shared contract가 BR-003을 위반함 — 해결
 
 우선순위: 높음
 
@@ -30,12 +32,12 @@ boundra check-boundaries --root . --format json
 - `boundra` runtime과 선택한 schema provider는 shared contract에서 허용하거나,
 - BR-003에 package allowlist를 제공해야 합니다.
 
-현재 우회:
+0.2.1 당시 우회:
 
 - `boundra.config.json`에서 파일럿의 계약 및 schema model 파일만 검사 제외했습니다.
 - 따라서 현재 `scrim/shared`의 순수성은 TypeScript와 코드 리뷰로만 보호됩니다.
 
-### 2. 기본 `paths.apps`에서는 실제 도메인 파일이 검사되지 않음
+### 2. 기본 `paths.apps`에서는 실제 도메인 파일이 검사되지 않음 — 해결
 
 우선순위: 높음
 
@@ -46,11 +48,11 @@ boundra check-boundaries --root . --format json
 - `paths.domains`는 `paths.apps`와 독립적으로 항상 scan root에 포함되어야 합니다.
 - 검사 대상 파일이 0개이거나 도메인이 하나도 분석되지 않았다면 성공 대신 메타 정보나 경고를 제공하는 편이 안전합니다.
 
-현재 우회:
+0.2.1 당시 우회:
 
 - `paths.apps`를 `.`으로 설정했습니다.
 
-### 3. generator가 client public API export를 갱신하지 않음
+### 3. generator가 client public API export를 갱신하지 않음 — 해결
 
 우선순위: 중간
 
@@ -60,7 +62,7 @@ boundra check-boundaries --root . --format json
 
 - shared contract와 마찬가지로 client adapter도 `client/public.ts`에 idempotent export를 추가해야 합니다.
 
-### 4. 기본 HTTP transport가 기존 API 오류 의미를 잃음
+### 4. 기본 HTTP transport가 기존 API 오류 의미를 잃음 — 해결
 
 우선순위: 중간
 
@@ -72,18 +74,25 @@ boundra check-boundaries --root . --format json
 - status, headers, 안전하게 파싱된 body를 포함하는 표준 transport error 제공
 - 기존 오류를 보존하는 opt-in 설정 제공
 
-현재 우회:
+0.2.1 당시 우회:
 
 - OWKR의 `requestJson`을 사용하는 custom transport를 만들었습니다.
 - `getErrorMessage`와 `findApiError`가 `Error.cause` 체인을 따라 기존 `ApiError`를 복원합니다.
 
 ## OWKR 후속 작업
 
-1. Boundra의 BR-003과 scan-root 문제가 해결되면 `checkBoundaries.ignore`의 파일럿 예외를 제거합니다.
-2. 관리자용 `/api/scrims` 계약을 분리하고 action 문자열 기반 PATCH를 typed mutation으로 전환합니다.
-3. `user-sheet`, `auth`, `player-note` 순서로 도메인을 확대합니다.
-4. 실제 운영 오류를 확인한 뒤 custom transport의 공통 오류 매핑을 Boundra adapter로 일반화합니다.
-5. CI에서 native CLI 다운로드 캐시 또는 `BOUNDRA_CLI_PATH` 고정 정책을 결정합니다.
+1. 관리자용 `/api/scrims` 계약을 분리하고 action 문자열 기반 PATCH를 typed mutation으로 전환합니다.
+2. `user-sheet`, `auth`, `player-note` 순서로 도메인을 확대합니다.
+3. 실제 운영 오류를 확인한 뒤 custom transport를 `BoundraHttpError` 기반으로 단순화할지 결정합니다.
+4. CI에서 native CLI 다운로드 캐시 또는 `BOUNDRA_CLI_PATH` 고정 정책을 결정합니다.
+
+## 2026-08-20 재점검
+
+- 설치 버전을 `0.2.2`로 갱신한 뒤 계약·모델 ignore 없이 경계 검사에 통과했습니다. 검사 결과는 파일 196개, 도메인 3개, 위반 0건입니다.
+- `balance`, `player`, `scrim` 도메인을 등록했고 `graph-domains`에서 `balance → player` 간선을 확인했습니다.
+- Boundra는 앱 내부의 `api → src` 의존성을 구분하지 않습니다. 서버의 프런트엔드 역방향 import는 ESLint `no-restricted-imports`로 별도 차단합니다.
+- 영웅 정의, 내전 시간 규칙, 이벤트 참여 집계는 `domains/scrim/shared`로 이동하고 가벼운 `shared/rules.ts` 공개 진입점으로 분리했습니다. 계약·스키마는 `shared/public.ts`에서 제공합니다.
+- 공개 참여 조회·투표·만족도 3개 계약만 runtime 검증을 사용합니다. 관리자 내전 API, 이벤트 참여자, 유저 시트, 인증과 메모 API는 아직 수동 검증입니다.
 
 ## 확인 명령
 

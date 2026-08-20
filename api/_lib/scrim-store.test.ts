@@ -1,6 +1,6 @@
 import type { Redis } from '@upstash/redis';
 import { describe, expect, it, vi } from 'vitest';
-import { HEROES } from '../../src/constants/hero';
+import { HEROES } from '../../domains/scrim/shared/rules';
 import type { HeroVote, ScrimRecord } from '../../domains/scrim/shared/public';
 import {
     activatePublicLink,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { ScrimRecord } from '../../domains/scrim/shared/public';
-import { getEventParticipantCandidates } from './event-participants';
+import type { ScrimRecord } from '../shared/public';
+import { getEventParticipantCandidates } from '../shared/rules';
 
 const createScrim = (
     id: string,

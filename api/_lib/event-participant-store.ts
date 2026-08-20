@@ -1,9 +1,12 @@
 import type { Redis } from '@upstash/redis';
-import type { ScrimRecord, ScrimRosterParticipant } from '../../domains/scrim/shared/public.js';
 import {
     getEventParticipantCandidates,
     type EventParticipationSnapshot,
-} from '../../src/utils/event-participants.js';
+} from '../../domains/scrim/shared/rules.js';
+import type {
+    ScrimRecord,
+    ScrimRosterParticipant,
+} from '../../domains/scrim/shared/public.js';
 
 const EVENT_PARTICIPANTS_KEY = 'events:2026-08-18-2026-09-18:participants:v1';
 

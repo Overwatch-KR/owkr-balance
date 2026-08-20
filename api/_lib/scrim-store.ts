@@ -1,16 +1,19 @@
 import { randomBytes, randomInt } from 'node:crypto';
 import type { Redis } from '@upstash/redis';
-import { HEROES, type HeroRole } from '../../src/constants/hero.js';
+import {
+    HEROES,
+    getScrimTimes,
+    type HeroRole,
+} from '../../domains/scrim/shared/rules.js';
 import type {
     BanDecision,
     HeroVote,
     HeroVoteResult,
+    PublicParticipationKind,
     SatisfactionResponse,
     ScrimRecord,
     ScrimRosterParticipant,
-    PublicParticipationKind,
 } from '../../domains/scrim/shared/public.js';
-import { getScrimTimes } from '../../src/utils/scrim.js';
 
 const SCRIMS_KEY = 'scrims:v1:records';
 const SCRIM_SEQUENCE_KEY = 'scrims:v1:sequence';

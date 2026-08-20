@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
-import { swapMatchResultPlayers } from './utils/balance';
+import { swapMatchResultPlayers } from '../domains/balance/shared/public';
 import {
     isMatchResultStale,
 } from './utils/player';
@@ -17,7 +17,7 @@ import { useMatchSession } from './hooks/use-match-session';
 import { useUserSheet } from './hooks/use-user-sheet';
 import { getErrorMessage } from './utils/api';
 import { clearPlayerNoteCache } from './utils/player-note';
-import { readUiPreferences, writeShowAllRanksPreference } from './utils/ui-preferences';
+import { readUiPreferences, writeShowAllRanksPreference } from './utils/storage/ui-preferences';
 import type { SwapSource } from './types';
 import {
     RosterIdentityResolver,
@@ -36,14 +36,14 @@ import {
 } from './components/common/error-details-modal';
 import { AppHeader } from './components/layout/app-header';
 import { MatchResultPanel } from './components/match/match-result-panel';
-import { EventParticipantsPage } from './components/scrim/event-participants-page';
+import { EventParticipantsPage } from './components/event/event-participants-page';
 import { ScrimManager } from './components/scrim/scrim-manager';
 
 const UserSheetModal = lazy(() => import('./components/user-sheet/user-sheet-modal').then(module => ({
     default: module.UserSheetModal,
 })));
 const EventParticipantRegistrationModal = lazy(() => (
-    import('./components/match/event-participant-registration-modal').then(module => ({
+    import('./components/event/event-participant-registration-modal').then(module => ({
         default: module.EventParticipantRegistrationModal,
     }))
 ));

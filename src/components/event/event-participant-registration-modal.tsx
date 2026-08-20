@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { CalendarCheck2, Check, Loader2, X } from 'lucide-react';
+import type { EventParticipationSnapshot } from '../../../domains/scrim/shared/rules';
 import type { ScrimRosterParticipant } from '../../../domains/scrim/shared/public';
 import { useDialogFocus } from '../../hooks/use-dialog-focus';
 import type { Player } from '../../types';
 import { getErrorMessage, requestJson } from '../../utils/api';
-import type { EventParticipationSnapshot } from '../../utils/event-participants';
 
 interface EventParticipantRegistrationModalProps {
     csrfToken: string;

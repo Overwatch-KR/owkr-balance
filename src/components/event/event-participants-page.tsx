@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, RefreshCw, Save } from 'lucide-react';
 import { useToast } from '../../hooks/use-toast';
 import { getErrorMessage, requestJson } from '../../utils/api';
-import type { EventParticipationSnapshot } from '../../utils/event-participants';
+import type { EventParticipationSnapshot } from '../../../domains/scrim/shared/rules';
 import { AppToast } from '../app-toast';
 import { EventParticipantSummary } from './event-participant-summary';
 

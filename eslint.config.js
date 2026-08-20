@@ -36,6 +36,12 @@ export default tseslint.config(
         },
         rules: {
             'no-undef': 'off',
+            'no-restricted-imports': ['error', {
+                patterns: [{
+                    group: ['../src/**', '../../src/**', '../../../src/**'],
+                    message: '서버 코드는 src에 의존할 수 없습니다. 공유 로직은 domains의 공개 API로 이동하세요.',
+                }],
+            }],
         },
     },
 );

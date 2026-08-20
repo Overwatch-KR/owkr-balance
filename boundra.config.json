@@ -29,9 +29,7 @@
       "**/dist/**",
       "**/build/**",
       "**/coverage/**",
-      "**/target/**",
-      "domains/scrim/shared/contracts/**",
-      "domains/scrim/shared/model.ts"
+      "**/target/**"
     ]
   }
 }

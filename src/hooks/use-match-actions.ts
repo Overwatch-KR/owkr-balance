@@ -3,7 +3,7 @@ import { SAMPLE_ROSTER } from '../constants';
 import {
     swapMatchResultPlayers,
     type BalanceOptions,
-} from '../utils/balance';
+} from '../../domains/balance/shared/public';
 import { parseMultipleLines } from '../utils/parser';
 import { getErrorMessage } from '../utils/api';
 import type { MatchResultData, Player, Role, SwapSource } from '../types';

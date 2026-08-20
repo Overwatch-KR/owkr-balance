@@ -1,8 +1,11 @@
 /// <reference lib="webworker" />
 
 import type { Player } from '../types';
-import { balancePlayers } from '../utils/balance';
-import type { BalanceOptions, BalanceWorkerResponse } from '../utils/balance';
+import {
+    balancePlayers,
+    type BalanceOptions,
+    type BalanceWorkerResponse,
+} from '../../domains/balance/shared/public';
 
 interface BalanceWorkerRequest {
     options?: BalanceOptions;

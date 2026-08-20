@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { SAMPLE_ROSTER } from '../../constants';
-import { balancePlayers } from '../balance';
+import { balancePlayers } from '../../../domains/balance/shared/public';
 import { reconcilePlayers } from '../player';
 import {
     getEligibleRosterPlayers,

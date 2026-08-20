@@ -1,9 +1,9 @@
 import { CalendarCheck2, Check, Users } from 'lucide-react';
-import type { ScrimRosterParticipant } from '../../../domains/scrim/shared/public';
 import {
     EVENT_PARTICIPATION_END_DATE,
     EVENT_PARTICIPATION_START_DATE,
-} from '../../utils/event-participants';
+} from '../../../domains/scrim/shared/rules';
+import type { ScrimRosterParticipant } from '../../../domains/scrim/shared/public';
 import { Skeleton } from '../common/skeleton';
 
 interface EventParticipantSummaryProps {

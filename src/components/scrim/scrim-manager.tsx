@@ -15,7 +15,7 @@ import {
     Star,
     Trash2,
 } from 'lucide-react';
-import { HEROES } from '../../constants/hero';
+import { HEROES } from '../../../domains/scrim/shared/rules';
 import type { Player } from '../../types';
 import type {
     PublicParticipationKind,
