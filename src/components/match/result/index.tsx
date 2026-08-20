@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { AlertTriangle, ArrowLeftRight, CalendarCheck2, Layers3, Loader2, X } from 'lucide-react';
+import { AlertTriangle, ArrowLeftRight, CalendarCheck2, Layers3, Loader2, RefreshCcw, X } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import type { MatchResultData, Role, SwapSource } from '../../../types';
 import type { UserSheetEntry } from '../../../utils/user-sheet';
@@ -18,9 +18,11 @@ interface MatchResultProps {
     onSelectAlternative?: (idx: number) => void;
     isGeneratingAlternatives?: boolean;
     isEventRegistrationAvailable?: boolean;
+    isRematching?: boolean;
     isStale?: boolean;
     onCancelSwap?: () => void;
     onOpenEventRegistration?: () => void;
+    onRematch?: () => void;
     onShowAllRanksChange?: (showAllRanks: boolean) => void;
     showAllRanks?: boolean;
     userSheetByBattleTag?: Map<string, UserSheetEntry>;
@@ -52,9 +54,11 @@ const MatchResult = ({
     onSelectAlternative,
     isGeneratingAlternatives = false,
     isEventRegistrationAvailable = true,
+    isRematching = false,
     isStale = false,
     onCancelSwap,
     onOpenEventRegistration,
+    onRematch,
     onShowAllRanksChange,
     showAllRanks = false,
     userSheetByBattleTag,
@@ -63,6 +67,13 @@ const MatchResult = ({
     const [isAlternativeDialogOpen, setIsAlternativeDialogOpen] = useState(false);
     const { copyStatus, handleCopyImage } = useCopyImage(captureRef);
     const canRegisterEvent = isEventRegistrationAvailable && Boolean(onOpenEventRegistration);
+    const eventRegistrationUnavailableReason = !isEventRegistrationAvailable
+        ? '이벤트 참여 등록은 원격 저장 모드에서 사용할 수 있습니다.'
+        : !onOpenEventRegistration
+            ? '이벤트 참여 등록을 사용할 수 없습니다.'
+            : isStale
+                ? '명단이 변경되어 등록할 수 없습니다. 먼저 다시 매칭해 주세요.'
+                : null;
     const selectedSwapPlayer = getSelectedSwapPlayer(matchResult, swapSource);
     const currentResultKey = getMatchResultKey(matchResult);
     const previewAlternatives = alternatives
@@ -80,10 +91,23 @@ const MatchResult = ({
             {isStale && (
                 <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-200" role="status">
                     <AlertTriangle size={17} className="mt-0.5 shrink-0 text-amber-400" aria-hidden="true" />
-                    <div>
+                    <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold">참가자 정보가 변경되었습니다.</p>
                         <p className="mt-0.5 text-xs text-amber-300/80">다시 매칭해 주세요.</p>
                     </div>
+                    {onRematch ? (
+                        <button
+                            type="button"
+                            onClick={onRematch}
+                            disabled={isRematching}
+                            className="inline-flex min-h-9 shrink-0 touch-manipulation items-center gap-1.5 rounded-lg border border-amber-300/30 bg-amber-300/10 px-3 text-xs font-semibold text-amber-100 transition-colors hover:bg-amber-300/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/70 disabled:cursor-wait disabled:opacity-60"
+                        >
+                            {isRematching
+                                ? <Loader2 size={14} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
+                                : <RefreshCcw size={14} aria-hidden="true" />}
+                            {isRematching ? '매칭 중…' : '다시 매칭'}
+                        </button>
+                    ) : null}
                 </div>
             )}
 
@@ -141,7 +165,7 @@ const MatchResult = ({
                     role="switch"
                     aria-checked={showAllRanks}
                     onClick={() => onShowAllRanksChange?.(!showAllRanks)}
-                    className="group inline-flex min-h-9 touch-manipulation items-center gap-2.5 rounded-lg px-2 text-xs font-medium text-slate-400 transition-colors hover:bg-white/5 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+                    className="group inline-flex min-h-9 touch-manipulation items-center gap-2.5 whitespace-nowrap rounded-lg px-2 text-xs font-medium text-slate-400 transition-colors hover:bg-white/5 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
                 >
                     탱·딜·힐 티어 표시
                     <span
@@ -165,19 +189,23 @@ const MatchResult = ({
                     type="button"
                     disabled={isStale || !canRegisterEvent}
                     onClick={onOpenEventRegistration}
-                    title={!isEventRegistrationAvailable
-                        ? '원격 저장소에 연결된 실행 모드에서 등록할 수 있습니다.'
-                        : !onOpenEventRegistration
-                            ? '이벤트 참여 등록을 사용할 수 없습니다.'
-                        : isStale
-                            ? '변경된 명단으로 다시 매칭한 뒤 등록해 주세요.'
-                            : '현재 팀 배정 인원을 이벤트 실제 참여자로 등록합니다.'}
-                    className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-cyan-400/30 bg-cyan-400/10 px-3 text-xs font-medium text-cyan-200 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-800 disabled:text-slate-500"
+                    aria-describedby={eventRegistrationUnavailableReason ? 'event-registration-disabled-reason' : undefined}
+                    title={eventRegistrationUnavailableReason ?? '현재 팀 배정 인원을 이벤트 실제 참여자로 등록합니다.'}
+                    className="inline-flex min-h-9 touch-manipulation items-center gap-1.5 rounded-lg border border-cyan-400/30 bg-cyan-400/10 px-3 text-xs font-medium text-cyan-200 transition-colors hover:bg-cyan-400/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70 disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-800 disabled:text-slate-500"
                 >
                     <CalendarCheck2 size={14} aria-hidden="true" />
                     이번 내전 참여 등록
                 </button>
                 <CopyButton status={copyStatus} onClick={handleCopyImage} />
+                {eventRegistrationUnavailableReason ? (
+                    <p
+                        id="event-registration-disabled-reason"
+                        className="basis-full text-right text-[11px] leading-relaxed text-slate-500 sm:sr-only"
+                        role="status"
+                    >
+                        {eventRegistrationUnavailableReason}
+                    </p>
+                ) : null}
             </div>
 
             <div

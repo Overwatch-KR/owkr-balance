@@ -131,13 +131,48 @@ describe('MatchResult', () => {
                 isStale
                 matchResult={matchResult}
                 onOpenEventRegistration={vi.fn()}
+                onRematch={vi.fn()}
                 onSlotClick={vi.fn()}
                 swapSource={null}
             />,
         );
 
-        expect(markup).toContain('변경된 명단으로 다시 매칭한 뒤 등록해 주세요.');
+        expect(markup).toContain('다시 매칭</button>');
+        expect(markup).toContain('명단이 변경되어 등록할 수 없습니다. 먼저 다시 매칭해 주세요.');
+        expect(markup).toContain('aria-describedby="event-registration-disabled-reason"');
         expect(markup).toMatch(/disabled=""[^>]*>.*이번 내전 참여 등록/s);
+    });
+
+    it('재매칭 중에는 경고 안의 버튼에도 진행 상태를 표시한다', () => {
+        const markup = renderToStaticMarkup(
+            <MatchResult
+                isRematching
+                isStale
+                matchResult={matchResult}
+                onRematch={vi.fn()}
+                onSlotClick={vi.fn()}
+                swapSource={null}
+            />,
+        );
+
+        expect(markup).toContain('매칭 중…');
+        expect(markup).toMatch(/disabled=""[^>]*>.*매칭 중…/s);
+    });
+
+    it('원격 저장 모드가 아니면 모바일에서도 이벤트 등록 불가 사유를 표시한다', () => {
+        const markup = renderToStaticMarkup(
+            <MatchResult
+                isEventRegistrationAvailable={false}
+                matchResult={matchResult}
+                onOpenEventRegistration={vi.fn()}
+                onSlotClick={vi.fn()}
+                swapSource={null}
+            />,
+        );
+
+        expect(markup).toContain('이벤트 참여 등록은 원격 저장 모드에서 사용할 수 있습니다.');
+        expect(markup).toContain('basis-full text-right');
+        expect(markup).toContain('sm:sr-only');
     });
 
     it('역할별 티어 점수 차이를 밸런스 요약에 함께 표시한다', () => {

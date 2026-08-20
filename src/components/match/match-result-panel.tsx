@@ -135,10 +135,12 @@ export function MatchResultPanel({
                             swapSource={swapSource}
                             alternatives={alternatives}
                             isStale={isResultStale}
+                            isRematching={isBalancing}
                             isEventRegistrationAvailable={isEventRegistrationAvailable}
                             isGeneratingAlternatives={isBalancing}
                             onCancelSwap={onCancelSwap}
                             onOpenEventRegistration={onOpenEventRegistration}
+                            onRematch={onRunMatching}
                             onSelectAlternative={onSelectAlternative}
                             onShowAllRanksChange={onShowAllRanksChange}
                             showAllRanks={showAllRanks}

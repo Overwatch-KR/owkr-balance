@@ -88,12 +88,21 @@ export const useMatchActions = ({
             setSwapSource(null);
             return;
         }
-        match.setResult(swapMatchResultPlayers(
-            match.result,
+        const previousResult = match.result;
+        const swappedResult = swapMatchResultPlayers(
+            previousResult,
             swapSource,
             { teamIdx, role, index },
-        ));
+        );
+        match.setResult(swappedResult);
         setSwapSource(null);
+        showToast('success', '두 플레이어의 자리를 바꿨습니다.', {
+            label: '되돌리기',
+            onClick: () => {
+                match.setResult(current => current === swappedResult ? previousResult : current);
+                setSwapSource(null);
+            },
+        });
     };
 
     const handleRemovePlayer = (playerId: number) => {

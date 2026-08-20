@@ -143,7 +143,6 @@ const roleRankDefs = [
 interface PlayerRankSummaryProps {
     player: Player;
     assignedRole: Role;
-    align: 'left' | 'right';
 }
 
 const getCompactRoleIcon = (role: Role) => {
@@ -157,8 +156,8 @@ const getCompactRoleIcon = (role: Role) => {
 /**
  * @description 탱커, 딜러, 힐러 티어를 고정 순서로 보여주고 현재 배정 역할을 강조한다.
  */
-const PlayerRankSummary = ({ player, assignedRole, align }: PlayerRankSummaryProps) => (
-    <div className={`flex w-full flex-wrap items-center gap-1 ${align === 'right' ? 'justify-end' : 'justify-start'}`}>
+const PlayerRankSummary = ({ player, assignedRole }: PlayerRankSummaryProps) => (
+    <div className="grid w-full grid-cols-3 gap-0.5 sm:gap-1" data-player-rank-summary>
         {roleRankDefs.map(({ role, label }) => {
             const rank = getRankInfo(player, role);
             const isAssigned = role === assignedRole;
@@ -169,8 +168,9 @@ const PlayerRankSummary = ({ player, assignedRole, align }: PlayerRankSummaryPro
                 <span
                     key={role}
                     title={`${label} ${rankLabel}${isAssigned ? ' · 현재 배정' : ''}`}
+                    aria-label={`${label} ${rankLabel}${isAssigned ? ', 현재 배정' : ''}`}
                     data-tier={rank.tier}
-                    className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-1 font-mono text-[11px] leading-none ${
+                    className={`inline-flex min-w-0 items-center justify-center gap-0.5 overflow-hidden whitespace-nowrap rounded-md border px-0.5 py-1 font-mono text-[10px] leading-none sm:gap-1 sm:px-1.5 sm:text-[11px] ${
                         isUnranked
                             ? isAssigned
                                 ? 'border-slate-400/70 bg-slate-700/70 font-semibold text-slate-100 ring-1 ring-slate-300/40'
@@ -185,7 +185,7 @@ const PlayerRankSummary = ({ player, assignedRole, align }: PlayerRankSummaryPro
                     }`}
                 >
                     {getCompactRoleIcon(role)}
-                    {rankLabel}
+                    <span className="min-w-0 truncate" aria-hidden="true">{rankLabel}</span>
                 </span>
             );
         })}
@@ -295,7 +295,7 @@ const MatchupTable = ({
                                                 className="w-full"
                                             />
                                             <div className="mt-1.5 w-full">
-                                                <PlayerRankSummary player={row.playerA} assignedRole={row.role} align="right" />
+                                                <PlayerRankSummary player={row.playerA} assignedRole={row.role} />
                                             </div>
                                         </>
                                     ) : (
@@ -387,7 +387,7 @@ const MatchupTable = ({
                                                 className="w-full"
                                             />
                                             <div className="mt-1.5 w-full">
-                                                <PlayerRankSummary player={row.playerB} assignedRole={row.role} align="left" />
+                                                <PlayerRankSummary player={row.playerB} assignedRole={row.role} />
                                             </div>
                                         </>
                                     ) : (

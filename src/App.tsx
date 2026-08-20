@@ -17,6 +17,7 @@ import { useMatchSession } from './hooks/use-match-session';
 import { useUserSheet } from './hooks/use-user-sheet';
 import { getErrorMessage } from './utils/api';
 import { clearPlayerNoteCache } from './utils/player-note';
+import { readUiPreferences, writeShowAllRanksPreference } from './utils/ui-preferences';
 import type { SwapSource } from './types';
 import {
     RosterIdentityResolver,
@@ -95,7 +96,7 @@ const MatchApp = ({
     } = useMatchSession(user.id);
 
     const [swapSource, setSwapSource] = useState<SwapSource | null>(null);
-    const [showAllRanks, setShowAllRanks] = useState(false);
+    const [showAllRanks, setShowAllRanks] = useState(() => readUiPreferences().showAllRanks);
     const [ignorePreferences, setIgnorePreferences] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [isEventRegistrationOpen, setIsEventRegistrationOpen] = useState(false);
@@ -275,6 +276,10 @@ const MatchApp = ({
         }
     };
     const currentAdminName = user.globalName ?? user.username;
+    const handleShowAllRanksChange = useCallback((show: boolean) => {
+        setShowAllRanks(show);
+        writeShowAllRanksPreference(show);
+    }, []);
     const handleStartEditingPlayer = useCallback((player: Parameters<typeof startEditingPlayer>[0]) => {
         playerEditReturnPathRef.current = pathname;
         startEditingPlayer(player);
@@ -405,7 +410,7 @@ const MatchApp = ({
                             onOpenEventRegistration={() => setIsEventRegistrationOpen(true)}
                             onRunMatching={() => void handleRunMatching({ ignorePreferences })}
                             onSelectAlternative={handleSelectAlternative}
-                            onShowAllRanksChange={setShowAllRanks}
+                            onShowAllRanksChange={handleShowAllRanksChange}
                             onSlotClick={handleSlotClick}
                             participantCount={participants.length}
                             result={result}

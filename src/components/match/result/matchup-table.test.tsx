@@ -99,6 +99,10 @@ describe('MatchupTable', () => {
         expect(countMatches(markup, /border-cyan-400\/40/g)).toBe(10);
         expect(countMatches(markup, /data-tier="EMERALD"/g)).toBe(10);
         expect(countMatches(markup, /<img /g)).toBe(0);
+        expect(countMatches(markup, /data-player-rank-summary="true"/g)).toBe(10);
+        expect(countMatches(markup, /grid-cols-3/g)).toBe(10);
+        expect(markup).not.toContain('flex-wrap items-center gap-1');
+        expect(countMatches(markup, /whitespace-nowrap/g)).toBe(30);
         expectEqualHeightMatchupSlots(markup);
     });
 
