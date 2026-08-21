@@ -1,6 +1,6 @@
 import { defineMutation, type InferSchema } from 'boundra';
 import { z } from 'zod';
-import { SATISFACTION_OPTIONS } from '../constants';
+import { SATISFACTION_OPTIONS } from '../constants.js';
 
 const satisfactionAnswerSchema = z.object({
     score: z.number().int().min(1).max(5),

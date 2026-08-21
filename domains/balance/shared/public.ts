@@ -2,13 +2,13 @@ export {
     balancePlayers,
     recalculateMatchResult,
     swapMatchResultPlayers,
-} from './balance';
+} from './balance.js';
 
 export type {
     BalanceOptions,
     BalanceResult,
     BalanceWorkerResponse,
-} from './balance';
+} from './balance.js';
 
 export type {
     BalanceMetrics,
@@ -17,4 +17,4 @@ export type {
     RoleAssignment,
     SwapSource,
     TeamResult,
-} from './model';
+} from './model.js';

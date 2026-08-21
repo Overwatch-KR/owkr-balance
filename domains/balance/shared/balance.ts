@@ -1,11 +1,11 @@
-import type { Player, Rank, Role } from '../../player/shared/public';
+import type { Player, Rank, Role } from '../../player/shared/public.js';
 import type {
     BalanceMetrics,
     MatchResultData,
     RoleAssignment,
     SwapSource,
     TeamResult,
-} from './model';
+} from './model.js';
 
 const TEAM_SIZE = 5;
 const PLAYER_COUNT = 10;

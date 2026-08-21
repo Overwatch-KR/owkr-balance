@@ -1,4 +1,4 @@
-import type { Player, Role } from '../../player/shared/public';
+import type { Player, Role } from '../../player/shared/public.js';
 
 /**
  * @description 팀 결과에서 역할별로 묶인 배치 구조.

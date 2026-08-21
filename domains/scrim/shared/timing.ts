@@ -2,7 +2,7 @@ import type {
     SatisfactionParticipationStatus,
     ScrimRecord,
     VoteParticipationStatus,
-} from './model';
+} from './model.js';
 
 /**
  * @description 한국 시간 기준 내전 시작 시각과 만족도 종료 시각을 계산한다.

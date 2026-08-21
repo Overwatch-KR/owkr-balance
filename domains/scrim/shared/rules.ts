@@ -1,3 +1,3 @@
-export * from './event-participation';
-export * from './heroes';
-export * from './timing';
+export * from './event-participation.js';
+export * from './heroes.js';
+export * from './timing.js';

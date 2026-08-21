@@ -1,1 +1,1 @@
-export type { Player, Rank, Role, Tier } from './model';
+export type { Player, Rank, Role, Tier } from './model.js';

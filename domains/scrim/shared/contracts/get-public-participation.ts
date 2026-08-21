@@ -3,7 +3,7 @@ import { z } from 'zod';
 import {
     publicParticipationKindSchema,
     publicScrimRecordSchema,
-} from '../model';
+} from '../model.js';
 
 export const getPublicParticipationInputSchema = z.object({
     token: z.string().min(1).max(200),
