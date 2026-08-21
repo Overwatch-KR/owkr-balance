@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, RefreshCw, Save } from 'lucide-react';
+import { ArrowLeft, RefreshCw } from 'lucide-react';
 import { useToast } from '../../hooks/use-toast';
 import { getErrorMessage, requestJson } from '../../utils/api';
 import type { EventParticipationSnapshot } from '../../../domains/scrim/shared/rules';
 import type { ScrimRosterParticipant } from '../../../domains/scrim/shared/public';
 import { AppToast } from '../app-toast';
+import { EventParticipantActions } from './event-participant-actions';
 import { EventParticipantSummary } from './event-participant-summary';
 import { EventUserSheetPicker } from './event-user-sheet-picker';
 
@@ -148,48 +149,30 @@ export function EventParticipantsPage({ csrfToken, onClose }: EventParticipantsP
                     </section>
                 ) : (
                     <>
-                        <EventParticipantSummary
-                            candidates={snapshot.candidates}
-                            isLoading={isInitialLoading}
-                            participantIds={draftParticipantIds}
-                            onToggle={toggleParticipant}
-                        />
                         {!isInitialLoading ? (
                             <EventUserSheetPicker
                                 participantIds={draftParticipantIds}
                                 onAdd={addUserSheetParticipant}
                             />
                         ) : null}
+                        <EventParticipantSummary
+                            candidates={snapshot.candidates}
+                            isLoading={isInitialLoading}
+                            participantIds={draftParticipantIds}
+                            onToggle={toggleParticipant}
+                        />
                         {!isInitialLoading && snapshot.candidates.length > 0 ? (
-                            <section className="card mt-4 flex flex-wrap items-center justify-between gap-3">
-                                <div className="flex flex-wrap gap-2">
-                                    <button
-                                        type="button"
-                                        className="btn-ghost"
-                                        onClick={() => setDraftParticipantIds(new Set(
-                                            snapshot.candidates.map(candidate => candidate.id),
-                                        ))}
-                                    >
-                                        전원 선택
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="btn-ghost"
-                                        onClick={() => setDraftParticipantIds(new Set())}
-                                    >
-                                        선택 해제
-                                    </button>
-                                </div>
-                                <button
-                                    type="button"
-                                    className="btn-primary min-w-32"
-                                    disabled={!isDirty || isSaving}
-                                    onClick={() => void save()}
-                                >
-                                    <Save size={15} className="mr-1 inline" aria-hidden="true" />
-                                    {isSaving ? '저장 중' : `${draftParticipantIds.size}명 저장`}
-                                </button>
-                            </section>
+                            <EventParticipantActions
+                                hasSaved={snapshot.updatedAt !== undefined}
+                                isDirty={isDirty}
+                                isSaving={isSaving}
+                                participantCount={draftParticipantIds.size}
+                                onSelectAll={() => setDraftParticipantIds(new Set(
+                                    snapshot.candidates.map(candidate => candidate.id),
+                                ))}
+                                onClear={() => setDraftParticipantIds(new Set())}
+                                onSave={() => void save()}
+                            />
                         ) : null}
                     </>
                 )}

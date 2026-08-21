@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2, Search, UserPlus } from 'lucide-react';
 import type { ScrimRosterParticipant } from '../../../domains/scrim/shared/public';
 import { getErrorMessage, requestJson } from '../../utils/api';
@@ -20,6 +20,25 @@ export function EventUserSheetPicker({ onAdd, participantIds }: EventUserSheetPi
     const [candidates, setCandidates] = useState<ScrimRosterParticipant[]>([]);
     const [query, setQuery] = useState('');
     const [error, setError] = useState('');
+    const [isSearchFocused, setIsSearchFocused] = useState(false);
+    const searchInputRef = useRef<HTMLInputElement>(null);
+    const focusScrollTimerRef = useRef<number | null>(null);
+
+    useEffect(() => () => {
+        if (focusScrollTimerRef.current !== null) {
+            window.clearTimeout(focusScrollTimerRef.current);
+        }
+    }, []);
+
+    const revealSearchAboveKeyboard = () => {
+        setIsSearchFocused(true);
+        if (focusScrollTimerRef.current !== null) {
+            window.clearTimeout(focusScrollTimerRef.current);
+        }
+        focusScrollTimerRef.current = window.setTimeout(() => {
+            searchInputRef.current?.scrollIntoView({ block: 'center' });
+        }, 350);
+    };
 
     const open = async () => {
         setIsOpen(true);
@@ -65,7 +84,7 @@ export function EventUserSheetPicker({ onAdd, participantIds }: EventUserSheetPi
             </div>
 
             {isOpen ? (
-                <div className="mt-4">
+                <div className={`mt-4 ${isSearchFocused ? 'pb-[42svh] sm:pb-0' : ''}`}>
                     <label htmlFor="event-user-sheet-search" className="sr-only">유저 시트 검색</label>
                     <div className="relative">
                         <Search
@@ -74,12 +93,15 @@ export function EventUserSheetPicker({ onAdd, participantIds }: EventUserSheetPi
                             aria-hidden="true"
                         />
                         <input
+                            ref={searchInputRef}
                             id="event-user-sheet-search"
                             type="search"
                             className="input-base pl-9"
                             placeholder="배틀태그 또는 Discord 이름 검색"
                             value={query}
                             onChange={event => setQuery(event.target.value)}
+                            onFocus={revealSearchAboveKeyboard}
+                            onBlur={() => setIsSearchFocused(false)}
                             disabled={isLoading}
                         />
                     </div>
