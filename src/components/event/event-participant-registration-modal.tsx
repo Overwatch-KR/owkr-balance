@@ -6,6 +6,7 @@ import type { ScrimRosterParticipant } from '../../../domains/scrim/shared/publi
 import { useDialogFocus } from '../../hooks/use-dialog-focus';
 import type { Player } from '../../types';
 import { getErrorMessage, requestJson } from '../../utils/api';
+import { EventParticipantIdentity } from './event-participant-identity';
 
 interface EventParticipantRegistrationModalProps {
     csrfToken: string;
@@ -18,6 +19,7 @@ const toParticipant = (player: Player): ScrimRosterParticipant => ({
     id: player.discordUserId ?? player.userSheetEntryId ?? String(player.id),
     name: player.name,
     discordName: player.discordName,
+    discordUserId: player.discordUserId,
 });
 
 /**
@@ -119,7 +121,7 @@ export function EventParticipantRegistrationModal({
                     </button>
                 </header>
 
-                <ul className="mt-5 grid gap-2 sm:grid-cols-2" aria-label="이번 내전 참여자">
+                <ul className="mt-5 grid gap-2" aria-label="이번 내전 참여자">
                     {candidates.map(candidate => {
                         const isSelected = selectedIds.has(candidate.id);
                         return (
@@ -130,7 +132,7 @@ export function EventParticipantRegistrationModal({
                                     aria-checked={isSelected}
                                     disabled={isSaving}
                                     onClick={() => toggle(candidate.id)}
-                                    className={`flex min-h-12 w-full items-center gap-3 rounded-xl border px-3 py-2 text-left text-sm transition disabled:cursor-wait ${
+                                    className={`flex min-h-16 w-full items-center gap-3 rounded-xl border px-3 py-3 text-left text-sm transition disabled:cursor-wait ${
                                         isSelected
                                             ? 'border-cyan-400/40 bg-cyan-400/10 text-cyan-100'
                                             : 'border-slate-800 bg-slate-900 text-slate-400'
@@ -143,12 +145,7 @@ export function EventParticipantRegistrationModal({
                                     }`}>
                                         {isSelected ? <Check size={14} strokeWidth={3} aria-hidden="true" /> : null}
                                     </span>
-                                    <span className="min-w-0">
-                                        <span className="block truncate font-medium">{candidate.name}</span>
-                                        {candidate.discordName ? (
-                                            <span className="block truncate text-xs text-slate-500">{candidate.discordName}</span>
-                                        ) : null}
-                                    </span>
+                                    <EventParticipantIdentity participant={candidate} />
                                 </button>
                             </li>
                         );

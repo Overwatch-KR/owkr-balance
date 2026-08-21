@@ -30,6 +30,7 @@ export function EventParticipantsPage({ csrfToken, onClose }: EventParticipantsP
     const [isInitialLoading, setIsInitialLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
     const [error, setError] = useState('');
     const { dismissToast, showToast, toast } = useToast();
 
@@ -47,6 +48,7 @@ export function EventParticipantsPage({ csrfToken, onClose }: EventParticipantsP
                 credentials: 'same-origin',
             });
             applySnapshot(result);
+            setIsEditing(result.updatedAt === undefined);
         } catch (loadError) {
             setError(getErrorMessage(loadError, '이벤트 참여자를 불러오지 못했습니다.'));
         } finally {
@@ -65,6 +67,11 @@ export function EventParticipantsPage({ csrfToken, onClose }: EventParticipantsP
         [snapshot.participantIds],
     );
     const isDirty = !hasSameIds(draftParticipantIds, savedParticipantIds);
+    const displayedCandidates = useMemo(() => (
+        isEditing
+            ? snapshot.candidates
+            : snapshot.candidates.filter(candidate => savedParticipantIds.has(candidate.id))
+    ), [isEditing, savedParticipantIds, snapshot.candidates]);
 
     const toggleParticipant = (participantId: string) => {
         setDraftParticipantIds(current => {
@@ -101,6 +108,7 @@ export function EventParticipantsPage({ csrfToken, onClose }: EventParticipantsP
                 body: JSON.stringify({ participantIds: [...draftParticipantIds] }),
             });
             applySnapshot(result);
+            setIsEditing(false);
             showToast('success', `이벤트 참여자 ${result.participantIds.length}명을 저장했습니다.`);
         } catch (saveError) {
             showToast('error', getErrorMessage(saveError, '이벤트 참여자를 저장하지 못했습니다.'));
@@ -149,28 +157,37 @@ export function EventParticipantsPage({ csrfToken, onClose }: EventParticipantsP
                     </section>
                 ) : (
                     <>
-                        {!isInitialLoading ? (
+                        {!isInitialLoading && isEditing ? (
                             <EventUserSheetPicker
                                 participantIds={draftParticipantIds}
                                 onAdd={addUserSheetParticipant}
                             />
                         ) : null}
                         <EventParticipantSummary
-                            candidates={snapshot.candidates}
+                            candidates={displayedCandidates}
+                            isEditing={isEditing}
                             isLoading={isInitialLoading}
                             participantIds={draftParticipantIds}
                             onToggle={toggleParticipant}
                         />
-                        {!isInitialLoading && snapshot.candidates.length > 0 ? (
+                        {!isInitialLoading && (
+                            snapshot.candidates.length > 0 || snapshot.updatedAt !== undefined
+                        ) ? (
                             <EventParticipantActions
                                 hasSaved={snapshot.updatedAt !== undefined}
                                 isDirty={isDirty}
+                                isEditing={isEditing}
                                 isSaving={isSaving}
                                 participantCount={draftParticipantIds.size}
                                 onSelectAll={() => setDraftParticipantIds(new Set(
                                     snapshot.candidates.map(candidate => candidate.id),
                                 ))}
                                 onClear={() => setDraftParticipantIds(new Set())}
+                                onEdit={() => setIsEditing(true)}
+                                onCancel={() => {
+                                    setDraftParticipantIds(new Set(snapshot.participantIds));
+                                    setIsEditing(false);
+                                }}
                                 onSave={() => void save()}
                             />
                         ) : null}

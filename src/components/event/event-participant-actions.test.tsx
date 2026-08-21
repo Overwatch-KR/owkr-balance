@@ -8,8 +8,11 @@ const renderActions = (values: Partial<ComponentProps<typeof EventParticipantAct
         <EventParticipantActions
             hasSaved={false}
             isDirty={false}
+            isEditing
             isSaving={false}
+            onCancel={vi.fn()}
             onClear={vi.fn()}
+            onEdit={vi.fn()}
             onSave={vi.fn()}
             onSelectAll={vi.fn()}
             participantCount={0}
@@ -31,10 +34,20 @@ describe('EventParticipantActions', () => {
     });
 
     it('저장한 뒤에는 버튼 대신 완료 상태와 참여 인원을 표시한다', () => {
-        const markup = renderActions({ hasSaved: true, participantCount: 3 });
+        const markup = renderActions({ hasSaved: true, isEditing: false, participantCount: 3 });
 
         expect(markup).toContain('저장 완료');
         expect(markup).toContain('참여 3명');
+        expect(markup).toContain('명단 수정');
+        expect(markup).not.toContain('전원 선택');
         expect(markup).not.toContain('변경사항 저장');
+    });
+
+    it('저장된 명단을 수정할 때 취소 기능과 변경 상태를 표시한다', () => {
+        const markup = renderActions({ hasSaved: true, isEditing: true, participantCount: 3 });
+
+        expect(markup).toContain('수정 취소');
+        expect(markup).toContain('변경사항이 없습니다.');
+        expect(markup).not.toContain('저장 완료');
     });
 });

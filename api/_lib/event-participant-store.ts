@@ -36,6 +36,7 @@ export const getEventUserSheetCandidates = (
         id: entry.discordUserId ?? entry.id,
         name: entry.battleTag,
         discordName: entry.discordName || undefined,
+        discordUserId: entry.discordUserId,
     }))
     .filter(participant => !isAdminParticipant(participant))
     .sort((a, b) => a.name.localeCompare(b.name, 'ko-KR'));
@@ -54,9 +55,17 @@ const parseParticipants = (rawParticipants: unknown): ScrimRosterParticipant[] |
         const discordName = typeof input.discordName === 'string'
             ? input.discordName.trim().slice(0, 100)
             : '';
+        const discordUserId = typeof input.discordUserId === 'string'
+            ? input.discordUserId.trim().slice(0, 30)
+            : '';
         if (!id || !name || ids.has(id)) return null;
         ids.add(id);
-        participants.push({ id, name, discordName: discordName || undefined });
+        participants.push({
+            id,
+            name,
+            discordName: discordName || undefined,
+            discordUserId: discordUserId || undefined,
+        });
     }
     return participants;
 };

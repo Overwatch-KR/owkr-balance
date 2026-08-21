@@ -65,6 +65,7 @@ describe('event participant store', () => {
             id: '11111111111111111',
             name: 'Sheet#1111',
             discordName: '시트 유저',
+            discordUserId: '11111111111111111',
         }]);
     });
 

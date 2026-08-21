@@ -59,9 +59,15 @@ export const createScrim = async (
         const id = cleanText(item.id, 200);
         const name = cleanText(item.name, 100);
         const discordName = cleanText(item.discordName, 100);
+        const discordUserId = cleanText(item.discordUserId, 30);
         if (!id || !name || ids.has(id)) return null;
         ids.add(id);
-        rosterSnapshot.push({ id, name, discordName: discordName || undefined });
+        rosterSnapshot.push({
+            id,
+            name,
+            discordName: discordName || undefined,
+            discordUserId: discordUserId || undefined,
+        });
     }
     const id = String(await redis.incr(SCRIM_SEQUENCE_KEY));
     const record: ScrimRecord = {

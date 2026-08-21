@@ -6,6 +6,7 @@ export const scrimRosterParticipantSchema = z.object({
     id: z.string(),
     name: z.string(),
     discordName: z.string().optional(),
+    discordUserId: z.string().optional(),
 });
 
 export const heroVoteSchema = z.object({

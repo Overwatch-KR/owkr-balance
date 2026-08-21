@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2, Search, UserPlus } from 'lucide-react';
 import type { ScrimRosterParticipant } from '../../../domains/scrim/shared/public';
 import { getErrorMessage, requestJson } from '../../utils/api';
+import { EventParticipantIdentity } from './event-participant-identity';
 
 interface EventUserSheetPickerProps {
     onAdd: (participant: ScrimRosterParticipant) => void;
@@ -65,6 +66,7 @@ export function EventUserSheetPicker({ onAdd, participantIds }: EventUserSheetPi
         return candidates.filter(candidate => (
             normalizeSearchText(candidate.name).includes(normalizedQuery)
             || normalizeSearchText(candidate.discordName ?? '').includes(normalizedQuery)
+            || normalizeSearchText(candidate.discordUserId ?? '').includes(normalizedQuery)
         )).slice(0, 10);
     }, [candidates, normalizedQuery]);
 
@@ -97,7 +99,7 @@ export function EventUserSheetPicker({ onAdd, participantIds }: EventUserSheetPi
                             id="event-user-sheet-search"
                             type="search"
                             className="input-base pl-9"
-                            placeholder="배틀태그 또는 Discord 이름 검색"
+                            placeholder="Discord 이름, ID 또는 배틀태그 검색"
                             value={query}
                             onChange={event => setQuery(event.target.value)}
                             onFocus={revealSearchAboveKeyboard}
@@ -124,12 +126,7 @@ export function EventUserSheetPicker({ onAdd, participantIds }: EventUserSheetPi
                                 const isAdded = participantIds.has(candidate.id);
                                 return (
                                     <li key={candidate.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
-                                        <span className="min-w-0 text-sm">
-                                            <span className="block truncate font-medium text-slate-200">{candidate.name}</span>
-                                            {candidate.discordName ? (
-                                                <span className="block truncate text-xs text-slate-500">{candidate.discordName}</span>
-                                            ) : null}
-                                        </span>
+                                        <EventParticipantIdentity participant={candidate} />
                                         <button
                                             type="button"
                                             className="btn-ghost shrink-0"
