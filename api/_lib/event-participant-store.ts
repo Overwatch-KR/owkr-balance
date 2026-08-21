@@ -7,13 +7,23 @@ import type {
     ScrimRecord,
     ScrimRosterParticipant,
 } from '../../domains/scrim/shared/public.js';
+import { ADMIN_USERS } from './admin.constants.js';
 
 const EVENT_PARTICIPANTS_KEY = 'events:2026-08-18-2026-09-18:participants:v1';
+const ADMIN_USER_IDS = new Set<string>(Object.keys(ADMIN_USERS));
 
 interface StoredEventParticipation {
     participants: ScrimRosterParticipant[];
     updatedAt: number;
 }
+
+const isAdminParticipant = (participant: ScrimRosterParticipant): boolean => (
+    ADMIN_USER_IDS.has(participant.id)
+);
+
+const getEligibleCandidates = (scrims: ScrimRecord[]): ScrimRosterParticipant[] => (
+    getEventParticipantCandidates(scrims).filter(participant => !isAdminParticipant(participant))
+);
 
 const parseParticipants = (rawParticipants: unknown): ScrimRosterParticipant[] | null => {
     if (!Array.isArray(rawParticipants) || rawParticipants.length < 1 || rawParticipants.length > 10) {
@@ -46,6 +56,7 @@ const readStoredParticipation = async (redis: Redis): Promise<StoredEventPartici
             participant
             && typeof participant.id === 'string'
             && typeof participant.name === 'string'
+            && !isAdminParticipant(participant)
         )),
         updatedAt: Number.isFinite(stored.updatedAt) ? stored.updatedAt : 0,
     };
@@ -55,9 +66,11 @@ const buildSnapshot = (
     candidates: ScrimRosterParticipant[],
     stored: StoredEventParticipation,
 ): EventParticipationSnapshot => {
-    const candidatesById = new Map(candidates.map(participant => [participant.id, participant]));
+    const candidatesById = new Map(candidates
+        .filter(participant => !isAdminParticipant(participant))
+        .map(participant => [participant.id, participant]));
     stored.participants.forEach(participant => {
-        candidatesById.set(participant.id, participant);
+        if (!isAdminParticipant(participant)) candidatesById.set(participant.id, participant);
     });
     return {
         candidates: [...candidatesById.values()].sort((a, b) => a.name.localeCompare(b.name, 'ko-KR')),
@@ -73,7 +86,7 @@ export const getEventParticipation = async (
     redis: Redis,
     scrims: ScrimRecord[],
 ): Promise<EventParticipationSnapshot> => (
-    buildSnapshot(getEventParticipantCandidates(scrims), await readStoredParticipation(redis))
+    buildSnapshot(getEligibleCandidates(scrims), await readStoredParticipation(redis))
 );
 
 /**
@@ -92,7 +105,7 @@ export const saveEventParticipation = async (
 
     const stored = await readStoredParticipation(redis);
     const available = new Map<string, ScrimRosterParticipant>();
-    getEventParticipantCandidates(scrims).forEach(participant => available.set(participant.id, participant));
+    getEligibleCandidates(scrims).forEach(participant => available.set(participant.id, participant));
     stored.participants.forEach(participant => {
         if (!available.has(participant.id)) available.set(participant.id, participant);
     });
@@ -103,7 +116,7 @@ export const saveEventParticipation = async (
         updatedAt: Date.now(),
     };
     await redis.set(EVENT_PARTICIPANTS_KEY, next);
-    return buildSnapshot(getEventParticipantCandidates(scrims), next);
+    return buildSnapshot(getEligibleCandidates(scrims), next);
 };
 
 /**
@@ -114,10 +127,12 @@ export const addEventParticipation = async (
     scrims: ScrimRecord[],
     rawParticipants: unknown,
 ): Promise<EventParticipationSnapshot | null> => {
-    const participants = parseParticipants(rawParticipants);
-    if (!participants) return null;
+    const parsedParticipants = parseParticipants(rawParticipants);
+    if (!parsedParticipants) return null;
 
     const stored = await readStoredParticipation(redis);
+    const participants = parsedParticipants.filter(participant => !isAdminParticipant(participant));
+    if (participants.length === 0) return buildSnapshot(getEligibleCandidates(scrims), stored);
     const participantsById = new Map(stored.participants.map(participant => [
         participant.id,
         participant,
@@ -128,5 +143,5 @@ export const addEventParticipation = async (
         updatedAt: Date.now(),
     };
     await redis.set(EVENT_PARTICIPANTS_KEY, next);
-    return buildSnapshot(getEventParticipantCandidates(scrims), next);
+    return buildSnapshot(getEligibleCandidates(scrims), next);
 };

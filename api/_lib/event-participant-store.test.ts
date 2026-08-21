@@ -7,6 +7,8 @@ import {
     saveEventParticipation,
 } from './event-participant-store';
 
+const ADMIN_USER_ID = '579176046817968128';
+
 const scrims = [{
     id: 'scrim-1',
     date: '2026-08-20',
@@ -57,6 +59,29 @@ describe('event participant store', () => {
         expect(loaded.participantIds).toEqual(['player-2']);
     });
 
+    it('관리자 계정은 로스터 후보와 저장된 참여 집계에서 제외한다', async () => {
+        const { redis } = createRedis();
+        const scrimsWithAdmin = [{
+            ...scrims[0],
+            rosterSnapshot: [
+                ...scrims[0].rosterSnapshot,
+                { id: ADMIN_USER_ID, name: '관리자 참가자' },
+            ],
+        }];
+        await redis.set('ignored-by-mock', {
+            participants: [
+                { id: 'player-1', name: '참여 후보 1' },
+                { id: ADMIN_USER_ID, name: '관리자 참가자' },
+            ],
+            updatedAt: 100,
+        });
+
+        const result = await getEventParticipation(redis, scrimsWithAdmin);
+
+        expect(result.candidates.map(participant => participant.id)).toEqual(['player-1', 'player-2']);
+        expect(result.participantIds).toEqual(['player-1']);
+    });
+
     it('로스터 후보에 없는 ID는 저장하지 않는다', async () => {
         const { redis } = createRedis();
 
@@ -76,6 +101,18 @@ describe('event participant store', () => {
         expect(result?.participantIds).toEqual(['player-1', 'direct-player']);
         expect(result?.candidates).toContainEqual({ id: 'player-1', name: '갱신된 이름' });
         expect(result?.candidates).toContainEqual({ id: 'direct-player', name: '직접 등록' });
+    });
+
+    it('팀 결과에서 관리자 계정을 보내도 참여 집계에 추가하지 않는다', async () => {
+        const { redis } = createRedis();
+
+        const result = await addEventParticipation(redis, scrims, [
+            { id: ADMIN_USER_ID, name: '관리자 참가자' },
+            { id: 'direct-player', name: '직접 등록' },
+        ]);
+
+        expect(result?.participantIds).toEqual(['direct-player']);
+        expect(result?.candidates.map(participant => participant.id)).not.toContain(ADMIN_USER_ID);
     });
 
     it('팀 결과 참여자는 10명 이하의 유효한 고유 ID만 허용한다', async () => {

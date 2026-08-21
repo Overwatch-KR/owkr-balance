@@ -62,7 +62,11 @@ export function EventParticipantRegistrationModal({
                 },
                 body: JSON.stringify({ participants: selectedParticipants }),
             });
-            onSuccess(selectedParticipants.length, result.participantIds.length);
+            const registeredIds = new Set(result.participantIds);
+            const registeredCount = selectedParticipants.filter(participant => (
+                registeredIds.has(participant.id)
+            )).length;
+            onSuccess(registeredCount, result.participantIds.length);
         } catch (submitError) {
             setError(getErrorMessage(submitError, '이번 내전 참여자를 등록하지 못했습니다.'));
             setIsSaving(false);
