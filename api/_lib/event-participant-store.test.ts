@@ -4,6 +4,7 @@ import type { ScrimRecord } from '../../domains/scrim/shared/public';
 import {
     addEventParticipation,
     getEventParticipation,
+    getEventUserSheetCandidates,
     saveEventParticipation,
 } from './event-participant-store';
 
@@ -40,6 +41,33 @@ const createRedis = () => {
 };
 
 describe('event participant store', () => {
+    it('유저 시트 후보는 Discord ID를 우선 사용하고 관리자 계정을 제외한다', () => {
+        const candidates = getEventUserSheetCandidates([
+            {
+                id: 'sheet-player',
+                discordUserId: '11111111111111111',
+                discordName: '시트 유저',
+                battleTag: 'Sheet#1111',
+                tank: '', dps: '', support: '', note: '',
+                createdAt: 0, updatedAt: 0, updatedByName: '관리자',
+            },
+            {
+                id: 'sheet-admin',
+                discordUserId: ADMIN_USER_ID,
+                discordName: '관리자',
+                battleTag: 'Admin#1111',
+                tank: '', dps: '', support: '', note: '',
+                createdAt: 0, updatedAt: 0, updatedByName: '관리자',
+            },
+        ]);
+
+        expect(candidates).toEqual([{
+            id: '11111111111111111',
+            name: 'Sheet#1111',
+            discordName: '시트 유저',
+        }]);
+    });
+
     it('로스터는 후보로만 반환하고 자동으로 참여 처리하지 않는다', async () => {
         const { redis } = createRedis();
 
@@ -87,6 +115,21 @@ describe('event participant store', () => {
 
         await expect(saveEventParticipation(redis, scrims, ['unknown'])).resolves.toBeNull();
         expect(redis.set).not.toHaveBeenCalled();
+    });
+
+    it('유저 시트에서 제공한 후보는 로스터에 없어도 저장한다', async () => {
+        const { redis } = createRedis();
+        const sheetParticipant = { id: 'sheet-player', name: 'Sheet#1111', discordName: '시트 유저' };
+
+        const saved = await saveEventParticipation(
+            redis,
+            scrims,
+            ['sheet-player'],
+            [sheetParticipant],
+        );
+
+        expect(saved?.participantIds).toEqual(['sheet-player']);
+        expect(saved?.candidates).toContainEqual(sheetParticipant);
     });
 
     it('팀 결과 참여자를 기존 명단과 합치고 같은 ID는 중복 저장하지 않는다', async () => {

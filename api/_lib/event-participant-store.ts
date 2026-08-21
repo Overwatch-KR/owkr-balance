@@ -8,6 +8,7 @@ import type {
     ScrimRosterParticipant,
 } from '../../domains/scrim/shared/public.js';
 import { ADMIN_USERS } from './admin.constants.js';
+import type { PublicUserSheetEntry } from './user-sheet-store.js';
 
 const EVENT_PARTICIPANTS_KEY = 'events:2026-08-18-2026-09-18:participants:v1';
 const ADMIN_USER_IDS = new Set<string>(Object.keys(ADMIN_USERS));
@@ -24,6 +25,20 @@ const isAdminParticipant = (participant: ScrimRosterParticipant): boolean => (
 const getEligibleCandidates = (scrims: ScrimRecord[]): ScrimRosterParticipant[] => (
     getEventParticipantCandidates(scrims).filter(participant => !isAdminParticipant(participant))
 );
+
+/**
+ * @description 유저 시트 항목을 이벤트 참여 후보로 변환하고 관리자 계정을 제외한다.
+ */
+export const getEventUserSheetCandidates = (
+    entries: PublicUserSheetEntry[],
+): ScrimRosterParticipant[] => entries
+    .map(entry => ({
+        id: entry.discordUserId ?? entry.id,
+        name: entry.battleTag,
+        discordName: entry.discordName || undefined,
+    }))
+    .filter(participant => !isAdminParticipant(participant))
+    .sort((a, b) => a.name.localeCompare(b.name, 'ko-KR'));
 
 const parseParticipants = (rawParticipants: unknown): ScrimRosterParticipant[] | null => {
     if (!Array.isArray(rawParticipants) || rawParticipants.length < 1 || rawParticipants.length > 10) {
@@ -96,6 +111,7 @@ export const saveEventParticipation = async (
     redis: Redis,
     scrims: ScrimRecord[],
     rawParticipantIds: unknown,
+    additionalCandidates: ScrimRosterParticipant[] = [],
 ): Promise<EventParticipationSnapshot | null> => {
     if (
         !Array.isArray(rawParticipantIds)
@@ -106,6 +122,9 @@ export const saveEventParticipation = async (
     const stored = await readStoredParticipation(redis);
     const available = new Map<string, ScrimRosterParticipant>();
     getEligibleCandidates(scrims).forEach(participant => available.set(participant.id, participant));
+    additionalCandidates
+        .filter(participant => !isAdminParticipant(participant))
+        .forEach(participant => available.set(participant.id, participant));
     stored.participants.forEach(participant => {
         if (!available.has(participant.id)) available.set(participant.id, participant);
     });

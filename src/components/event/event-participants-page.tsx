@@ -3,8 +3,10 @@ import { ArrowLeft, RefreshCw, Save } from 'lucide-react';
 import { useToast } from '../../hooks/use-toast';
 import { getErrorMessage, requestJson } from '../../utils/api';
 import type { EventParticipationSnapshot } from '../../../domains/scrim/shared/rules';
+import type { ScrimRosterParticipant } from '../../../domains/scrim/shared/public';
 import { AppToast } from '../app-toast';
 import { EventParticipantSummary } from './event-participant-summary';
+import { EventUserSheetPicker } from './event-user-sheet-picker';
 
 interface EventParticipantsPageProps {
     csrfToken: string;
@@ -70,6 +72,18 @@ export function EventParticipantsPage({ csrfToken, onClose }: EventParticipantsP
             else next.add(participantId);
             return next;
         });
+    };
+
+    const addUserSheetParticipant = (participant: ScrimRosterParticipant) => {
+        setSnapshot(current => current.candidates.some(candidate => candidate.id === participant.id)
+            ? current
+            : {
+                ...current,
+                candidates: [...current.candidates, participant].sort((a, b) => (
+                    a.name.localeCompare(b.name, 'ko-KR')
+                )),
+            });
+        setDraftParticipantIds(current => new Set(current).add(participant.id));
     };
 
     const save = async () => {
@@ -140,6 +154,12 @@ export function EventParticipantsPage({ csrfToken, onClose }: EventParticipantsP
                             participantIds={draftParticipantIds}
                             onToggle={toggleParticipant}
                         />
+                        {!isInitialLoading ? (
+                            <EventUserSheetPicker
+                                participantIds={draftParticipantIds}
+                                onAdd={addUserSheetParticipant}
+                            />
+                        ) : null}
                         {!isInitialLoading && snapshot.candidates.length > 0 ? (
                             <section className="card mt-4 flex flex-wrap items-center justify-between gap-3">
                                 <div className="flex flex-wrap gap-2">
