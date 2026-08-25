@@ -2,7 +2,7 @@ const TIER_SCORE_STEP = 600;
 const DIVISION_SCORE_STEP = 100;
 
 /**
- * @description 점수 차이를 운영자가 바로 비교할 수 있는 대략적인 티어·디비전 차이로 변환한다.
+ * @description 점수 차이를 운영자가 바로 비교할 수 있는 대략적인 티어·등급 차이로 변환한다.
  */
 export const formatTierDifference = (scoreDifference: number): string => {
     const divisions = Math.round(Math.abs(scoreDifference) / DIVISION_SCORE_STEP);
@@ -10,9 +10,9 @@ export const formatTierDifference = (scoreDifference: number): string => {
 
     const tierCount = Math.floor((divisions * DIVISION_SCORE_STEP) / TIER_SCORE_STEP);
     const remainingDivisions = divisions - (tierCount * (TIER_SCORE_STEP / DIVISION_SCORE_STEP));
-    if (tierCount === 0) return `약 ${remainingDivisions}디비전`;
+    if (tierCount === 0) return `약 ${remainingDivisions}단계`;
     if (remainingDivisions === 0) return `약 ${tierCount}티어`;
-    return `약 ${tierCount}티어 ${remainingDivisions}디비전`;
+    return `약 ${tierCount}티어 ${remainingDivisions}단계`;
 };
 
 /**

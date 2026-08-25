@@ -165,10 +165,10 @@ describe('MatchResult', () => {
         expect(markup).not.toContain('포지션별 티어 차이');
         expect(markup).toContain('탱커');
         expect(markup).toContain('탱커 평균 차이');
-        expect(markup).toContain('1팀 약 3디비전');
+        expect(markup).toContain('1팀 약 3단계');
         expect(markup).toContain('딜러');
         expect(markup).toContain('딜러 평균 차이');
-        expect(markup).toContain('2팀 약 1디비전');
+        expect(markup).toContain('2팀 약 1단계');
         expect(markup).toContain('힐러');
         expect(markup).toContain('거의 동일');
         expect(markup.match(/밸런스 요약/g)).toHaveLength(1);

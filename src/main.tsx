@@ -6,6 +6,29 @@ import { AppUpdateNotice } from './components/app-update-notice';
 const rootElement = document.getElementById('root');
 if (!rootElement) throw new Error('애플리케이션 루트 요소를 찾지 못했습니다.');
 
+const PRELOAD_RETRY_KEY = 'owkr_preload_retry';
+let hasReloadedForPreloadError = false;
+
+const reloadForPreloadError = () => {
+    if (hasReloadedForPreloadError) return false;
+    hasReloadedForPreloadError = true;
+
+    try {
+        if (window.sessionStorage.getItem(PRELOAD_RETRY_KEY)) return false;
+        window.sessionStorage.setItem(PRELOAD_RETRY_KEY, 'true');
+    } catch {
+        // 저장소에 접근할 수 없는 환경에서는 한 번 새로고침을 시도한다.
+    }
+
+    window.location.reload();
+    return true;
+};
+
+window.addEventListener('vite:preloadError', (event) => {
+    event.preventDefault();
+    reloadForPreloadError();
+});
+
 interface UpdateRecoveryBoundaryProps {
     children: ReactNode;
 }
@@ -62,6 +85,11 @@ if (normalizedPath === '/discord-login-policy') {
 if (normalizedPath.startsWith('/participate/')) document.title = 'OWKR 내전 참여';
 
 void pagePromise.then((Page) => {
+    try {
+        window.sessionStorage.removeItem(PRELOAD_RETRY_KEY);
+    } catch {
+        // 저장소 접근 실패는 앱 렌더링에 영향을 주지 않는다.
+    }
     createRoot(rootElement).render(
         <StrictMode>
             <UpdateRecoveryBoundary>
@@ -71,6 +99,7 @@ void pagePromise.then((Page) => {
         </StrictMode>,
     );
 }).catch(() => {
+    if (reloadForPreloadError()) return;
     createRoot(rootElement).render(
         <UpdateRecoveryBoundary>
             <main className="flex min-h-screen items-center justify-center bg-surface p-5 text-slate-200">
