@@ -74,6 +74,34 @@ describe('user sheet atomic store', () => {
         ]);
     });
 
+    it('변경 없는 행 수정은 최종 수정자와 수정 시각을 바꾸지 않는다', async () => {
+        const redis = createRedis();
+        vi.mocked(redis.eval)
+            .mockResolvedValueOnce(0)
+            .mockResolvedValueOnce(0)
+            .mockResolvedValueOnce({
+                entries: [storedEntry],
+                sheetVersion: 4,
+            });
+        vi.mocked(redis.hget).mockResolvedValue(storedEntry);
+
+        const result = await updateUserSheetEntry(
+            redis,
+            storedEntry,
+            storedEntry.updatedAt,
+            '관리자 B',
+        );
+
+        expect(result).toMatchObject({
+            status: 'OK',
+            snapshot: { sheetVersion: 4 },
+        });
+        expect(vi.mocked(redis.eval)).toHaveBeenCalledTimes(3);
+        expect(vi.mocked(redis.eval).mock.calls.some(call => (
+            call[2]?.[0] === storedEntry.id
+        ))).toBe(false);
+    });
+
     it('행 삭제에서 기대 updatedAt을 원자 스크립트에 전달한다', async () => {
         const redis = createRedis();
         vi.mocked(redis.eval)

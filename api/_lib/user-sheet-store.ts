@@ -444,8 +444,7 @@ export const updateUserSheetEntry = async (
     const current = await redis.hget<StoredUserSheetEntry>(USER_SHEET_ENTRIES_KEY, id);
     if (!current) return { status: 'NOT_FOUND' };
 
-    const nextEntry: StoredUserSheetEntry = {
-        ...cleanStoredEntry(current),
+    const editableFields = {
         discordUserId: discordUserId || undefined,
         discordName: sanitizeText(source.discordName, 100),
         battleTag,
@@ -453,6 +452,15 @@ export const updateUserSheetEntry = async (
         dps: sanitizeRank(source.dps),
         support: sanitizeRank(source.support),
         note: sanitizeText(source.note, MAX_NOTE_LENGTH),
+    };
+    const cleanedCurrent = cleanStoredEntry(current);
+    if (hasSameEditableFields(cleanedCurrent, editableFields)) {
+        return { status: 'OK', snapshot: await readUserSheetSnapshot(redis) };
+    }
+
+    const nextEntry: StoredUserSheetEntry = {
+        ...cleanedCurrent,
+        ...editableFields,
         updatedAt: Math.max(Date.now(), current.updatedAt + 1),
         updatedByName: actorName,
         battleTagHistory: uniqueBattleTags([
