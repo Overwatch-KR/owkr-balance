@@ -1,6 +1,7 @@
 import type { Redis } from '@upstash/redis';
 import { describe, expect, it, vi } from 'vitest';
 import {
+    deleteUserSheetEntry,
     getUserSheetBattleTagHistory,
     replaceUserSheet,
     syncRosterUserSheetEntries,
@@ -70,6 +71,21 @@ describe('user sheet atomic store', () => {
             storedEntry.id,
             String(storedEntry.updatedAt),
             'player#1234',
+        ]);
+    });
+
+    it('행 삭제에서 기대 updatedAt을 원자 스크립트에 전달한다', async () => {
+        const redis = createRedis();
+        vi.mocked(redis.eval)
+            .mockResolvedValueOnce(0)
+            .mockResolvedValueOnce({ status: 'CONFLICT' });
+
+        const result = await deleteUserSheetEntry(redis, storedEntry.id, storedEntry.updatedAt);
+
+        expect(result).toEqual({ status: 'CONFLICT' });
+        expect(vi.mocked(redis.eval).mock.calls[1]?.[2]).toEqual([
+            storedEntry.id,
+            String(storedEntry.updatedAt),
         ]);
     });
 

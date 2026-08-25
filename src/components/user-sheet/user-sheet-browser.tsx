@@ -27,6 +27,7 @@ interface UserSheetBrowserProps {
     onQueryChange: (query: string) => void;
     onSaveError: (message: string) => void;
     onSaved: (snapshot: UserSheetSnapshot, message: string) => void;
+    onDeleted: (snapshot: UserSheetSnapshot, entryId: string, message: string) => void;
     onSelect: (entryId: string) => void;
     onSnapshotChange: (snapshot: UserSheetSnapshot) => void;
 }
@@ -47,6 +48,7 @@ export function UserSheetBrowser({
     onQueryChange,
     onSaveError,
     onSaved,
+    onDeleted,
     onSelect,
     onSnapshotChange,
 }: UserSheetBrowserProps) {
@@ -183,6 +185,7 @@ export function UserSheetBrowser({
                         onSnapshotChange={onSnapshotChange}
                         onSaveError={onSaveError}
                         onSaved={onSaved}
+                        onDeleted={onDeleted}
                     />
                 ) : (
                     <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">

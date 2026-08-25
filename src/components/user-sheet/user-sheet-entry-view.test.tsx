@@ -27,6 +27,7 @@ describe('UserSheetEntryView', () => {
                 noteCacheScope="user-1"
                 onSaveError={vi.fn()}
                 onSaved={vi.fn()}
+                onDeleted={vi.fn()}
                 onSnapshotChange={vi.fn()}
             />,
         );
@@ -35,6 +36,7 @@ describe('UserSheetEntryView', () => {
         expect(markup).toContain('최종 수정 · 관리자');
         expect(markup).toContain('관리자 공유');
         expect(markup).toContain('개인 운영 메모');
+        expect(markup).toContain('유저 삭제');
         expect(markup).toContain('현재 로그인한 관리자 본인에게만');
         expect(markup).not.toContain('바로 수정');
     });

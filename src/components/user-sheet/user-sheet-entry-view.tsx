@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import {
     cleanUserSheetRank,
+    deleteUserSheetEntry,
     fetchUserSheetConflictSnapshot,
     updateUserSheetEntry,
     validateUserSheetEntries,
@@ -28,6 +29,7 @@ interface UserSheetEntryViewProps {
     isCurrentParticipant: boolean;
     noteCacheScope: string;
     onSnapshotChange: (snapshot: UserSheetSnapshot) => void;
+    onDeleted: (snapshot: UserSheetSnapshot, entryId: string, message: string) => void;
     onSaveError: (message: string) => void;
     onSaved: (snapshot: UserSheetSnapshot, message: string) => void;
 }
@@ -68,12 +70,14 @@ export function UserSheetEntryView({
     isCurrentParticipant,
     noteCacheScope,
     onSnapshotChange,
+    onDeleted,
     onSaveError,
     onSaved,
 }: UserSheetEntryViewProps) {
     const [draft, setDraft] = useState<UserSheetDraftEntry>({ ...entry });
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [isDeleteConfirming, setIsDeleteConfirming] = useState(false);
     const [validationMessage, setValidationMessage] = useState('');
     const [conflict, setConflict] = useState<UserSheetEntryConflict | null>(null);
     const editBaseUpdatedAtRef = useRef(entry.updatedAt);
@@ -109,6 +113,35 @@ export function UserSheetEntryView({
         setDraft({ ...entry });
         setValidationMessage('');
         setIsEditing(false);
+    };
+
+    const handleDelete = async () => {
+        if (!isDeleteConfirming) {
+            setIsDeleteConfirming(true);
+            setValidationMessage('삭제하면 공용 유저 시트에서 되돌릴 수 없습니다. 한 번 더 눌러 삭제를 확정해 주세요.');
+            return;
+        }
+
+        setIsSaving(true);
+        setValidationMessage('');
+        try {
+            const snapshot = await deleteUserSheetEntry(entry.id, entry.updatedAt, csrfToken);
+            onDeleted(snapshot, entry.id, `${entry.discordName || entry.battleTag} 유저를 삭제했습니다.`);
+        } catch (error) {
+            const latestSnapshot = await fetchUserSheetConflictSnapshot(error);
+            if (latestSnapshot) {
+                onSnapshotChange(latestSnapshot);
+                const message = '다른 관리자가 이 유저를 먼저 수정했습니다. 최신 정보를 확인한 뒤 다시 삭제해 주세요.';
+                setValidationMessage(message);
+                onSaveError(message);
+            } else {
+                const message = getErrorMessage(error, '유저를 삭제하지 못했습니다.');
+                setValidationMessage(message);
+                onSaveError(message);
+            }
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const validateDraft = (
@@ -296,11 +329,13 @@ export function UserSheetEntryView({
             entry={entry}
             isCurrentParticipant={isCurrentParticipant}
             isDirty={hasUserSheetEntryChanges(draft, editBaseEntryRef.current)}
+            isDeleteConfirming={isDeleteConfirming}
             isEditing={isEditing}
             isSaving={isSaving}
             noteCacheScope={noteCacheScope}
             onCancel={cancelEditing}
             onEdit={startEditing}
+            onDelete={() => void handleDelete()}
             onFieldChange={updateField}
             onSave={() => void handleSave()}
             validationMessage={validationMessage}

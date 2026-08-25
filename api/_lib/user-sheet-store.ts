@@ -142,6 +142,27 @@ local nextVersion = redis.call('INCR', KEYS[3])
 return cjson.encode({ status = 'OK', sheetVersion = nextVersion })
 `;
 
+const DELETE_USER_SHEET_ENTRY_SCRIPT = `
+local currentJson = redis.call('HGET', KEYS[1], ARGV[1])
+if not currentJson then
+    return cjson.encode({ status = 'NOT_FOUND' })
+end
+
+local current = cjson.decode(currentJson)
+if tonumber(current.updatedAt) ~= tonumber(ARGV[2]) then
+    return cjson.encode({ status = 'CONFLICT' })
+end
+
+local normalized = string.lower(string.gsub(current.battleTag, '^%s*(.-)%s*$', '%1'))
+redis.call('HDEL', KEYS[1], ARGV[1])
+local indexedId = redis.call('HGET', KEYS[2], normalized)
+if indexedId == ARGV[1] then
+    redis.call('HDEL', KEYS[2], normalized)
+end
+local nextVersion = redis.call('INCR', KEYS[3])
+return cjson.encode({ status = 'OK', sheetVersion = nextVersion })
+`;
+
 const normalizeBattleTag = (value: string): string => value.trim().toLowerCase();
 
 const normalizeDiscordUserId = (value: unknown): string => (
@@ -457,6 +478,35 @@ export const updateUserSheetEntry = async (
             JSON.stringify(nextEntry),
             discordUserId,
         ],
+    );
+    if (result.status !== 'OK') return { status: result.status };
+    return { status: 'OK', snapshot: await readUserSheetSnapshot(redis) };
+};
+
+/**
+ * @description 한 행을 기대 수정 시각이 일치할 때만 원자 삭제한다.
+ */
+export const deleteUserSheetEntry = async (
+    redis: Redis,
+    entryId: unknown,
+    expectedUpdatedAt: unknown,
+): Promise<UserSheetMutationResult> => {
+    const id = sanitizeText(entryId, 200);
+    if (
+        !id
+        || typeof expectedUpdatedAt !== 'number'
+        || !Number.isSafeInteger(expectedUpdatedAt)
+    ) {
+        return { status: 'INVALID' };
+    }
+
+    await ensureUserSheetStorage(redis);
+    const result = await redis.eval<string[], {
+        status: 'CONFLICT' | 'NOT_FOUND' | 'OK';
+    }>(
+        DELETE_USER_SHEET_ENTRY_SCRIPT,
+        [USER_SHEET_ENTRIES_KEY, USER_SHEET_BATTLE_TAGS_KEY, USER_SHEET_VERSION_KEY],
+        [id, String(expectedUpdatedAt)],
     );
     if (result.status !== 'OK') return { status: result.status };
     return { status: 'OK', snapshot: await readUserSheetSnapshot(redis) };

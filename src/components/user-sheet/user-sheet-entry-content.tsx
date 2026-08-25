@@ -8,6 +8,7 @@ import {
     Save,
     Shield,
     Swords,
+    Trash2,
     UserRound,
     X,
 } from 'lucide-react';
@@ -33,11 +34,13 @@ interface UserSheetEntryContentProps {
     entry: UserSheetEntry;
     isCurrentParticipant: boolean;
     isDirty: boolean;
+    isDeleteConfirming: boolean;
     isEditing: boolean;
     isSaving: boolean;
     noteCacheScope: string;
     onCancel: () => void;
     onEdit: () => void;
+    onDelete: () => void;
     onFieldChange: (field: UserSheetEntryField, value: string) => void;
     onSave: () => void;
     validationMessage: string;
@@ -62,11 +65,13 @@ export function UserSheetEntryContent({
     entry,
     isCurrentParticipant,
     isDirty,
+    isDeleteConfirming,
     isEditing,
     isSaving,
     noteCacheScope,
     onCancel,
     onEdit,
+    onDelete,
     onFieldChange,
     onSave,
     validationMessage,
@@ -181,15 +186,32 @@ export function UserSheetEntryContent({
                                 Discord ID · {entry.discordUserId || '입력 필요'}
                             </p>
                         </div>
-                        <button
-                            id="user-sheet-quick-edit"
-                            type="button"
-                            onClick={onEdit}
-                            className="btn-primary inline-flex min-h-9 items-center gap-2"
-                        >
-                            <Pencil size={14} aria-hidden="true" />
-                            공용 정보 수정
-                        </button>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <button
+                                id="user-sheet-quick-edit"
+                                type="button"
+                                onClick={onEdit}
+                                className="btn-primary inline-flex min-h-9 items-center gap-2"
+                            >
+                                <Pencil size={14} aria-hidden="true" />
+                                공용 정보 수정
+                            </button>
+                            <button
+                                type="button"
+                                onClick={onDelete}
+                                disabled={isSaving || !csrfToken}
+                                className={`inline-flex min-h-9 items-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors disabled:opacity-40 ${
+                                    isDeleteConfirming
+                                        ? 'bg-rose-500 text-white hover:bg-rose-400'
+                                        : 'border border-rose-500/30 text-rose-300 hover:bg-rose-500/10'
+                                }`}
+                            >
+                                {isSaving
+                                    ? <Loader2 size={14} className="animate-spin" aria-hidden="true" />
+                                    : <Trash2 size={14} aria-hidden="true" />}
+                                {isDeleteConfirming ? '한 번 더 눌러 삭제' : '유저 삭제'}
+                            </button>
+                        </div>
                     </div>
                 )}
 

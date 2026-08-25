@@ -205,6 +205,25 @@ export const updateUserSheetEntry = async (
     });
 };
 
+/**
+ * @description 상세 화면에서 확인한 유저 한 명을 최신 수정 시각 기준으로 삭제한다.
+ */
+export const deleteUserSheetEntry = async (
+    entryId: string,
+    expectedUpdatedAt: number,
+    csrfToken: string,
+): Promise<UserSheetSnapshot> => {
+    return requestJson<UserSheetSnapshot>('/api/user-sheet', {
+        method: 'DELETE',
+        credentials: 'same-origin',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken,
+        },
+        body: JSON.stringify({ entryId, expectedUpdatedAt }),
+    });
+};
+
 export interface SyncRosterUserSheetResult extends UserSheetSnapshot {
     addedCount: number;
     tierUpdatedCount: number;

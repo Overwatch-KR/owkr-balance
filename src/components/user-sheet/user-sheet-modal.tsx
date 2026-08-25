@@ -267,6 +267,15 @@ export function UserSheetModal({
                         onQueryChange={setQuery}
                         onSaveError={onSaveError}
                         onSaved={onEntriesChange}
+                        onDeleted={(snapshot, entryId, message) => {
+                            onEntriesChange(snapshot, message);
+                            const deletedIndex = entries.findIndex(entry => entry.id === entryId);
+                            const nextSelected = snapshot.entries[deletedIndex]
+                                ?? snapshot.entries[deletedIndex - 1]
+                                ?? null;
+                            setSelectedId(nextSelected?.id ?? null);
+                            setIsMobileListOpen(false);
+                        }}
                         onSelect={(entryId) => {
                             setSelectedId(entryId);
                             setIsMobileListOpen(false);

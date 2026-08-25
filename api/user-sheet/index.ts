@@ -4,6 +4,7 @@ import { sendUnexpectedError } from '../_lib/error.js';
 import { disableResponseCache } from '../_lib/http.js';
 import { getRedis, isLocalDataOnly } from '../_lib/redis.js';
 import {
+    deleteUserSheetEntry,
     readUserSheetSnapshot,
     replaceUserSheet,
     syncRosterUserSheetEntries,
@@ -30,7 +31,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(200).json(await readUserSheetSnapshot(redis));
         }
 
-        if (req.method === 'PUT' || req.method === 'PATCH' || req.method === 'POST') {
+        if (req.method === 'PUT' || req.method === 'PATCH' || req.method === 'POST' || req.method === 'DELETE') {
             if (!hasValidCsrfToken(req, user)) {
                 return res.status(403).json({ error: '유저 시트 저장 요청을 확인할 수 없습니다.' });
             }
@@ -152,7 +153,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(200).json(result.snapshot);
         }
 
-        res.setHeader('Allow', 'GET, PUT, PATCH, POST');
+        if (req.method === 'DELETE') {
+            const body = req.body as {
+                entryId?: unknown;
+                expectedUpdatedAt?: unknown;
+            } | undefined;
+            const result = await deleteUserSheetEntry(
+                redis,
+                body?.entryId,
+                body?.expectedUpdatedAt,
+            );
+            if (result.status === 'INVALID') {
+                return res.status(400).json({ error: '삭제할 유저 정보를 확인해 주세요.' });
+            }
+            if (result.status === 'NOT_FOUND') {
+                return res.status(404).json({
+                    error: '삭제할 유저를 찾지 못했습니다. 시트를 새로고침해 주세요.',
+                });
+            }
+            if (result.status === 'CONFLICT') {
+                return res.status(409).json({
+                    code: 'USER_SHEET_CONFLICT',
+                    error: '다른 관리자가 이 유저를 먼저 수정했습니다. 최신 정보를 확인한 뒤 다시 삭제해 주세요.',
+                    snapshot: await readUserSheetSnapshot(redis),
+                });
+            }
+            if (result.status !== 'OK') {
+                return res.status(409).json({
+                    code: 'USER_SHEET_CONFLICT',
+                    error: '유저 정보 상태가 변경되었습니다. 최신 시트를 확인해 주세요.',
+                    snapshot: await readUserSheetSnapshot(redis),
+                });
+            }
+            return res.status(200).json(result.snapshot);
+        }
+
+        res.setHeader('Allow', 'GET, PUT, PATCH, POST, DELETE');
         return res.status(405).json({ error: '허용되지 않는 요청입니다.' });
     } catch (error) {
         return sendUnexpectedError(
