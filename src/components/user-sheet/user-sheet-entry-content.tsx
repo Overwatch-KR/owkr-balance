@@ -128,7 +128,7 @@ export function UserSheetEntryContent({
                                 <input
                                     value={draft.discordName}
                                     onChange={event => onFieldChange('discordName', event.target.value)}
-                                    className="h-10 rounded-lg border border-slate-700 bg-surface px-3 text-sm text-slate-100 outline-none focus:border-cyan-400"
+                                    className="form-control"
                                     autoComplete="off"
                                 />
                             </label>
@@ -137,7 +137,7 @@ export function UserSheetEntryContent({
                                 <input
                                     value={draft.battleTag}
                                     onChange={event => onFieldChange('battleTag', event.target.value)}
-                                    className={`h-10 rounded-lg border bg-surface px-3 font-mono text-sm text-slate-100 outline-none focus:border-cyan-400 ${
+                                    className={`form-control font-mono ${
                                         validationMessage ? 'border-rose-400/70' : 'border-slate-700'
                                     }`}
                                     autoComplete="off"
@@ -150,7 +150,7 @@ export function UserSheetEntryContent({
                                 <input
                                     value={draft.discordUserId ?? ''}
                                     onChange={event => onFieldChange('discordUserId', event.target.value.replace(/\D/g, ''))}
-                                    className="h-10 rounded-lg border border-slate-700 bg-surface px-3 font-mono text-sm text-slate-100 outline-none focus:border-cyan-400"
+                                    className="form-control font-mono"
                                     inputMode="numeric"
                                     required
                                     autoComplete="off"
@@ -200,7 +200,7 @@ export function UserSheetEntryContent({
                                 type="button"
                                 onClick={onDelete}
                                 disabled={isSaving || !csrfToken}
-                                className={`inline-flex min-h-9 items-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors disabled:opacity-40 ${
+                                className={`btn-danger min-h-9 px-3 text-sm disabled:opacity-40 ${
                                     isDeleteConfirming
                                         ? 'bg-rose-500 text-white hover:bg-rose-400'
                                         : 'border border-rose-500/30 text-rose-300 hover:bg-rose-500/10'

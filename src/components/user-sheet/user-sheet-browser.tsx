@@ -99,13 +99,13 @@ export function UserSheetBrowser({
                             value={query}
                             onChange={event => onQueryChange(event.target.value)}
                             placeholder="이름·Discord ID·배틀태그 검색…"
-                            className="h-9 w-full rounded-lg border border-slate-800 bg-surface pl-9 pr-9 text-xs text-slate-200 outline-none focus:border-cyan-400"
+                            className="form-control h-10 border-slate-800 pl-9 pr-9 text-xs"
                         />
                         {query && (
                             <button
                                 type="button"
                                 onClick={() => onQueryChange('')}
-                                className="absolute right-1.5 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-slate-600 hover:bg-white/5 hover:text-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+                                className="btn-ghost absolute right-1.5 top-1/2 min-h-7 h-7 w-7 -translate-y-1/2 rounded-md p-0 text-slate-600 focus-visible:ring-cyan-400/70"
                                 aria-label="검색어 지우기"
                             >
                                 <X size={13} aria-hidden="true" />

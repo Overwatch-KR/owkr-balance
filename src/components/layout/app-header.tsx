@@ -66,7 +66,7 @@ export function AppHeader({
                         type="button"
                         onClick={onOpenEventParticipants}
                         aria-label="이벤트 참여자"
-                        className="inline-flex min-h-9 items-center gap-1.5 rounded-md px-2 text-sm font-medium text-cyan-300 transition-colors hover:bg-cyan-500/10 hover:text-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 sm:px-2.5"
+                        className="nav-action text-cyan-300 hover:bg-cyan-500/10 hover:text-cyan-200"
                     >
                         <CalendarCheck2 size={15} aria-hidden="true" />
                         <span className="hidden sm:inline">이벤트 참여</span>
@@ -75,7 +75,7 @@ export function AppHeader({
                         type="button"
                         onClick={onOpenScrims}
                         aria-label="내전 관리"
-                        className="inline-flex min-h-9 items-center gap-1.5 rounded-md px-2 text-sm font-medium text-violet-300 transition-colors hover:bg-violet-500/10 hover:text-violet-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/70 sm:px-2.5"
+                        className="nav-action text-violet-300 hover:bg-violet-500/10 hover:text-violet-200 focus-visible:ring-violet-400/70"
                     >
                         <CalendarDays size={15} aria-hidden="true" />
                         <span className="hidden sm:inline">내전 관리</span>
@@ -86,7 +86,7 @@ export function AppHeader({
                         aria-haspopup="dialog"
                         aria-expanded={isUserSheetOpen}
                         aria-label="유저 시트"
-                        className={`relative inline-flex min-h-9 items-center gap-1.5 rounded-md px-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70 sm:px-2.5 ${
+                        className={`nav-action relative focus-visible:ring-emerald-400/70 ${
                             userSheetHasError
                                 ? 'text-amber-300 hover:bg-amber-500/10'
                                 : 'text-emerald-300 hover:bg-emerald-500/10 hover:text-emerald-200'
@@ -104,7 +104,7 @@ export function AppHeader({
                         data-guide-control="true"
                         aria-expanded={isGuideOpen}
                         aria-label="매칭 가이드"
-                        className="inline-flex min-h-9 items-center gap-1.5 rounded-md px-2 text-sm font-medium text-slate-400 transition-colors hover:bg-white/5 hover:text-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 sm:px-2.5"
+                        className="nav-action text-slate-400 hover:bg-white/5 hover:text-cyan-200"
                     >
                         <BookOpen size={15} aria-hidden="true" />
                         <span className="hidden md:inline">매칭 가이드</span>
@@ -116,7 +116,7 @@ export function AppHeader({
                             type="button"
                             onClick={onLogout}
                             disabled={isLoggingOut}
-                            className="inline-flex min-h-9 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium text-slate-400 transition-colors hover:bg-white/5 hover:text-rose-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/70 disabled:cursor-wait disabled:opacity-40"
+                            className="nav-action text-slate-400 hover:bg-white/5 hover:text-rose-300 focus-visible:ring-rose-400/70 disabled:cursor-wait disabled:opacity-40"
                             aria-label="로그아웃"
                         >
                             <LogOut size={15} aria-hidden="true" />

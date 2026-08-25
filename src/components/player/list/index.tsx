@@ -101,7 +101,7 @@ const PlayerList = ({
                         <button
                             type="button"
                             onClick={() => onOpenUserSheet(player.name, sheetEntry.id)}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-emerald-300 transition-colors hover:bg-emerald-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70"
+                            className="btn-ghost h-8 min-h-8 w-8 rounded-md p-0 text-emerald-300 hover:bg-emerald-500/10 focus-visible:ring-emerald-400/70"
                             aria-label={`${player.discordName ?? player.name} 유저 시트 정보 조회`}
                             title="유저 시트 정보"
                         >
@@ -125,7 +125,7 @@ const PlayerList = ({
                     <button
                         type="button"
                         onClick={() => onEditPlayer(player)}
-                        className="inline-flex h-8 w-8 touch-manipulation items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-cyan-500/10 hover:text-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+                        className="btn-ghost h-8 min-h-8 w-8 rounded-md p-0 text-slate-600 hover:bg-cyan-500/10 hover:text-cyan-300 focus-visible:ring-cyan-400/70"
                         aria-label={`${player.discordName ?? player.name} 수정`}
                         title={`${player.discordName ?? player.name} 수정`}
                     >
@@ -137,7 +137,7 @@ const PlayerList = ({
                             setNotePlayerId(current => current === player.id ? null : current);
                             onRemovePlayer(player.id);
                         }}
-                        className="inline-flex h-8 w-8 touch-manipulation items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-rose-500/10 hover:text-rose-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/70"
+                        className="btn-ghost h-8 min-h-8 w-8 rounded-md p-0 text-slate-600 hover:bg-rose-500/10 hover:text-rose-400 focus-visible:ring-rose-400/70"
                         aria-label={`${player.discordName ?? player.name} 삭제`}
                         title={`${player.discordName ?? player.name} 삭제`}
                     >

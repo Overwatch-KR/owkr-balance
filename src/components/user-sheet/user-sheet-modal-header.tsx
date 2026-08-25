@@ -57,7 +57,7 @@ export function UserSheetModalHeader({
                     <button
                         type="button"
                         onClick={onOpenList}
-                        className="min-h-9 rounded-lg px-2 text-xs text-slate-400 hover:bg-white/5 hover:text-white sm:hidden"
+                            className="btn-ghost min-h-9 px-2 text-xs sm:hidden"
                     >
                         목록
                     </button>
@@ -68,7 +68,7 @@ export function UserSheetModalHeader({
                             id="user-sheet-guide-button"
                             type="button"
                             onClick={onGuideToggle}
-                            className={`inline-flex h-9 items-center justify-center gap-1.5 rounded-lg px-2.5 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${
+                            className={`btn-ghost min-h-9 px-2.5 text-xs ${
                                 isGuideActive
                                     ? 'bg-cyan-500/10 text-cyan-200'
                                     : 'text-slate-400 hover:bg-white/5 hover:text-white'
@@ -85,7 +85,7 @@ export function UserSheetModalHeader({
                                 type="button"
                                 onClick={onRetry}
                                 disabled={isLoading}
-                                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg px-2.5 text-xs text-slate-400 hover:bg-white/5 hover:text-white disabled:cursor-wait disabled:opacity-50"
+                                className="btn-ghost min-h-9 px-2.5 text-xs disabled:cursor-wait disabled:opacity-50"
                                 aria-label="유저 시트 최신 데이터 불러오기"
                                 title="최신 데이터 불러오기"
                             >
@@ -100,7 +100,7 @@ export function UserSheetModalHeader({
                 <button
                     type="button"
                     onClick={onClose}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-white/5 hover:text-white"
+                    className="btn-ghost btn-icon-sm text-slate-500"
                     aria-label="유저 시트 닫기"
                 >
                     <X size={18} aria-hidden="true" />
