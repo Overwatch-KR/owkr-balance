@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, type ClipboardEvent } from 'react';
-import { AlertCircle, Info, Plus, Save, Search, Trash2, X } from 'lucide-react';
+import { AlertCircle, Info, Loader2, Plus, Save, Search, Trash2, X } from 'lucide-react';
 import {
     cleanUserSheetRank,
     fetchUserSheetConflictSnapshot,
@@ -349,9 +349,12 @@ export function UserSheetEditor({
                         onClick={() => void handleSave()}
                         disabled={isSaving}
                         className="btn-primary inline-flex min-h-9 items-center gap-2 disabled:opacity-40"
+                        aria-busy={isSaving}
                     >
-                        <Save size={14} aria-hidden="true" />
-                        {isSaving ? '저장 중' : '시트 저장'}
+                        {isSaving
+                            ? <Loader2 size={14} className="button-spinner" aria-hidden="true" />
+                            : <Save size={14} aria-hidden="true" />}
+                        {isSaving ? '저장 중…' : '시트 저장'}
                     </button>
                 </div>
                 <label className="relative w-full md:ml-auto md:w-80">

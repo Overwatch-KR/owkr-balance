@@ -1,4 +1,4 @@
-import { CheckCircle2, Save } from 'lucide-react';
+import { CheckCircle2, Loader2, Save } from 'lucide-react';
 
 interface EventParticipantActionsProps {
     hasSaved: boolean;
@@ -68,9 +68,12 @@ export function EventParticipantActions({
                         className="btn-primary min-w-36"
                         disabled={isSaving}
                         onClick={onSave}
+                        aria-busy={isSaving}
                     >
-                        <Save size={15} className="mr-1 inline" aria-hidden="true" />
-                        {isSaving ? '저장 중' : '변경사항 저장'}
+                        {isSaving
+                            ? <Loader2 size={15} className="button-spinner" aria-hidden="true" />
+                            : <Save size={15} aria-hidden="true" />}
+                        {isSaving ? '저장 중…' : '변경사항 저장'}
                     </button>
                 ) : (
                     <p className="text-sm text-slate-500" role="status">

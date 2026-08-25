@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { NotebookPen, Save } from 'lucide-react';
+import { Loader2, NotebookPen, Save } from 'lucide-react';
 import type { ScrimRecord } from '../../../domains/scrim/shared/public';
 
 interface ScrimReviewTabProps {
@@ -70,8 +70,11 @@ export function ScrimReviewTab({ onSave, scrim }: ScrimReviewTabProps) {
                     className="btn-primary inline-flex items-center gap-2 disabled:opacity-40"
                     disabled={!isDirty || isSaving}
                     onClick={() => void save()}
+                    aria-busy={isSaving}
                 >
-                    <Save size={15} aria-hidden="true" />
+                    {isSaving
+                        ? <Loader2 size={15} className="button-spinner" aria-hidden="true" />
+                        : <Save size={15} aria-hidden="true" />}
                     {isSaving ? '저장 중…' : '후기 저장'}
                 </button>
             </div>

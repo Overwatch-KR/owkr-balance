@@ -1,15 +1,10 @@
 import { BarChart3, ShieldCheck } from 'lucide-react';
 import type { MatchResultData, Player, Rank, Role, TeamResult } from '../../../types';
+import { formatAverageTierDifference } from '../../../utils/match-balance';
 
 interface BalanceSummaryProps {
     matchResult: MatchResultData;
 }
-
-const NUMBER_FORMATTER = new Intl.NumberFormat('ko-KR');
-
-const formatScore = (score: number | undefined): string => (
-    score === undefined ? '—' : NUMBER_FORMATTER.format(Math.round(score))
-);
 
 const ROLE_DIFFERENCE_DEFS = [
     { role: 'TANK', label: '탱커' },
@@ -62,6 +57,9 @@ const getRoleAverageScore = (team: TeamResult, role: Role): number => {
 const BalanceSummary = ({ matchResult }: BalanceSummaryProps) => {
     const { metrics, teamA, teamB } = matchResult;
     const totalDiff = metrics?.totalDiff ?? matchResult.diff;
+    const totalLeadingTeam = teamA.realScore > teamB.realScore
+        ? '1팀'
+        : teamA.realScore < teamB.realScore ? '2팀' : null;
     const assignedPlayers = [
         ...getAssignedPlayers(teamA, '1팀'),
         ...getAssignedPlayers(teamB, '2팀'),
@@ -109,21 +107,23 @@ const BalanceSummary = ({ matchResult }: BalanceSummaryProps) => {
                         밸런스 요약
                     </h3>
                 </div>
-                <p className="text-xs tabular-nums text-slate-500">
-                    1팀 {formatScore(teamA.realScore)} · 2팀 {formatScore(teamB.realScore)}
+                <p className="text-xs text-slate-500">
+                    역할별 평균 티어 차이를 기준으로 확인하세요.
                 </p>
             </div>
 
             <dl className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
                 <div className="rounded-lg border border-cyan-500/15 bg-cyan-500/[0.06] px-3 py-2">
-                    <dt className="text-[11px] text-cyan-200/70">총점 차이</dt>
-                    <dd className="mt-1 font-mono text-sm font-semibold tabular-nums text-cyan-100">
-                        {formatScore(totalDiff)}
+                    <dt className="text-[11px] text-cyan-200/70">팀 평균 차이</dt>
+                    <dd className="mt-1 text-sm font-semibold text-cyan-100">
+                        {totalLeadingTeam
+                            ? `${totalLeadingTeam} ${formatAverageTierDifference(totalDiff, 5)}`
+                            : '거의 동일'}
                     </dd>
                 </div>
                 {roleDifferences.map(({ role, label, leadingTeam, difference }) => (
                     <div key={role} className="rounded-lg bg-surface px-3 py-2">
-                        <dt className="text-[11px] text-slate-500">{label}</dt>
+                            <dt className="text-[11px] text-slate-500">{label} 평균 차이</dt>
                         <dd
                             className={`mt-1 font-mono text-sm font-semibold tabular-nums ${
                                 leadingTeam === '1팀'
@@ -134,8 +134,11 @@ const BalanceSummary = ({ matchResult }: BalanceSummaryProps) => {
                             }`}
                         >
                             {leadingTeam
-                                ? `${leadingTeam} +${formatScore(difference)}점`
-                                : '동일'}
+                                ? `${leadingTeam} ${formatAverageTierDifference(
+                                    difference,
+                                    role === 'TANK' ? 1 : 2,
+                                )}`
+                                : '거의 동일'}
                         </dd>
                     </div>
                 ))}

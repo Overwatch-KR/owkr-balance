@@ -2,6 +2,7 @@ import { ArrowLeftRight, Ban, Check, ShieldCheck, ShieldQuestion, Star } from 'l
 import { formatRank, TIER_LABEL_MAP } from '../../../constants';
 import type { MatchResultData, Player, Role, Tier } from '../../../types';
 import { getTierImage } from '../../../utils/tier';
+import { formatAverageTierDifference } from '../../../utils/match-balance';
 import { DamageIcon, SupportIcon, TankIcon } from '../../roles/icon';
 
 interface AlternativeResultCardProps {
@@ -17,8 +18,6 @@ interface AssignmentSlot {
     role: Role;
     teamIndex: 0 | 1;
 }
-
-const NUMBER_FORMATTER = new Intl.NumberFormat('ko-KR');
 
 const ROLE_DEFS = [
     { role: 'TANK', label: '탱커' },
@@ -39,6 +38,8 @@ const ROLE_LABELS: Record<Role, string> = {
     DPS: '딜러',
     SUPPORT: '힐러',
 };
+
+const NUMBER_FORMATTER = new Intl.NumberFormat('ko-KR');
 
 const getPlayerName = (player: Player): string => (
     player.discordName ?? player.name.split('#')[0]
@@ -190,6 +191,11 @@ const getCandidateChanges = (
     };
 };
 
+const getRoleAverageScore = (result: MatchResultData, role: Role, team: 'teamA' | 'teamB'): number => {
+    const players = result[team].assignment[role];
+    return players.reduce((sum, player) => sum + getAssignedRank(player, role).score, 0) / players.length;
+};
+
 const formatScore = (score: number): string => NUMBER_FORMATTER.format(Math.round(score));
 
 export function AlternativeResultCard({
@@ -224,30 +230,36 @@ export function AlternativeResultCard({
                         </span>
                     )}
                 </div>
-                {candidate.evaluation && (
-                    <span
-                        className="rounded-full bg-slate-950/70 px-2 py-1 font-mono text-[10px] tabular-nums text-violet-200"
-                        title="팀 총점 차이, 역할별 맞대결 차이와 팀 내부 편차를 합산한 값입니다. 탱커 안전 기준과 배정 예외는 별도로 우선 평가됩니다."
-                    >
-                        균형 비용 {formatScore(candidate.evaluation.balanceCost)}
-                    </span>
-                )}
             </div>
 
             <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
                 <div className="rounded-lg bg-slate-950/45 px-2.5 py-2">
-                    <p className="text-[10px] text-slate-500">총점 차이</p>
-                    <p className="mt-0.5 font-mono text-xs font-semibold tabular-nums text-cyan-200">
-                        {formatScore(metrics?.totalDiff ?? candidate.diff)}
+                    <p className="text-[10px] text-slate-500">팀 평균 차이</p>
+                    <p className="mt-0.5 text-xs font-semibold text-cyan-200">
+                        {(candidate.teamA.realScore === candidate.teamB.realScore)
+                            ? '거의 동일'
+                            : `${candidate.teamA.realScore > candidate.teamB.realScore ? '1팀' : '2팀'} ${formatAverageTierDifference(
+                                metrics?.totalDiff ?? candidate.diff,
+                                5,
+                            )}`}
                     </p>
                 </div>
                 {ROLE_DEFS.map(({ role, label }) => {
                     const roleKey = role === 'TANK' ? 'tank' : role === 'DPS' ? 'dps' : 'support';
+                    const difference = getRoleAverageScore(candidate, role, 'teamA')
+                        - getRoleAverageScore(candidate, role, 'teamB');
+                    const totalDifference = metrics?.roleDiffs[roleKey]
+                        ?? Math.abs(difference) * (role === 'TANK' ? 1 : 2);
                     return (
                         <div key={role} className="rounded-lg bg-slate-950/45 px-2.5 py-2">
-                            <p className="text-[10px] text-slate-500">{label} 차이</p>
-                            <p className="mt-0.5 font-mono text-xs font-semibold tabular-nums text-slate-300">
-                                {formatScore(metrics?.roleDiffs[roleKey] ?? 0)}
+                            <p className="text-[10px] text-slate-500">{label} 평균 차이</p>
+                            <p className="mt-0.5 text-xs font-semibold text-slate-300">
+                                {difference === 0
+                                    ? '거의 동일'
+                                    : `${difference > 0 ? '1팀' : '2팀'} ${formatAverageTierDifference(
+                                        totalDifference,
+                                        role === 'TANK' ? 1 : 2,
+                                    )}`}
                             </p>
                         </div>
                     );

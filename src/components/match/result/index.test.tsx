@@ -153,7 +153,7 @@ describe('MatchResult', () => {
         expect(markup).toMatch(/disabled=""[^>]*>.*매칭 중…/s);
     });
 
-    it('역할별 티어 점수 차이를 밸런스 요약에 함께 표시한다', () => {
+    it('역할별 평균 티어 차이를 밸런스 요약에 함께 표시한다', () => {
         const markup = renderToStaticMarkup(
             <MatchResult
                 matchResult={matchResult}
@@ -164,11 +164,13 @@ describe('MatchResult', () => {
 
         expect(markup).not.toContain('포지션별 티어 차이');
         expect(markup).toContain('탱커');
-        expect(markup).toContain('1팀 +300점');
+        expect(markup).toContain('탱커 평균 차이');
+        expect(markup).toContain('1팀 약 3디비전');
         expect(markup).toContain('딜러');
-        expect(markup).toContain('2팀 +200점');
+        expect(markup).toContain('딜러 평균 차이');
+        expect(markup).toContain('2팀 약 1디비전');
         expect(markup).toContain('힐러');
-        expect(markup).toContain('동일');
+        expect(markup).toContain('거의 동일');
         expect(markup.match(/밸런스 요약/g)).toHaveLength(1);
         expect(markup).toContain('data-capture-content="true"');
     });

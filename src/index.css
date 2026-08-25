@@ -125,6 +125,17 @@
     touch-action: manipulation;
 }
 
+.btn-primary:disabled,
+.btn-danger:disabled,
+.btn-ghost:disabled {
+    box-shadow: none;
+    opacity: 0.45;
+}
+
+.button-spinner {
+    animation: spin 0.8s linear infinite;
+}
+
 .custom-scrollbar {
     scrollbar-color: #475569 rgb(15 23 42 / 0.45);
     scrollbar-width: thin;
