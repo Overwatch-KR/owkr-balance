@@ -165,6 +165,14 @@ export const addEventParticipation = async (
         participant.id,
         participant,
     ]));
+    const hasChanges = participants.some(participant => {
+        const existing = participantsById.get(participant.id);
+        return !existing
+            || existing.name !== participant.name
+            || existing.discordName !== participant.discordName
+            || existing.discordUserId !== participant.discordUserId;
+    });
+    if (!hasChanges) return buildSnapshot(getEligibleCandidates(scrims), stored);
     participants.forEach(participant => participantsById.set(participant.id, participant));
     const next: StoredEventParticipation = {
         participants: [...participantsById.values()],

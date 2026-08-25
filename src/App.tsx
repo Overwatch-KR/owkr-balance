@@ -15,10 +15,10 @@ import { useRosterManagement } from './hooks/use-roster-management';
 import { useAuth, type AuthMode, type AuthUser, type DataMode } from './hooks/use-auth';
 import { useMatchSession } from './hooks/use-match-session';
 import { useUserSheet } from './hooks/use-user-sheet';
-import { getErrorMessage } from './utils/api';
+import { getErrorMessage, requestJson } from './utils/api';
 import { clearPlayerNoteCache } from './utils/player-note';
 import { readUiPreferences, writeShowAllRanksPreference } from './utils/storage/ui-preferences';
-import type { SwapSource } from './types';
+import type { Player, SwapSource } from './types';
 import {
     RosterIdentityResolver,
 } from './components/player/form/roster-identity-resolver';
@@ -42,12 +42,6 @@ import { ScrimManager } from './components/scrim/scrim-manager';
 const UserSheetModal = lazy(() => import('./components/user-sheet/user-sheet-modal').then(module => ({
     default: module.UserSheetModal,
 })));
-const EventParticipantRegistrationModal = lazy(() => (
-    import('./components/event/event-participant-registration-modal').then(module => ({
-        default: module.EventParticipantRegistrationModal,
-    }))
-));
-
 interface MatchAppProps {
     authMode: AuthMode;
     csrfToken: string;
@@ -99,12 +93,13 @@ const MatchApp = ({
     const [showAllRanks, setShowAllRanks] = useState(() => readUiPreferences().showAllRanks);
     const [ignorePreferences, setIgnorePreferences] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
-    const [isEventRegistrationOpen, setIsEventRegistrationOpen] = useState(false);
     const [errorDetails, setErrorDetails] = useState<ErrorDetails | null>(null);
     const playerEditReturnPathRef = useRef(pathname);
     const isGuideActiveRef = useRef(false);
     const userSheet = useUserSheet();
     const { dismissToast, showToast, toast } = useToast();
+    const registeredEventParticipantIdsRef = useRef<Set<string> | null>(null);
+    const pendingEventParticipantIdsRef = useRef(new Set<string>());
     const showDetailedError = useCallback((message: string, details: ErrorDetails) => {
         showToast('error', message, {
             label: '자세히 보기',
@@ -114,6 +109,47 @@ const MatchApp = ({
     const handlePlayerEditCompleted = useCallback(() => {
         navigate(playerEditReturnPathRef.current);
     }, [navigate]);
+    const syncMatchedPlayersToEvent = useCallback(async (matchedPlayers: Player[]) => {
+        if (dataMode !== 'remote') return;
+        const participants = matchedPlayers.map(player => ({
+            id: player.discordUserId ?? player.userSheetEntryId ?? String(player.id),
+            name: player.name,
+            discordName: player.discordName,
+            discordUserId: player.discordUserId,
+        }));
+        const knownIds = registeredEventParticipantIdsRef.current;
+        const missingParticipants = knownIds
+            ? participants.filter(participant => (
+                !knownIds.has(participant.id)
+                && !pendingEventParticipantIdsRef.current.has(participant.id)
+            ))
+            : participants.filter(participant => !pendingEventParticipantIdsRef.current.has(participant.id));
+        if (missingParticipants.length === 0) return;
+        missingParticipants.forEach(participant => pendingEventParticipantIdsRef.current.add(participant.id));
+
+        try {
+            const snapshot = await requestJson<{ participantIds: string[] }>('/api/event-participants', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken,
+                },
+                body: JSON.stringify({ participants: missingParticipants }),
+            });
+            registeredEventParticipantIdsRef.current = new Set([
+                ...snapshot.participantIds,
+                ...participants.map(participant => participant.id),
+            ]);
+            missingParticipants.forEach(participant => pendingEventParticipantIdsRef.current.delete(participant.id));
+        } catch (error) {
+            missingParticipants.forEach(participant => pendingEventParticipantIdsRef.current.delete(participant.id));
+            showToast(
+                'error',
+                getErrorMessage(error, '이벤트 참여자 자동 등록을 완료하지 못했습니다.'),
+            );
+        }
+    }, [csrfToken, dataMode, showToast]);
     const handleRosterCompleted = useCallback(() => {
         if (!isGuideActiveRef.current) navigate('/');
     }, [navigate]);
@@ -194,6 +230,9 @@ const MatchApp = ({
             setIsInputCollapsed,
         },
         requestRosterIdentityReview,
+        onMatchCompleted: (matchedPlayers) => {
+            void syncMatchedPlayersToEvent(matchedPlayers);
+        },
         setSwapSource,
         showDetailedError,
         showToast,
@@ -401,13 +440,11 @@ const MatchApp = ({
                             alternatives={alternatives}
                             ignorePreferences={ignorePreferences}
                             isBalancing={isBalancing}
-                            isEventRegistrationAvailable={dataMode === 'remote'}
                             isReady={isReady}
                             isResultStale={isResultStale}
                             onCancelSwap={() => setSwapSource(null)}
                             onClearResult={handleClearResult}
                             onIgnorePreferencesChange={setIgnorePreferences}
-                            onOpenEventRegistration={() => setIsEventRegistrationOpen(true)}
                             onRunMatching={() => void handleRunMatching({ ignorePreferences })}
                             onSelectAlternative={handleSelectAlternative}
                             onShowAllRanksChange={handleShowAllRanksChange}
@@ -458,30 +495,6 @@ const MatchApp = ({
                         />
                     </Suspense>
                 )}
-            </AnimatePresence>
-            <AnimatePresence>
-                {isEventRegistrationOpen ? (
-                    <Suspense
-                        fallback={(
-                            <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/85 text-sm text-slate-400 backdrop-blur-sm">
-                                이벤트 참여 등록을 여는 중…
-                            </div>
-                        )}
-                    >
-                        <EventParticipantRegistrationModal
-                            csrfToken={csrfToken}
-                            players={participants}
-                            onClose={() => setIsEventRegistrationOpen(false)}
-                            onSuccess={(addedCount, totalCount) => {
-                                setIsEventRegistrationOpen(false);
-                                showToast(
-                                    'success',
-                                    `이번 내전 ${addedCount}명을 등록했습니다. 누적 참여자 ${totalCount}명`,
-                                );
-                            }}
-                        />
-                    </Suspense>
-                ) : null}
             </AnimatePresence>
             <AnimatePresence>
                 {pendingIdentityImport && (

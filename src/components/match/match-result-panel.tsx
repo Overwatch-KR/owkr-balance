@@ -9,13 +9,11 @@ interface MatchResultPanelProps {
     alternatives: MatchResultData[];
     ignorePreferences: boolean;
     isBalancing: boolean;
-    isEventRegistrationAvailable?: boolean;
     isReady: boolean;
     isResultStale: boolean;
     onCancelSwap: () => void;
     onClearResult: () => void;
     onIgnorePreferencesChange: (ignore: boolean) => void;
-    onOpenEventRegistration?: () => void;
     onRunMatching: () => void;
     onSelectAlternative: (index: number) => void;
     onShowAllRanksChange: (show: boolean) => void;
@@ -34,13 +32,11 @@ export function MatchResultPanel({
     alternatives,
     ignorePreferences,
     isBalancing,
-    isEventRegistrationAvailable = true,
     isReady,
     isResultStale,
     onCancelSwap,
     onClearResult,
     onIgnorePreferencesChange,
-    onOpenEventRegistration,
     onRunMatching,
     onSelectAlternative,
     onShowAllRanksChange,
@@ -136,10 +132,8 @@ export function MatchResultPanel({
                             alternatives={alternatives}
                             isStale={isResultStale}
                             isRematching={isBalancing}
-                            isEventRegistrationAvailable={isEventRegistrationAvailable}
                             isGeneratingAlternatives={isBalancing}
                             onCancelSwap={onCancelSwap}
-                            onOpenEventRegistration={onOpenEventRegistration}
                             onRematch={onRunMatching}
                             onSelectAlternative={onSelectAlternative}
                             onShowAllRanksChange={onShowAllRanksChange}

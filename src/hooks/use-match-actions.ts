@@ -37,6 +37,7 @@ interface UseMatchActionsOptions {
     match: MatchActionState;
     playerInput: PlayerInputActionState;
     requestRosterIdentityReview: (players: Player[], failedLines: string[]) => void;
+    onMatchCompleted?: (players: Player[]) => void;
     setSwapSource: Dispatch<SetStateAction<SwapSource | null>>;
     showDetailedError: (message: string, details: ErrorDetails) => void;
     showToast: (type: 'success' | 'error', message: string, action?: ToastAction) => void;
@@ -51,6 +52,7 @@ export const useMatchActions = ({
     match,
     playerInput,
     requestRosterIdentityReview,
+    onMatchCompleted,
     setSwapSource,
     showDetailedError,
     showToast,
@@ -66,6 +68,7 @@ export const useMatchActions = ({
         setSwapSource(null);
         try {
             await balanceTeams(participants, options);
+            onMatchCompleted?.(participants);
             return true;
         } catch (error) {
             const errorMessage = getErrorMessage(error, '매칭 중 오류가 발생했습니다.');

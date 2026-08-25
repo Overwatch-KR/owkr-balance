@@ -147,6 +147,18 @@ describe('event participant store', () => {
         expect(result?.candidates).toContainEqual({ id: 'direct-player', name: '직접 등록' });
     });
 
+    it('이미 저장된 팀 결과 참여자를 다시 보내면 저장소를 갱신하지 않는다', async () => {
+        const { redis } = createRedis();
+        const participants = [{ id: 'direct-player', name: '직접 등록' }];
+        await addEventParticipation(redis, scrims, participants);
+        vi.mocked(redis.set).mockClear();
+
+        const result = await addEventParticipation(redis, scrims, participants);
+
+        expect(result?.participantIds).toEqual(['direct-player']);
+        expect(redis.set).not.toHaveBeenCalled();
+    });
+
     it('팀 결과에서 관리자 계정을 보내도 참여 집계에 추가하지 않는다', async () => {
         const { redis } = createRedis();
 
