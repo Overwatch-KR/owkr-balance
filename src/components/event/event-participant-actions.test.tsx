@@ -23,7 +23,11 @@ const renderActions = (values: Partial<ComponentProps<typeof EventParticipantAct
 
 describe('EventParticipantActions', () => {
     it('최초 상태에는 선택 후 저장 안내를 표시한다', () => {
-        expect(renderActions()).toContain('참여자를 선택하면 저장할 수 있습니다.');
+        const markup = renderActions();
+
+        expect(markup).toContain('참여자를 선택하면 저장할 수 있습니다.');
+        expect(markup).toContain('sticky top-3');
+        expect(markup).toContain('이벤트 참여 명단 제어');
     });
 
     it('변경한 상태에만 저장 버튼을 표시한다', () => {

@@ -157,19 +157,6 @@ export function EventParticipantsPage({ csrfToken, onClose }: EventParticipantsP
                     </section>
                 ) : (
                     <>
-                        {!isInitialLoading && isEditing ? (
-                            <EventUserSheetPicker
-                                participantIds={draftParticipantIds}
-                                onAdd={addUserSheetParticipant}
-                            />
-                        ) : null}
-                        <EventParticipantSummary
-                            candidates={displayedCandidates}
-                            isEditing={isEditing}
-                            isLoading={isInitialLoading}
-                            participantIds={draftParticipantIds}
-                            onToggle={toggleParticipant}
-                        />
                         {!isInitialLoading && (
                             snapshot.candidates.length > 0 || snapshot.updatedAt !== undefined
                         ) ? (
@@ -191,6 +178,19 @@ export function EventParticipantsPage({ csrfToken, onClose }: EventParticipantsP
                                 onSave={() => void save()}
                             />
                         ) : null}
+                        {!isInitialLoading && isEditing ? (
+                            <EventUserSheetPicker
+                                participantIds={draftParticipantIds}
+                                onAdd={addUserSheetParticipant}
+                            />
+                        ) : null}
+                        <EventParticipantSummary
+                            candidates={displayedCandidates}
+                            isEditing={isEditing}
+                            isLoading={isInitialLoading}
+                            participantIds={draftParticipantIds}
+                            onToggle={toggleParticipant}
+                        />
                     </>
                 )}
             </div>
