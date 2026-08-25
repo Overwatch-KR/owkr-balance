@@ -70,7 +70,6 @@ export function UserSheetModal({
         )) : entries[0]);
     const [mode, setMode] = useState<UserSheetMode>('BROWSE');
     const [selectedId, setSelectedId] = useState<string | null>(initialEntry?.id ?? null);
-    const [editorTarget, setEditorTarget] = useState<'ALL' | 'NEW'>('ALL');
     const [isMobileListOpen, setIsMobileListOpen] = useState(false);
     const [isTourOpen, setIsTourOpen] = useState(false);
     const [query, setQuery] = useState('');
@@ -104,7 +103,6 @@ export function UserSheetModal({
     const handleTourStepChange = useCallback((stepId: UserSheetTourStepId) => {
         if (stepId === 'bulk-edit') {
             setIsMobileListOpen(false);
-            setEditorTarget('ALL');
             setMode('EDIT');
             return;
         }
@@ -218,8 +216,6 @@ export function UserSheetModal({
                     </div>
                 ) : mode === 'EDIT' ? (
                     <UserSheetEditor
-                        key={editorTarget}
-                        appendEmptyRow={editorTarget === 'NEW'}
                         csrfToken={csrfToken}
                         disableAutoFocus={isTourOpen}
                         entries={entries}
@@ -237,11 +233,9 @@ export function UserSheetModal({
                             const previousIndex = selectedEntry
                                 ? entries.findIndex(entry => entry.id === selectedEntry.id)
                                 : -1;
-                            const nextSelected = editorTarget === 'NEW'
-                                ? savedEntries[savedEntries.length - 1]
-                                : previousIndex >= 0
-                                    ? savedEntries[previousIndex]
-                                    : savedEntries[0];
+                            const nextSelected = previousIndex >= 0
+                                ? savedEntries[previousIndex]
+                                : savedEntries[0];
                             setSelectedId(nextSelected?.id ?? null);
                             setMode('BROWSE');
                         }}
@@ -256,12 +250,7 @@ export function UserSheetModal({
                         query={query}
                         selectedEntry={selectedEntry}
                         showMobileDetail={showMobileDetail}
-                        onAdd={() => {
-                            setEditorTarget('NEW');
-                            setMode('EDIT');
-                        }}
                         onEditAll={() => {
-                            setEditorTarget('ALL');
                             setMode('EDIT');
                         }}
                         onQueryChange={setQuery}

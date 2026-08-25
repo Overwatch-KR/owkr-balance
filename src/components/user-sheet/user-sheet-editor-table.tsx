@@ -26,7 +26,8 @@ interface UserSheetEditorTableProps {
         startColumnIndex: number,
     ) => void;
     onRemoveRow: (rowId: string) => void;
-    rows: UserSheetDraftEntry[];
+    rows: Array<{ row: UserSheetDraftEntry; rowIndex: number }>;
+    emptyMessage: string;
 }
 
 const COLUMNS: ReadonlyArray<{
@@ -71,6 +72,7 @@ export function UserSheetEditorTable({
     onPaste,
     onRemoveRow,
     rows,
+    emptyMessage,
 }: UserSheetEditorTableProps) {
     return (
         <div className="custom-scrollbar min-h-0 flex-1 overflow-auto">
@@ -92,7 +94,14 @@ export function UserSheetEditorTable({
                     </tr>
                 </thead>
                 <tbody>
-                    {rows.map((row, rowIndex) => {
+                    {rows.length === 0 && (
+                        <tr>
+                            <td colSpan={COLUMNS.length + 2} className="px-4 py-12 text-center text-sm text-slate-500">
+                                {emptyMessage}
+                            </td>
+                        </tr>
+                    )}
+                    {rows.map(({ row, rowIndex }) => {
                         const error = errors.get(row.id);
                         const errorField = error === 'REQUIRED_DISCORD_USER_ID'
                             || error === 'INVALID_DISCORD_USER_ID'

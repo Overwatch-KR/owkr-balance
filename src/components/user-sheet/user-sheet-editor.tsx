@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, type ClipboardEvent } from 'react';
-import { AlertCircle, Info, Plus, Save, Trash2 } from 'lucide-react';
+import { AlertCircle, Info, Plus, Save, Search, Trash2, X } from 'lucide-react';
 import {
     cleanUserSheetRank,
     fetchUserSheetConflictSnapshot,
@@ -30,7 +30,6 @@ import {
 } from './user-sheet-editor-table';
 
 interface UserSheetEditorProps {
-    appendEmptyRow?: boolean;
     csrfToken: string;
     disableAutoFocus?: boolean;
     entries: UserSheetEntry[];
@@ -74,7 +73,6 @@ const makeEmptyEntry = (): UserSheetDraftEntry => ({
  * @description 전체 유저 정보를 Google Sheets처럼 붙여넣고 한 화면에서 수정한다.
  */
 export function UserSheetEditor({
-    appendEmptyRow = false,
     csrfToken,
     disableAutoFocus = false,
     entries,
@@ -89,25 +87,23 @@ export function UserSheetEditor({
         entries.length > 0
             ? [
                 ...entries.map(entry => ({ ...entry })),
-                ...(appendEmptyRow ? [makeEmptyEntry()] : []),
             ]
             : Array.from({ length: 10 }, makeEmptyEntry)
     ));
     const [isSaving, setIsSaving] = useState(false);
     const [message, setMessage] = useState('');
+    const [tableQuery, setTableQuery] = useState('');
     const [isClearConfirming, setIsClearConfirming] = useState(false);
     const [conflict, setConflict] = useState<UserSheetEditorConflict | null>(null);
     const baseSheetVersionRef = useRef(sheetVersion);
     const baseRowsRef = useRef<UserSheetDraftEntry[]>(
         entries.map(entry => ({ ...entry })),
     );
-    const focusRowId = appendEmptyRow
-        ? rows[rows.length - 1]?.id
-        : rows.find(row => (
-            focusBattleTag
-            && normalizeUserSheetBattleTag(row.battleTag)
-                === normalizeUserSheetBattleTag(focusBattleTag)
-        ))?.id;
+    const focusRowId = rows.find(row => (
+        focusBattleTag
+        && normalizeUserSheetBattleTag(row.battleTag)
+            === normalizeUserSheetBattleTag(focusBattleTag)
+    ))?.id;
 
     const validation = useMemo(() => validateUserSheetEntries(rows), [rows]);
     const conflictMerge = useMemo(() => (
@@ -123,6 +119,14 @@ export function UserSheetEditor({
     const invalidRowNumbers = rows
         .map((row, index) => validation.errors.has(row.id) ? index + 1 : null)
         .filter((rowNumber): rowNumber is number => rowNumber !== null);
+    const visibleRows = useMemo(() => {
+        const normalizedQuery = tableQuery.trim().toLowerCase();
+        return rows.map((row, rowIndex) => ({ row, rowIndex })).filter(({ row }) => (
+            !normalizedQuery || FIELDS.some(field => (
+                (row[field] ?? '').toLowerCase().includes(normalizedQuery)
+            ))
+        ));
+    }, [rows, tableQuery]);
 
     const updateCell = (rowId: string, field: UserSheetEditorField, value: string) => {
         const nextValue = field === 'tank' || field === 'dps' || field === 'support'
@@ -350,6 +354,27 @@ export function UserSheetEditor({
                         {isSaving ? '저장 중' : '시트 저장'}
                     </button>
                 </div>
+                <label className="relative w-full md:ml-auto md:w-80">
+                    <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" aria-hidden="true" />
+                    <span className="sr-only">편집 표 검색</span>
+                    <input
+                        type="search"
+                        value={tableQuery}
+                        onChange={event => setTableQuery(event.target.value)}
+                        placeholder="이름·Discord ID·배틀태그 검색…"
+                        className="form-control pl-9 pr-9 text-xs"
+                    />
+                    {tableQuery && (
+                        <button
+                            type="button"
+                            onClick={() => setTableQuery('')}
+                            className="btn-ghost absolute right-1.5 top-1/2 min-h-7 h-7 w-7 -translate-y-1/2 rounded-md p-0 text-slate-500"
+                            aria-label="편집 표 검색어 지우기"
+                        >
+                            <X size={13} aria-hidden="true" />
+                        </button>
+                    )}
+                </label>
             </header>
 
             <DiscordSheetImport onImport={handleDiscordImport} />
@@ -382,7 +407,8 @@ export function UserSheetEditor({
                 onRemoveRow={(rowId) => {
                     setRows(current => current.filter(item => item.id !== rowId));
                 }}
-                rows={rows}
+                rows={visibleRows}
+                emptyMessage={tableQuery.trim() ? '검색 결과가 없습니다.' : '표시할 유저가 없습니다.'}
             />
 
             <footer className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-slate-800 bg-slate-900/95 px-4 py-3 md:px-6">
@@ -390,6 +416,9 @@ export function UserSheetEditor({
                     <span className="text-slate-400">
                         저장 대상 <strong className="font-semibold text-slate-200">{validation.activeRows.length}명</strong>
                     </span>
+                    {tableQuery.trim() && (
+                        <span className="text-slate-500">검색 결과 {visibleRows.length}명</span>
+                    )}
                     {validation.errors.size > 0 && (
                         <span className="whitespace-nowrap text-rose-300">오류 {validation.errors.size}개</span>
                     )}

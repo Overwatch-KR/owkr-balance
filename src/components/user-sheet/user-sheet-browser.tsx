@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import {
     MessageSquareText,
     Pencil,
-    Plus,
     Search,
     X,
 } from 'lucide-react';
@@ -22,7 +21,6 @@ interface UserSheetBrowserProps {
     query: string;
     selectedEntry: UserSheetEntry | null;
     showMobileDetail: boolean;
-    onAdd: () => void;
     onEditAll: () => void;
     onQueryChange: (query: string) => void;
     onSaveError: (message: string) => void;
@@ -43,7 +41,6 @@ export function UserSheetBrowser({
     query,
     selectedEntry,
     showMobileDetail,
-    onAdd,
     onEditAll,
     onQueryChange,
     onSaveError,
@@ -70,22 +67,14 @@ export function UserSheetBrowser({
         <div className="flex min-h-0 flex-1">
             <aside className={`${showMobileDetail ? 'hidden' : 'flex'} w-full shrink-0 flex-col border-r border-slate-800 sm:flex sm:w-80 lg:w-96`}>
                 <div id="user-sheet-browse-tools" className="grid gap-2 border-b border-slate-800 p-3">
-                    <div id="user-sheet-actions" className="grid grid-cols-2 gap-2">
-                        <button
-                            type="button"
-                            onClick={onAdd}
-                            className="btn-primary inline-flex min-h-10 items-center justify-center gap-1.5"
-                        >
-                            <Plus size={14} aria-hidden="true" />
-                            유저 추가
-                        </button>
+                    <div id="user-sheet-actions">
                         <button
                             type="button"
                             onClick={onEditAll}
-                            className="btn-ghost inline-flex min-h-10 items-center justify-center gap-1.5 border border-slate-700/70"
+                            className="btn-primary w-full"
                         >
                             <Pencil size={14} aria-hidden="true" />
-                            전체 편집
+                            유저 시트 편집
                         </button>
                     </div>
                     <label id="user-sheet-search" className="relative">
@@ -120,7 +109,7 @@ export function UserSheetBrowser({
                     {filteredEntries.length === 0 ? (
                         <div className="flex flex-col items-center px-3 py-8 text-center text-xs leading-relaxed text-slate-600">
                             <DouMascot variant={entries.length === 0 ? 'empty' : 'search'} size={64} className="mb-3 opacity-80" decorative />
-                            <p>{entries.length === 0 ? '저장된 유저가 없습니다. 유저 추가를 눌러 등록해 주세요.' : '검색 결과가 없습니다.'}</p>
+                            <p>{entries.length === 0 ? '저장된 유저가 없습니다. 유저 시트 편집에서 등록해 주세요.' : '검색 결과가 없습니다.'}</p>
                         </div>
                     ) : filteredEntries.map(entry => {
                         const isParticipant = participantBattleTags.has(
