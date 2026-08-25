@@ -126,7 +126,7 @@ export function DiscordSheetImport({ onImport }: DiscordSheetImportProps) {
     return (
         <section
             id="user-sheet-import"
-            className="shrink-0 border-b border-violet-400/20 bg-gradient-to-br from-violet-500/[0.07] via-slate-950/40 to-cyan-500/[0.035] px-4 py-4 md:px-6"
+            className="custom-scrollbar max-h-[min(42dvh,30rem)] shrink-0 overflow-y-auto border-b border-violet-400/20 bg-gradient-to-br from-violet-500/[0.07] via-slate-950/40 to-cyan-500/[0.035] px-4 py-4 md:px-6"
             aria-labelledby="discord-sheet-import-title"
         >
             <div id="discord-sheet-import-panel">
