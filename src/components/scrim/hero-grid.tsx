@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { HEROES, type Hero, type HeroRole } from '../../constants/hero';
+import { HEROES, type Hero, type HeroRole } from '../../../domains/scrim/shared/rules';
 
 const GROUPS: Array<{ role: HeroRole; label: string }> = [
     { role: 'tank', label: '돌격' },

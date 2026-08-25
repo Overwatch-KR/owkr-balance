@@ -4,7 +4,7 @@ import {
   getPublicParticipationQuery,
   type GetPublicParticipationQueryInput,
   type GetPublicParticipationQueryResult,
-} from '../../shared/contracts/get-public-participation';
+} from '../../shared/contracts/get-public-participation.js';
 
 export function getPublicParticipation(
   client: BoundraClient,

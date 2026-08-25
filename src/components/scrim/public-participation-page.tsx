@@ -5,8 +5,6 @@ import { findApiError, getErrorMessage } from '../../utils/api';
 import {
     formatScrimLabel,
     formatRemainingDuration,
-    getSatisfactionParticipationStatus,
-    getVoteParticipationStatus,
 } from '../../utils/scrim';
 import {
     hasSubmittedSurvey,
@@ -19,6 +17,10 @@ import {
     submitPublicSatisfaction,
     submitPublicVote,
 } from '../../utils/scrim-contract-client';
+import {
+    getSatisfactionParticipationStatus,
+    getVoteParticipationStatus,
+} from '../../../domains/scrim/shared/rules';
 import {
     SATISFACTION_OPTIONS,
     type GetPublicParticipationQueryResult,

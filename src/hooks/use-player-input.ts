@@ -51,6 +51,7 @@ export const createDefaultPlayerInputs = (): PlayerInputs => ({
  * @description 저장된 등급을 수동 입력 셀렉트에서 사용할 값으로 정규화한다.
  */
 const getEditableDivision = (tier: Tier, division: number | string): string => {
+    if (tier === 'UNRANKED') return '0';
     const value = String(division);
     return ['1', '2', '3', '4', '5'].includes(value) ? value : '3';
 };

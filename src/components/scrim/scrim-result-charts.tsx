@@ -8,8 +8,8 @@ import {
     XAxis,
     YAxis,
 } from 'recharts';
-import type { HeroRole } from '../../constants/hero';
-import { SATISFACTION_OPTIONS } from '../../../domains/scrim/shared/constants';
+import type { HeroRole } from '../../../domains/scrim/shared/rules';
+import { SATISFACTION_OPTIONS } from '../../../domains/scrim/shared/public';
 
 export interface HeroDemandChartDatum {
     count: number;

@@ -111,8 +111,10 @@ describe('MatchResult', () => {
         expect(markup).toContain('aria-checked="false"');
         expect(markup).toContain('탱·딜·힐 티어 표시');
         expect(markup).toContain('id="result-share-controls"');
+        expect(markup).toContain('이번 내전 참여 등록');
         expect(markup).toContain('이미지 복사');
         expect(markup.indexOf('탱·딜·힐 티어 표시')).toBeLessThan(markup.indexOf('이미지 복사'));
+        expect(markup.indexOf('이번 내전 참여 등록')).toBeLessThan(markup.indexOf('이미지 복사'));
         expect(markup.indexOf('이미지 복사')).toBeLessThan(markup.indexOf('data-capture-content="true"'));
         expect(markup).toContain('밸런스 요약');
         expect(markup).toContain('선호 역할 이탈 1명');
@@ -121,6 +123,56 @@ describe('MatchResult', () => {
         expect(markup).toContain('비선호 배정');
         expect(markup).not.toContain('data-export-render');
         expect(markup).not.toContain('data-display-mode');
+    });
+
+    it('현재 명단과 결과가 달라진 경우 이벤트 참여 등록을 비활성화한다', () => {
+        const markup = renderToStaticMarkup(
+            <MatchResult
+                isStale
+                matchResult={matchResult}
+                onOpenEventRegistration={vi.fn()}
+                onRematch={vi.fn()}
+                onSlotClick={vi.fn()}
+                swapSource={null}
+            />,
+        );
+
+        expect(markup).toContain('다시 매칭</button>');
+        expect(markup).toContain('명단이 변경되어 등록할 수 없습니다. 먼저 다시 매칭해 주세요.');
+        expect(markup).toContain('aria-describedby="event-registration-disabled-reason"');
+        expect(markup).toMatch(/disabled=""[^>]*>.*이번 내전 참여 등록/s);
+    });
+
+    it('재매칭 중에는 경고 안의 버튼에도 진행 상태를 표시한다', () => {
+        const markup = renderToStaticMarkup(
+            <MatchResult
+                isRematching
+                isStale
+                matchResult={matchResult}
+                onRematch={vi.fn()}
+                onSlotClick={vi.fn()}
+                swapSource={null}
+            />,
+        );
+
+        expect(markup).toContain('매칭 중…');
+        expect(markup).toMatch(/disabled=""[^>]*>.*매칭 중…/s);
+    });
+
+    it('원격 저장 모드가 아니면 모바일에서도 이벤트 등록 불가 사유를 표시한다', () => {
+        const markup = renderToStaticMarkup(
+            <MatchResult
+                isEventRegistrationAvailable={false}
+                matchResult={matchResult}
+                onOpenEventRegistration={vi.fn()}
+                onSlotClick={vi.fn()}
+                swapSource={null}
+            />,
+        );
+
+        expect(markup).toContain('이벤트 참여 등록은 원격 저장 모드에서 사용할 수 있습니다.');
+        expect(markup).toContain('basis-full text-right');
+        expect(markup).toContain('sm:sr-only');
     });
 
     it('역할별 티어 점수 차이를 밸런스 요약에 함께 표시한다', () => {
@@ -184,7 +236,41 @@ describe('MatchResult', () => {
         expect(markup).toContain('비선호 배정 1명');
         expect(markup).toContain('Player3#1234');
         expect(markup).toContain('1팀 · 딜러');
-        expect(markup).not.toContain('미배치 역할');
+        expect(markup).toContain('미배치 역할 0명');
+    });
+
+    it('미배치 역할에 배정된 대상을 이름과 배정 위치로 알려준다', () => {
+        const unrankedPlayer: Player = {
+            ...players[3],
+            sup: {
+                tier: 'UNRANKED',
+                div: 0,
+                score: 0,
+                isPreferred: false,
+                isAvoided: false,
+            },
+        };
+        const resultWithUnrankedAssignment: MatchResultData = {
+            ...matchResult,
+            teamA: {
+                ...matchResult.teamA,
+                assignment: {
+                    ...matchResult.teamA.assignment,
+                    SUPPORT: [unrankedPlayer, players[4]],
+                },
+            },
+        };
+        const markup = renderToStaticMarkup(
+            <MatchResult
+                matchResult={resultWithUnrankedAssignment}
+                onSlotClick={vi.fn()}
+                swapSource={null}
+            />,
+        );
+
+        expect(markup).toContain('미배치 역할 1명');
+        expect(markup).toContain('Player4#1234');
+        expect(markup).toContain('1팀 · 힐러');
     });
 
     it('기본 결과 아래에는 추천 후보 2개와 전체 조합 Dialog 진입점만 보여준다', () => {

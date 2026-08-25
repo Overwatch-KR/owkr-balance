@@ -1,9 +1,9 @@
 import type { Dispatch, SetStateAction } from 'react';
-import { getSampleRoster } from '../constants';
+import { SAMPLE_ROSTER } from '../constants';
 import {
     swapMatchResultPlayers,
     type BalanceOptions,
-} from '../utils/balance';
+} from '../../domains/balance/shared/public';
 import { parseMultipleLines } from '../utils/parser';
 import { getErrorMessage } from '../utils/api';
 import type { MatchResultData, Player, Role, SwapSource } from '../types';
@@ -88,12 +88,21 @@ export const useMatchActions = ({
             setSwapSource(null);
             return;
         }
-        match.setResult(swapMatchResultPlayers(
-            match.result,
+        const previousResult = match.result;
+        const swappedResult = swapMatchResultPlayers(
+            previousResult,
             swapSource,
             { teamIdx, role, index },
-        ));
+        );
+        match.setResult(swappedResult);
         setSwapSource(null);
+        showToast('success', '두 플레이어의 자리를 바꿨습니다.', {
+            label: '되돌리기',
+            onClick: () => {
+                match.setResult(current => current === swappedResult ? previousResult : current);
+                setSwapSource(null);
+            },
+        });
     };
 
     const handleRemovePlayer = (playerId: number) => {
@@ -186,7 +195,7 @@ export const useMatchActions = ({
             players,
             failedLines,
             avoidedRoleWarnings,
-        } = parseMultipleLines(getSampleRoster());
+        } = parseMultipleLines(SAMPLE_ROSTER);
         if (players.length !== 10 || failedLines.length > 0 || avoidedRoleWarnings.length > 0) {
             showToast('error', '더미 참가자 명단을 불러오지 못했습니다.');
             return;

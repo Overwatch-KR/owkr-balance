@@ -15,8 +15,8 @@ importers:
         specifier: ^5.8.27
         version: 5.8.27
       boundra:
-        specifier: 0.2.1
-        version: 0.2.1
+        specifier: 0.2.2
+        version: 0.2.2
       cookie:
         specifier: ^2.0.1
         version: 2.0.1
@@ -1530,8 +1530,8 @@ packages:
   bindings@1.5.0:
     resolution: {integrity: sha512-p2q/t/mhvuOj/UeLlV6566GD/guowlr0hHxClI0W9m7MWYkL1F0hLo+0Aexs9HSPCtR1SXQ0TD3MMKrXZajbiQ==}
 
-  boundra@0.2.1:
-    resolution: {integrity: sha512-Mfy1AMfKjumwVk3uk2KA4hNCMb4cGoskCwaA6CVhys7Xdt5zCMRhKA9VkxqGegs0+um1oE9rvpIofJtLR8/RiA==}
+  boundra@0.2.2:
+    resolution: {integrity: sha512-iWhSFouSvVTvdC5KLTU68y8rKXtlptuL7akZRhHbA0RcAMo4vmxHsG7NROY8qhGbK5oQR6zfHuHipSQpzZliQQ==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -4564,7 +4564,7 @@ snapshots:
     dependencies:
       file-uri-to-path: 1.0.0
 
-  boundra@0.2.1: {}
+  boundra@0.2.2: {}
 
   brace-expansion@1.1.12:
     dependencies:

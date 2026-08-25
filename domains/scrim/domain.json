@@ -15,10 +15,7 @@
     ],
     "shared": [
       "./shared/public.ts",
-      "./shared/constants.ts",
-      "./shared/contracts/get-public-participation.ts",
-      "./shared/contracts/submit-vote.ts",
-      "./shared/contracts/submit-satisfaction.ts"
+      "./shared/rules.ts"
     ]
   },
   "version": "0.1.0"

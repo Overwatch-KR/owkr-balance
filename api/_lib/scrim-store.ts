@@ -1,16 +1,19 @@
 import { randomBytes, randomInt } from 'node:crypto';
 import type { Redis } from '@upstash/redis';
-import { HEROES, type HeroRole } from '../../src/constants/hero.js';
+import {
+    HEROES,
+    getScrimTimes,
+    type HeroRole,
+} from '../../domains/scrim/shared/rules.js';
 import type {
     BanDecision,
     HeroVote,
     HeroVoteResult,
+    PublicParticipationKind,
     SatisfactionResponse,
     ScrimRecord,
     ScrimRosterParticipant,
-    PublicParticipationKind,
 } from '../../domains/scrim/shared/public.js';
-import { getScrimTimes } from '../../src/utils/scrim.js';
 
 const SCRIMS_KEY = 'scrims:v1:records';
 const SCRIM_SEQUENCE_KEY = 'scrims:v1:sequence';
@@ -56,9 +59,15 @@ export const createScrim = async (
         const id = cleanText(item.id, 200);
         const name = cleanText(item.name, 100);
         const discordName = cleanText(item.discordName, 100);
+        const discordUserId = cleanText(item.discordUserId, 30);
         if (!id || !name || ids.has(id)) return null;
         ids.add(id);
-        rosterSnapshot.push({ id, name, discordName: discordName || undefined });
+        rosterSnapshot.push({
+            id,
+            name,
+            discordName: discordName || undefined,
+            discordUserId: discordUserId || undefined,
+        });
     }
     const id = String(await redis.incr(SCRIM_SEQUENCE_KEY));
     const record: ScrimRecord = {

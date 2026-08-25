@@ -21,7 +21,7 @@
   "dependencies": {
     "@upstash/redis": "^1.38.0",
     "@vercel/node": "^5.8.27",
-    "boundra": "0.2.1",
+    "boundra": "0.2.2",
     "cookie": "^2.0.1",
     "framer-motion": "^12.26.2",
     "html-to-image": "^1.11.13",

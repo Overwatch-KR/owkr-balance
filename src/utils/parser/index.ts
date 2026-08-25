@@ -1,5 +1,5 @@
 import type { Player, Rank, Role } from 'src/types';
-import { getAvailableTiers, getScore, TIERS } from 'src/constants';
+import { getScore, TIERS } from 'src/constants';
 import { normalizePlayerRolePreferences } from 'src/utils/role-preference';
 import { findAvoidedRoleHighlightRanges } from './avoidance-highlight';
 
@@ -34,14 +34,14 @@ const findTierIndex = (tierStr: string): number => {
     };
 
     if (tierMap[normalized] !== undefined) {
-        return getAvailableTiers().indexOf(TIERS[tierMap[normalized]]);
+        return tierMap[normalized];
     }
 
     // 부분 매칭 시도
     for (const [key, idx] of Object.entries(tierMap)) {
         if (key.length === 1) continue;
         if (normalized.startsWith(key) || key.startsWith(normalized)) {
-            return getAvailableTiers().indexOf(TIERS[idx]);
+            return idx;
         }
     }
 
@@ -105,9 +105,9 @@ const parseRankSegment = (segment: string): { tierIdx: number; div: number; isPr
     const isAvoided = segment.includes('?');
     const cleanSegment = segment.replace(/[!?]/g, '').trim();
 
-    // 미배치 입력은 예상 티어가 함께 적혀 있어도 더 이상 받지 않는다.
-    if (cleanSegment.match(/미배치|언랭|unranked/i)) {
-        return null;
+    // 미배치는 예상 티어가 함께 적혀 있어도 배치 완료 티어로 추정하지 않는다.
+    if (cleanSegment === '-' || cleanSegment.match(/미배치|언랭|unranked/i)) {
+        return { tierIdx: -1, div: 0, isPreferred, isAvoided };
     }
 
     // 예상 티어는 보존하고 영웅, 복귀, 마이크 같은 부가 설명은 제거한다.
@@ -131,7 +131,10 @@ const parseRankSegment = (segment: string): { tierIdx: number; div: number; isPr
  * @returns Rank 객체
  */
 const createRank = (tierIdx: number, div: number, isPreferred: boolean, isAvoided: boolean): Rank => {
-    const tier = getAvailableTiers()[tierIdx];
+    if (tierIdx === -1) {
+        return { tier: 'UNRANKED', div: 0, score: 0, isPreferred, isAvoided };
+    }
+    const tier = TIERS[tierIdx];
     return {
         tier,
         div,
@@ -140,6 +143,17 @@ const createRank = (tierIdx: number, div: number, isPreferred: boolean, isAvoide
         isAvoided
     };
 };
+
+/**
+ * @description 입력에서 생략된 역할을 나타내는 기본 미배치 랭크를 만든다.
+ */
+const createUnrankedRank = (): Rank => ({
+    tier: 'UNRANKED',
+    div: 0,
+    score: 0,
+    isPreferred: false,
+    isAvoided: false,
+});
 
 /**
  * @description 티어 이모지를 티어 문자열로 변환한다.
@@ -223,9 +237,10 @@ const parseRawLineToPlayer = (line: string, discordName?: string): Player | null
     remainText = cleanText;
 
     // 역할별 랭크 초기화
-    let tank: Rank | null = null;
-    let dps: Rank | null = null;
-    let sup: Rank | null = null;
+    let tank = createUnrankedRank();
+    let dps = createUnrankedRank();
+    let sup = createUnrankedRank();
+    let hasInvalidRankSegment = false;
 
     // 슬래시로 구분된 형식 처리: "다5/다1/다5" 또는 "탱! 실3/ 딜 브1/ 힐(예상)실2"
     const slashParts = remainText.split('/').map(p => p.trim()).filter(p => p.length > 0);
@@ -285,6 +300,8 @@ const parseRawLineToPlayer = (line: string, discordName?: string): Player | null
                     else if (roleIndex === 1) dps = rank;
                     else if (roleIndex === 2) sup = rank;
                 }
+            } else {
+                hasInvalidRankSegment = true;
             }
 
             // 역할이 명시되지 않은 경우에만 인덱스 증가
@@ -325,7 +342,7 @@ const parseRawLineToPlayer = (line: string, discordName?: string): Player | null
                 }
             }
 
-            // 미배치 역할이 포함된 참가자는 마지막 완전성 검사에서 거부한다.
+            // 공백 구분 형식의 미배치는 해당 역할 순서만 소비한다.
             if (tierStr.match(/미배치|언랭|unranked|배치/i)) {
                 if (!roleStr) autoIndex++;
                 continue;
@@ -367,8 +384,9 @@ const parseRawLineToPlayer = (line: string, discordName?: string): Player | null
         }
     }
 
-    // 세 역할 모두 정식 티어가 있어야 유효한 플레이어다.
-    if (!tank || !dps || !sup) {
+    // 세 역할 중 최소 두 역할은 정식 티어가 있어야 유효한 플레이어다.
+    const rankedRoleCount = [tank, dps, sup].filter(rank => rank.tier !== 'UNRANKED').length;
+    if (hasInvalidRankSegment || rankedRoleCount < 2) {
         return null;
     }
 

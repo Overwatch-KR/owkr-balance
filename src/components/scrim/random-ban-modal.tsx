@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Dices, FastForward, Sparkles } from 'lucide-react';
-import { HEROES } from '../../constants/hero';
+import { HEROES } from '../../../domains/scrim/shared/rules';
 import { useDialogFocus } from '../../hooks/use-dialog-focus';
 
 interface RandomBanModalProps {

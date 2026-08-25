@@ -3,7 +3,7 @@ import type { BoundraCallOptions, BoundraClient } from 'boundra';
 import {
   submitVoteMutation,
   type SubmitVoteMutationInput,
-} from '../../shared/contracts/submit-vote';
+} from '../../shared/contracts/submit-vote.js';
 
 export function submitVote(
   client: BoundraClient,

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://boundra.dev/schemas/domain-manifest.v1.json",
+  "dependsOn": [
+    "player"
+  ],
+  "name": "balance",
+  "policies": {
+    "allowCrossDomainServerImport": false,
+    "allowMcpWrite": false
+  },
+  "publicApi": {
+    "client": [],
+    "server": [],
+    "shared": [
+      "./shared/public.ts"
+    ]
+  },
+  "version": "0.1.0"
+}

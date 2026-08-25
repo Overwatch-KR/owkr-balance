@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
-import { swapMatchResultPlayers } from './utils/balance';
+import { swapMatchResultPlayers } from '../domains/balance/shared/public';
 import {
     isMatchResultStale,
 } from './utils/player';
@@ -17,6 +17,7 @@ import { useMatchSession } from './hooks/use-match-session';
 import { useUserSheet } from './hooks/use-user-sheet';
 import { getErrorMessage } from './utils/api';
 import { clearPlayerNoteCache } from './utils/player-note';
+import { readUiPreferences, writeShowAllRanksPreference } from './utils/storage/ui-preferences';
 import type { SwapSource } from './types';
 import {
     RosterIdentityResolver,
@@ -35,17 +36,26 @@ import {
 } from './components/common/error-details-modal';
 import { AppHeader } from './components/layout/app-header';
 import { MatchResultPanel } from './components/match/match-result-panel';
+import { EventParticipantsPage } from './components/event/event-participants-page';
 import { ScrimManager } from './components/scrim/scrim-manager';
 
 const UserSheetModal = lazy(() => import('./components/user-sheet/user-sheet-modal').then(module => ({
     default: module.UserSheetModal,
 })));
+const EventParticipantRegistrationModal = lazy(() => (
+    import('./components/event/event-participant-registration-modal').then(module => ({
+        default: module.EventParticipantRegistrationModal,
+    }))
+));
 
 interface MatchAppProps {
     authMode: AuthMode;
     csrfToken: string;
     dataMode: DataMode;
+    isPageNavigating: boolean;
     logout: () => Promise<void>;
+    navigate: (pathname: string) => void;
+    pathname: string;
     user: AuthUser;
 }
 
@@ -60,7 +70,16 @@ const PageLoadingBar = () => (
     />
 );
 
-const MatchApp = ({ authMode, csrfToken, dataMode, logout, user }: MatchAppProps) => {
+const MatchApp = ({
+    authMode,
+    csrfToken,
+    dataMode,
+    isPageNavigating,
+    logout,
+    navigate,
+    pathname,
+    user,
+}: MatchAppProps) => {
     const {
         alternatives,
         balanceTeams,
@@ -77,30 +96,15 @@ const MatchApp = ({ authMode, csrfToken, dataMode, logout, user }: MatchAppProps
     } = useMatchSession(user.id);
 
     const [swapSource, setSwapSource] = useState<SwapSource | null>(null);
-    const [showAllRanks, setShowAllRanks] = useState(false);
+    const [showAllRanks, setShowAllRanks] = useState(() => readUiPreferences().showAllRanks);
     const [ignorePreferences, setIgnorePreferences] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const [isEventRegistrationOpen, setIsEventRegistrationOpen] = useState(false);
     const [errorDetails, setErrorDetails] = useState<ErrorDetails | null>(null);
-    const [pathname, setPathname] = useState(() => window.location.pathname.replace(/\/+$/, '') || '/');
-    const [isPageNavigating, setIsPageNavigating] = useState(false);
     const playerEditReturnPathRef = useRef(pathname);
     const isGuideActiveRef = useRef(false);
     const userSheet = useUserSheet();
     const { dismissToast, showToast, toast } = useToast();
-    useEffect(() => {
-        const syncPathname = () => setPathname(window.location.pathname.replace(/\/+$/, '') || '/');
-        window.addEventListener('popstate', syncPathname);
-        return () => window.removeEventListener('popstate', syncPathname);
-    }, []);
-    const navigate = useCallback((nextPathname: string) => {
-        if (nextPathname === pathname) return;
-        setIsPageNavigating(true);
-        window.setTimeout(() => {
-            window.history.pushState({}, '', nextPathname);
-            setPathname(nextPathname);
-            window.setTimeout(() => setIsPageNavigating(false), 180);
-        }, 120);
-    }, [pathname]);
     const showDetailedError = useCallback((message: string, details: ErrorDetails) => {
         showToast('error', message, {
             label: '자세히 보기',
@@ -272,6 +276,10 @@ const MatchApp = ({ authMode, csrfToken, dataMode, logout, user }: MatchAppProps
         }
     };
     const currentAdminName = user.globalName ?? user.username;
+    const handleShowAllRanksChange = useCallback((show: boolean) => {
+        setShowAllRanks(show);
+        writeShowAllRanksPreference(show);
+    }, []);
     const handleStartEditingPlayer = useCallback((player: Parameters<typeof startEditingPlayer>[0]) => {
         playerEditReturnPathRef.current = pathname;
         startEditingPlayer(player);
@@ -350,6 +358,7 @@ const MatchApp = ({ authMode, csrfToken, dataMode, logout, user }: MatchAppProps
                 isLoggingOut={isLoggingOut}
                 isUserSheetOpen={userSheet.isOpen}
                 onLogout={() => void handleLogout()}
+                onOpenEventParticipants={() => navigate('/event-participants')}
                 onOpenGuide={handleToggleGuide}
                 onOpenScrims={() => navigate('/scrims')}
                 onOpenUserSheet={() => {
@@ -392,14 +401,16 @@ const MatchApp = ({ authMode, csrfToken, dataMode, logout, user }: MatchAppProps
                             alternatives={alternatives}
                             ignorePreferences={ignorePreferences}
                             isBalancing={isBalancing}
+                            isEventRegistrationAvailable={dataMode === 'remote'}
                             isReady={isReady}
                             isResultStale={isResultStale}
                             onCancelSwap={() => setSwapSource(null)}
                             onClearResult={handleClearResult}
                             onIgnorePreferencesChange={setIgnorePreferences}
+                            onOpenEventRegistration={() => setIsEventRegistrationOpen(true)}
                             onRunMatching={() => void handleRunMatching({ ignorePreferences })}
                             onSelectAlternative={handleSelectAlternative}
-                            onShowAllRanksChange={setShowAllRanks}
+                            onShowAllRanksChange={handleShowAllRanksChange}
                             onSlotClick={handleSlotClick}
                             participantCount={participants.length}
                             result={result}
@@ -447,6 +458,30 @@ const MatchApp = ({ authMode, csrfToken, dataMode, logout, user }: MatchAppProps
                         />
                     </Suspense>
                 )}
+            </AnimatePresence>
+            <AnimatePresence>
+                {isEventRegistrationOpen ? (
+                    <Suspense
+                        fallback={(
+                            <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/85 text-sm text-slate-400 backdrop-blur-sm">
+                                이벤트 참여 등록을 여는 중…
+                            </div>
+                        )}
+                    >
+                        <EventParticipantRegistrationModal
+                            csrfToken={csrfToken}
+                            players={participants}
+                            onClose={() => setIsEventRegistrationOpen(false)}
+                            onSuccess={(addedCount, totalCount) => {
+                                setIsEventRegistrationOpen(false);
+                                showToast(
+                                    'success',
+                                    `이번 내전 ${addedCount}명을 등록했습니다. 누적 참여자 ${totalCount}명`,
+                                );
+                            }}
+                        />
+                    </Suspense>
+                ) : null}
             </AnimatePresence>
             <AnimatePresence>
                 {pendingIdentityImport && (
@@ -508,12 +543,64 @@ const MatchApp = ({ authMode, csrfToken, dataMode, logout, user }: MatchAppProps
     );
 };
 
+type AuthenticatedAppProps = Omit<
+    MatchAppProps,
+    'isPageNavigating' | 'navigate' | 'pathname'
+>;
+
+/**
+ * @description 경로를 먼저 분기해 이벤트 화면에서 매칭·유저 시트 데이터를 불필요하게 불러오지 않는다.
+ */
+const AuthenticatedApp = (props: AuthenticatedAppProps) => {
+    const [pathname, setPathname] = useState(() => (
+        window.location.pathname.replace(/\/+$/, '') || '/'
+    ));
+    const [isPageNavigating, setIsPageNavigating] = useState(false);
+
+    useEffect(() => {
+        const syncPathname = () => setPathname(window.location.pathname.replace(/\/+$/, '') || '/');
+        window.addEventListener('popstate', syncPathname);
+        return () => window.removeEventListener('popstate', syncPathname);
+    }, []);
+
+    const navigate = useCallback((nextPathname: string) => {
+        if (nextPathname === pathname) return;
+        setIsPageNavigating(true);
+        window.setTimeout(() => {
+            window.history.pushState({}, '', nextPathname);
+            setPathname(nextPathname);
+            window.setTimeout(() => setIsPageNavigating(false), 180);
+        }, 120);
+    }, [pathname]);
+
+    if (pathname === '/event-participants') {
+        return (
+            <MotionConfig reducedMotion="user">
+                <EventParticipantsPage
+                    csrfToken={props.csrfToken}
+                    onClose={() => navigate('/')}
+                />
+                <AnimatePresence>{isPageNavigating && <PageLoadingBar />}</AnimatePresence>
+            </MotionConfig>
+        );
+    }
+
+    return (
+        <MatchApp
+            {...props}
+            isPageNavigating={isPageNavigating}
+            navigate={navigate}
+            pathname={pathname}
+        />
+    );
+};
+
 const App = () => {
     const { authMode, csrfToken, dataMode, error, isLoading, logout, retry, user } = useAuth();
     if (isLoading) return <LoadingScreen />;
     if (!user) return <LoginScreen serviceError={error} onRetry={retry} />;
     return (
-        <MatchApp
+        <AuthenticatedApp
             authMode={authMode}
             csrfToken={csrfToken}
             dataMode={dataMode}

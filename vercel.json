@@ -3,9 +3,24 @@
   "framework": "vite",
   "buildCommand": "pnpm build",
   "outputDirectory": "dist",
+  "headers": [
+    {
+      "source": "/version.json",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0"
+        }
+      ]
+    }
+  ],
   "rewrites": [
     {
       "source": "/scrims",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/event-participants",
       "destination": "/index.html"
     },
     {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { MatchResultData, Player, Rank, Role } from '../../types';
-import { balancePlayers, recalculateMatchResult, swapMatchResultPlayers } from './index';
+import type { Player, Rank, Role } from '../../player/shared/public';
+import type { MatchResultData } from '../shared/public';
+import { balancePlayers, recalculateMatchResult, swapMatchResultPlayers } from '../shared/public';
 
 const createRank = (role: Role, preferredRole: Role): Rank => ({
     tier: 'DIAMOND',
@@ -181,7 +182,43 @@ describe('balancePlayers', () => {
         expect(recalculated.metrics).toMatchObject({
             preferenceViolations: expect.any(Number),
             avoidedAssignments: expect.any(Number),
+            unrankedAssignments: expect.any(Number),
         });
+    });
+
+    it('미배치 역할 배정을 별도 집계하고 가능한 조합에서는 피한다', () => {
+        const roles: Role[] = ['TANK', 'TANK', 'DPS', 'DPS', 'DPS', 'DPS', 'SUPPORT', 'SUPPORT', 'SUPPORT', 'SUPPORT'];
+        const players = roles.map((role, index) => createPlayer(index + 1, role));
+        players[2].sup = {
+            tier: 'UNRANKED',
+            div: 0,
+            score: 0,
+            isPreferred: false,
+            isAvoided: false,
+        };
+
+        const result = balancePlayers(players).result;
+        const assignedSupportIds = [
+            ...result.teamA.assignment.SUPPORT,
+            ...result.teamB.assignment.SUPPORT,
+        ].map(player => player.id);
+
+        expect(assignedSupportIds).not.toContain(players[2].id);
+        expect(result.metrics?.unrankedAssignments).toBe(0);
+    });
+
+    it('점수가 0인 브론즈 5를 미배치로 오인하지 않는다', () => {
+        const roles: Role[] = ['TANK', 'TANK', 'DPS', 'DPS', 'DPS', 'DPS', 'SUPPORT', 'SUPPORT', 'SUPPORT', 'SUPPORT'];
+        const players = roles.map((role, index) => createPlayer(index + 1, role));
+        players[0].tank = {
+            tier: 'BRONZE',
+            div: 5,
+            score: 0,
+            isPreferred: true,
+            isAvoided: false,
+        };
+
+        expect(balancePlayers(players).result.metrics?.unrankedAssignments).toBe(0);
     });
 
     it('가이드 교체도 원본을 보존하면서 선수와 밸런스 지표를 함께 갱신한다', () => {

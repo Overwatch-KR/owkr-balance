@@ -13,7 +13,9 @@ interface TooltipRowProps {
 
 const TooltipRow = ({ icon, label, rank }: TooltipRowProps) => (
     <div className={`flex items-center justify-between text-xs ${
-        rank.isPreferred ? 'text-amber-400' : rank.isAvoided ? 'text-rose-400' : 'text-slate-400'
+        rank.tier === 'UNRANKED'
+            ? 'text-slate-300'
+            : rank.isPreferred ? 'text-amber-400' : rank.isAvoided ? 'text-rose-400' : 'text-slate-400'
     }`}>
         <div className="flex items-center gap-1.5">
             {icon}
@@ -22,7 +24,7 @@ const TooltipRow = ({ icon, label, rank }: TooltipRowProps) => (
             {rank.isAvoided && <Ban size={10} aria-hidden="true" />}
         </div>
         <span
-            className={`font-mono ${rank.isPreferred ? 'font-semibold' : ''}`}
+            className={`font-mono ${rank.tier === 'UNRANKED' ? 'rounded border border-slate-600/60 bg-slate-800/70 px-1.5 py-0.5' : rank.isPreferred ? 'font-semibold' : ''}`}
             data-tier={rank.tier}
         >
             {formatRank(rank).replace('★', '').replace('?', '')}
