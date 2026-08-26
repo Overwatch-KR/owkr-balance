@@ -1,0 +1,2 @@
+Temporary file for verifying GitHub integration write and pull request permissions.
+Created on 2026-08-26.
