@@ -1,6 +1,9 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
-import { swapMatchResultPlayers } from '../domains/balance/shared/public';
+import {
+    MATCH_LIVE_MAX_PARTICIPANTS,
+    swapMatchResultPlayers,
+} from '../domains/balance/shared/public';
 import {
     isMatchResultStale,
 } from './utils/player';
@@ -9,9 +12,11 @@ import {
     normalizeUserSheetBattleTag,
 } from './utils/user-sheet';
 import { createMatchShareCode, loadMatchShare } from './utils/match-share';
+import type { LoadedMatchLiveSession } from './utils/match-live-share';
 import { useOnboardingGuide } from './hooks/use-onboarding-guide';
 import { useToast } from './hooks/use-toast';
 import { useMatchActions } from './hooks/use-match-actions';
+import { useMatchLiveShare } from './hooks/use-match-live-share';
 import { useRosterManagement } from './hooks/use-roster-management';
 import { useAuth, type AuthMode, type AuthUser, type DataMode } from './hooks/use-auth';
 import { useMatchSession } from './hooks/use-match-session';
@@ -36,6 +41,7 @@ import {
     type ErrorDetails,
 } from './components/common/error-details-modal';
 import { AppHeader } from './components/layout/app-header';
+import { MatchLiveControls } from './components/match/match-live-controls';
 import { MatchResultPanel } from './components/match/match-result-panel';
 import { MatchShareControls } from './components/match/match-share-controls';
 import { EventParticipantsPage } from './components/event/event-participants-page';
@@ -157,6 +163,7 @@ const MatchApp = ({
     }, [navigate]);
     const {
         addPlayer,
+        addUserSheetPlayer,
         cancelIdentityImport,
         editingPlayerId,
         failedParses,
@@ -304,6 +311,61 @@ const MatchApp = ({
     const participantBattleTags = useMemo(() => new Set(
         players.slice(0, 10).map(player => normalizeUserSheetBattleTag(player.name)),
     ), [players]);
+    const handleApplyLiveMatch = useCallback((loaded: LoadedMatchLiveSession) => {
+        userSheet.updateSnapshot(loaded.userSheet);
+        setPlayers(loaded.players);
+        setResult(loaded.result);
+        setAlternatives([]);
+        setSwapSource(null);
+    }, [setAlternatives, setPlayers, setResult, userSheet.updateSnapshot]);
+    const handleLiveConflict = useCallback((message: string) => {
+        showToast('error', message);
+    }, [showToast]);
+    const {
+        isConnected: isLiveConnected,
+        isConnecting: isLiveConnecting,
+        isPublishing: isLivePublishing,
+        joinSession: joinLiveSession,
+        leaveSession: leaveLiveSession,
+        session: liveSession,
+        startSession: startLiveSession,
+        syncError: liveSyncError,
+    } = useMatchLiveShare({
+        csrfToken,
+        enabled: dataMode === 'remote',
+        players,
+        result: isResultStale ? null : result,
+        onApplyRemote: handleApplyLiveMatch,
+        onConflict: handleLiveConflict,
+    });
+    const canStartLiveSession = players.length <= MATCH_LIVE_MAX_PARTICIPANTS
+        && players.every(player => /^\d{17,20}$/.test(
+            player.discordUserId?.replace(/\D/g, '').trim() ?? '',
+        ));
+    const handleStartLiveSession = useCallback(async (): Promise<string> => {
+        try {
+            const created = await startLiveSession();
+            showToast('success', `실시간 공동 작업 코드 ${created.code}를 만들었습니다.`);
+            return created.code;
+        } catch (error) {
+            showToast('error', getErrorMessage(error, '실시간 공동 작업을 시작하지 못했습니다.'));
+            throw error;
+        }
+    }, [showToast, startLiveSession]);
+    const handleJoinLiveSession = useCallback(async (code: string): Promise<void> => {
+        try {
+            const loaded = await joinLiveSession(code);
+            navigate(loaded.result ? '/' : '/participants');
+            showToast('success', '공동 작업 명단을 최신 유저 시트 기준으로 연결했습니다.');
+        } catch (error) {
+            showToast('error', getErrorMessage(error, '실시간 공동 작업에 참여하지 못했습니다.'));
+            throw error;
+        }
+    }, [joinLiveSession, navigate, showToast]);
+    const handleLeaveLiveSession = useCallback(() => {
+        leaveLiveSession();
+        showToast('success', '실시간 공동 작업 연결을 종료했습니다. 현재 화면의 명단은 유지됩니다.');
+    }, [leaveLiveSession, showToast]);
     const handleCreateMatchShare = useCallback(async (): Promise<string> => {
         try {
             if (!result || isResultStale) {
@@ -451,6 +513,11 @@ const MatchApp = ({
                         participantCount={participants.length}
                         waitlistCount={waitlist.length}
                         reviewCount={failedParses.length}
+                        userSheetEntries={userSheet.entries}
+                        userSheetError={userSheet.error}
+                        userSheetIsLoading={userSheet.isLoading}
+                        onAddUserSheetEntry={addUserSheetPlayer}
+                        onRetryUserSheet={() => void userSheet.retry()}
                         onContinueToMatching={() => navigate('/')}
                         onClose={() => navigate('/')}
                     />
@@ -467,6 +534,18 @@ const MatchApp = ({
                         </div>
 
                         <div className="grid min-w-0 content-start gap-4">
+                            <MatchLiveControls
+                                canStart={canStartLiveSession}
+                                isConnected={isLiveConnected}
+                                isConnecting={isLiveConnecting}
+                                isPublishing={isLivePublishing}
+                                isRemote={dataMode === 'remote'}
+                                session={liveSession}
+                                syncError={liveSyncError}
+                                onStart={handleStartLiveSession}
+                                onJoin={handleJoinLiveSession}
+                                onLeave={handleLeaveLiveSession}
+                            />
                             <MatchShareControls
                                 canCreate={Boolean(result) && !isResultStale}
                                 isRemote={dataMode === 'remote'}
