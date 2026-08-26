@@ -18,7 +18,11 @@ const participants: MatchShareParticipant[] = MATCH_SHARE_POSITIONS.map((positio
 const createRedis = () => {
     const values = new Map<string, unknown>();
     const get = vi.fn(async (key: string) => structuredClone(values.get(key) ?? null));
-    const set = vi.fn(async (key: string, value: unknown) => {
+    const set = vi.fn(async (
+        key: string,
+        value: unknown,
+        _options?: { ex?: number },
+    ) => {
         values.set(key, structuredClone(value));
         return 'OK';
     });
