@@ -6,7 +6,7 @@ import {
     type RosterValidationIssue,
 } from '../utils/parser';
 
-export type PlayerInputMode = 'discord' | 'manual' | 'mentions';
+export type PlayerInputMode = 'discord' | 'manual' | 'mentions' | 'sheet';
 
 const ROSTER_PASTE_VALIDATION_DELAY_MS = 350;
 
