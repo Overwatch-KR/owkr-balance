@@ -3,14 +3,17 @@ import {
     AlertCircle,
     ArrowLeft,
     ArrowRight,
+    Database,
     ListChecks,
     MessageSquareText,
     User,
     Users,
 } from 'lucide-react';
 import type { PlayerInputMode } from '../../hooks/use-player-input';
+import type { UserSheetEntry } from '../../utils/user-sheet';
 import PlayerForm from './form';
 import PlayerList from './list';
+import { ParticipantUserSheetPicker } from './participant-user-sheet-picker';
 
 interface ParticipantWorkspaceProps {
     formProps: ComponentProps<typeof PlayerForm>;
@@ -18,6 +21,11 @@ interface ParticipantWorkspaceProps {
     participantCount: number;
     waitlistCount: number;
     reviewCount: number;
+    userSheetEntries: UserSheetEntry[];
+    userSheetError: string | null;
+    userSheetIsLoading: boolean;
+    onAddUserSheetEntry: (entry: UserSheetEntry) => void;
+    onRetryUserSheet: () => void;
     onContinueToMatching: () => void;
     onClose: () => void;
 }
@@ -35,6 +43,13 @@ const INPUT_MODES: Array<{
         label: '채팅 붙여넣기',
         description: '여러 명을 한 번에',
         icon: MessageSquareText,
+    },
+    {
+        mode: 'sheet',
+        id: 'user-sheet-input-tab',
+        label: '유저 시트',
+        description: '저장된 유저 검색',
+        icon: Database,
     },
     {
         mode: 'manual',
@@ -57,6 +72,10 @@ const MODE_COPY: Record<PlayerInputMode, { title: string; description: string }>
         title: '채팅 명단 가져오기',
         description: '디스코드 채팅을 붙여넣으면 등급을 확인해 참가 명단에 반영합니다.',
     },
+    sheet: {
+        title: '유저 시트에서 추가',
+        description: '저장된 유저를 검색해 Discord ID와 최신 티어를 그대로 참가 명단에 추가합니다.',
+    },
     manual: {
         title: '참가자 직접 입력',
         description: '배틀태그와 역할별 티어를 입력하거나 기존 참가자 정보를 수정합니다.',
@@ -76,6 +95,11 @@ export const ParticipantWorkspace = ({
     participantCount,
     waitlistCount,
     reviewCount,
+    userSheetEntries,
+    userSheetError,
+    userSheetIsLoading,
+    onAddUserSheetEntry,
+    onRetryUserSheet,
     onContinueToMatching,
     onClose,
 }: ParticipantWorkspaceProps) => {
@@ -161,7 +185,7 @@ export const ParticipantWorkspace = ({
 
             <div className="grid min-w-0 gap-5 xl:grid-cols-[190px_minmax(420px,1fr)_minmax(320px,390px)] xl:items-start">
                 <nav
-                    className="card grid grid-cols-3 gap-2 p-2 xl:sticky xl:top-24 xl:grid-cols-1 xl:p-3"
+                    className="card grid grid-cols-2 gap-2 p-2 sm:grid-cols-4 xl:sticky xl:top-24 xl:grid-cols-1 xl:p-3"
                     aria-label="참가자 입력 방식"
                 >
                     {INPUT_MODES.map(({ mode, id, label, description, icon: Icon }) => {
@@ -198,7 +222,18 @@ export const ParticipantWorkspace = ({
                         <h2 className="text-lg font-semibold text-white">{activeCopy.title}</h2>
                         <p className="mt-1 text-sm text-slate-500">{activeCopy.description}</p>
                     </div>
-                    <PlayerForm {...formProps} variant="workspace" />
+                    {activeMode === 'sheet' ? (
+                        <ParticipantUserSheetPicker
+                            entries={userSheetEntries}
+                            error={userSheetError}
+                            isLoading={userSheetIsLoading}
+                            players={formProps.players}
+                            onAdd={onAddUserSheetEntry}
+                            onRetry={onRetryUserSheet}
+                        />
+                    ) : (
+                        <PlayerForm {...formProps} variant="workspace" />
+                    )}
                 </section>
 
                 <aside className="min-w-0 xl:sticky xl:top-24 xl:h-[calc(100dvh-8rem)]">
