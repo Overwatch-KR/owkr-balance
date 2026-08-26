@@ -21,8 +21,9 @@ const createRedis = () => {
     const set = vi.fn(async (
         key: string,
         value: unknown,
-        _options?: { ex?: number },
+        options?: { ex?: number },
     ) => {
+        void options;
         values.set(key, structuredClone(value));
         return 'OK';
     });
