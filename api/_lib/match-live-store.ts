@@ -20,7 +20,8 @@ export interface StoredMatchLiveSession {
 export type MatchLiveMutationResult =
     | { status: 'OK'; session: StoredMatchLiveSession }
     | { status: 'CONFLICT'; session: StoredMatchLiveSession }
-    | { status: 'INVALID' | 'NOT_FOUND' };
+    | { status: 'INVALID' }
+    | { status: 'NOT_FOUND' };
 
 const UPDATE_MATCH_LIVE_SCRIPT = `
 local currentJson = redis.call('GET', KEYS[1])
