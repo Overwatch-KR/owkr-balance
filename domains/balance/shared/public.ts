@@ -5,6 +5,12 @@ export {
 } from './balance.js';
 
 export {
+    MATCH_LIVE_MAX_PARTICIPANTS,
+    createMatchLiveParticipants,
+    normalizeMatchLiveParticipants,
+} from './match-live-share.js';
+
+export {
     MATCH_SHARE_POSITIONS,
     createMatchShareParticipants,
     normalizeMatchShareCode,
@@ -17,6 +23,11 @@ export type {
     BalanceResult,
     BalanceWorkerResponse,
 } from './balance.js';
+
+export type {
+    MatchLiveParticipant,
+    MatchLiveSessionSnapshot,
+} from './match-live-share.js';
 
 export type {
     MatchShareParticipant,
