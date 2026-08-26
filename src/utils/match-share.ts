@@ -2,7 +2,6 @@ import {
     createMatchShareParticipants,
     normalizeMatchShareCode,
     normalizeMatchShareParticipants,
-    parseMatchSharePosition,
     recalculateMatchResult,
     type MatchResultData,
     type MatchShareParticipant,
@@ -71,6 +70,15 @@ const getPositionPlayer = (
 };
 
 /**
+ * @description 팀과 역할 슬롯을 검증된 공유 위치 타입으로 조합한다.
+ */
+const getTeamPosition = (
+    team: 'A' | 'B',
+    role: 'TANK' | 'DPS' | 'SUPPORT',
+    index: number,
+): MatchSharePosition => `${team}:${role}:${index}` as MatchSharePosition;
+
+/**
  * @description 공유된 Discord ID·배치 위치를 현재 유저 시트 티어와 결합해 명단과 동일한 팀 결과를 복원한다.
  */
 export const hydrateMatchShare = (
@@ -115,14 +123,14 @@ export const hydrateMatchShare = (
     }
 
     const teamAssignment = (team: 'A' | 'B') => ({
-        TANK: [getPositionPlayer(playersByPosition, `${team}:TANK:0`)],
+        TANK: [getPositionPlayer(playersByPosition, getTeamPosition(team, 'TANK', 0))],
         DPS: [
-            getPositionPlayer(playersByPosition, `${team}:DPS:0`),
-            getPositionPlayer(playersByPosition, `${team}:DPS:1`),
+            getPositionPlayer(playersByPosition, getTeamPosition(team, 'DPS', 0)),
+            getPositionPlayer(playersByPosition, getTeamPosition(team, 'DPS', 1)),
         ],
         SUPPORT: [
-            getPositionPlayer(playersByPosition, `${team}:SUPPORT:0`),
-            getPositionPlayer(playersByPosition, `${team}:SUPPORT:1`),
+            getPositionPlayer(playersByPosition, getTeamPosition(team, 'SUPPORT', 0)),
+            getPositionPlayer(playersByPosition, getTeamPosition(team, 'SUPPORT', 1)),
         ],
     });
 
@@ -131,11 +139,9 @@ export const hydrateMatchShare = (
         teamB: { name: 'TEAM 2', assignment: teamAssignment('B'), realScore: 0 },
         diff: 0,
     });
-    const players = participants.map(participant => {
-        const { position } = participant;
-        parseMatchSharePosition(position);
-        return getPositionPlayer(playersByPosition, position);
-    });
+    const players = participants.map(participant => (
+        getPositionPlayer(playersByPosition, participant.position)
+    ));
 
     return { players, result };
 };
