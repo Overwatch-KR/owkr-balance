@@ -8,6 +8,7 @@ import {
     createUserSheetPlayerLookup,
     normalizeUserSheetBattleTag,
 } from './utils/user-sheet';
+import { createMatchShareCode, loadMatchShare } from './utils/match-share';
 import { useOnboardingGuide } from './hooks/use-onboarding-guide';
 import { useToast } from './hooks/use-toast';
 import { useMatchActions } from './hooks/use-match-actions';
@@ -36,6 +37,7 @@ import {
 } from './components/common/error-details-modal';
 import { AppHeader } from './components/layout/app-header';
 import { MatchResultPanel } from './components/match/match-result-panel';
+import { MatchShareControls } from './components/match/match-share-controls';
 import { EventParticipantsPage } from './components/event/event-participants-page';
 import { ScrimManager } from './components/scrim/scrim-manager';
 
@@ -302,6 +304,34 @@ const MatchApp = ({
     const participantBattleTags = useMemo(() => new Set(
         players.slice(0, 10).map(player => normalizeUserSheetBattleTag(player.name)),
     ), [players]);
+    const handleCreateMatchShare = useCallback(async (): Promise<string> => {
+        try {
+            if (!result || isResultStale) {
+                throw new Error('최신 팀 배정 결과가 있어야 공유할 수 있습니다.');
+            }
+            const code = await createMatchShareCode(result, csrfToken);
+            showToast('success', `공유 코드 ${code}를 만들었습니다.`);
+            return code;
+        } catch (error) {
+            showToast('error', getErrorMessage(error, '공유 코드를 만들지 못했습니다.'));
+            throw error;
+        }
+    }, [csrfToken, isResultStale, result, showToast]);
+    const handleImportMatchShare = useCallback(async (code: string): Promise<void> => {
+        try {
+            const shared = await loadMatchShare(code);
+            userSheet.updateSnapshot(shared.userSheet);
+            setPlayers(shared.players);
+            setResult(shared.result);
+            setAlternatives([]);
+            setSwapSource(null);
+            navigate('/');
+            showToast('success', '공유된 명단과 밸런스를 최신 유저 시트 티어로 불러왔습니다.');
+        } catch (error) {
+            showToast('error', getErrorMessage(error, '공유된 명단과 밸런스를 불러오지 못했습니다.'));
+            throw error;
+        }
+    }, [navigate, setAlternatives, setPlayers, setResult, showToast, userSheet]);
     const handleLogout = async () => {
         if (isLoggingOut) return;
         setIsLoggingOut(true);
@@ -436,25 +466,33 @@ const MatchApp = ({
                             <PlayerList {...playerListProps} />
                         </div>
 
-                        <MatchResultPanel
-                            alternatives={alternatives}
-                            ignorePreferences={ignorePreferences}
-                            isBalancing={isBalancing}
-                            isReady={isReady}
-                            isResultStale={isResultStale}
-                            onCancelSwap={() => setSwapSource(null)}
-                            onClearResult={handleClearResult}
-                            onIgnorePreferencesChange={setIgnorePreferences}
-                            onRunMatching={() => void handleRunMatching({ ignorePreferences })}
-                            onSelectAlternative={handleSelectAlternative}
-                            onShowAllRanksChange={handleShowAllRanksChange}
-                            onSlotClick={handleSlotClick}
-                            participantCount={participants.length}
-                            result={result}
-                            showAllRanks={showAllRanks}
-                            swapSource={swapSource}
-                            userSheetByBattleTag={userSheetByBattleTag}
-                        />
+                        <div className="grid min-w-0 content-start gap-4">
+                            <MatchShareControls
+                                canCreate={Boolean(result) && !isResultStale}
+                                isRemote={dataMode === 'remote'}
+                                onCreate={handleCreateMatchShare}
+                                onImport={handleImportMatchShare}
+                            />
+                            <MatchResultPanel
+                                alternatives={alternatives}
+                                ignorePreferences={ignorePreferences}
+                                isBalancing={isBalancing}
+                                isReady={isReady}
+                                isResultStale={isResultStale}
+                                onCancelSwap={() => setSwapSource(null)}
+                                onClearResult={handleClearResult}
+                                onIgnorePreferencesChange={setIgnorePreferences}
+                                onRunMatching={() => void handleRunMatching({ ignorePreferences })}
+                                onSelectAlternative={handleSelectAlternative}
+                                onShowAllRanksChange={handleShowAllRanksChange}
+                                onSlotClick={handleSlotClick}
+                                participantCount={participants.length}
+                                result={result}
+                                showAllRanks={showAllRanks}
+                                swapSource={swapSource}
+                                userSheetByBattleTag={userSheetByBattleTag}
+                            />
+                        </div>
                     </div>
                 )}
             </main>
