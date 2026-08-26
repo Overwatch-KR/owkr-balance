@@ -2,6 +2,7 @@ import { useCallback, useState, type Dispatch, type SetStateAction } from 'react
 import { getTierScore } from '../constants';
 import {
     getEligibleRosterPlayers,
+    parseLineToPlayer,
     parseMultipleLines,
 } from '../utils/parser';
 import {
@@ -16,6 +17,7 @@ import {
     normalizeUserSheetBattleTag,
     syncRosterPlayersToUserSheet,
     type SyncRosterUserSheetResult,
+    type UserSheetEntry,
     type UserSheetSnapshot,
 } from '../utils/user-sheet';
 import type { MatchResultData, Player, SwapSource } from '../types';
@@ -103,6 +105,62 @@ export const useRosterManagement = ({
         editPlayer(player);
         setManualInputError('');
     }, [editPlayer]);
+
+    const addUserSheetPlayer = useCallback((entry: UserSheetEntry) => {
+        const discordUserId = entry.discordUserId?.replace(/\D/g, '').trim() ?? '';
+        if (!/^\d{17,20}$/.test(discordUserId)) {
+            showDetailedError('Discord ID가 없는 유저는 참가자로 추가할 수 없습니다.', {
+                title: '유저 시트 연결 정보가 필요합니다',
+                description: `${entry.discordName || entry.battleTag} 유저의 Discord ID를 먼저 유저 시트에 저장해 주세요.`,
+                hint: '유저 시트에서 Discord ID를 보완한 뒤 다시 추가해 주세요.',
+            });
+            return;
+        }
+
+        const duplicate = match.players.find(player => (
+            player.userSheetEntryId === entry.id
+            || player.discordUserId === discordUserId
+            || normalizeUserSheetBattleTag(player.name) === normalizeUserSheetBattleTag(entry.battleTag)
+        ));
+        if (duplicate) {
+            showDetailedError('이미 참가 명단에 있는 유저입니다.', {
+                title: '중복 참가자를 추가할 수 없습니다',
+                description: `${duplicate.discordName ?? duplicate.name} 참가자가 현재 명단 또는 대기열에 이미 있습니다.`,
+                hint: '기존 참가자 카드를 수정하거나 먼저 제거한 뒤 다시 추가해 주세요.',
+            });
+            return;
+        }
+
+        const parsed = parseLineToPlayer(
+            `${entry.battleTag} ${entry.tank || '-'}/${entry.dps || '-'}/${entry.support || '-'}`,
+            entry.discordName,
+        );
+        const rankedRoleCount = parsed
+            ? [parsed.tank, parsed.dps, parsed.sup].filter(rank => rank.tier !== 'UNRANKED').length
+            : 0;
+        if (!parsed || rankedRoleCount < 2) {
+            showDetailedError('유저 시트의 티어 정보로 참가자를 만들지 못했습니다.', {
+                title: '역할 티어를 확인해 주세요',
+                description: `${entry.discordName || entry.battleTag} 유저는 최소 2개 포지션의 정식 티어가 필요합니다.`,
+                hint: '유저 시트의 탱커·딜러·힐러 티어를 보완한 뒤 다시 추가해 주세요.',
+            });
+            return;
+        }
+
+        const willJoinWaitlist = match.players.length >= 10;
+        const player: Player = {
+            ...parsed,
+            id: Date.now() + match.players.length,
+            discordName: entry.discordName.trim() || undefined,
+            discordUserId,
+            userSheetEntryId: entry.id,
+        };
+        match.setPlayers(previous => [...previous, player]);
+        setInputSummary(willJoinWaitlist
+            ? `유저 시트에서 대기열 추가 · ${player.discordName ?? player.name}`
+            : `유저 시트에서 참가자 추가 · ${player.discordName ?? player.name}`);
+        if (match.players.length + 1 === 10) onRosterCompleted();
+    }, [match, onRosterCompleted, showDetailedError]);
 
     const addPlayer = () => {
         if (!inputs.name.trim()) {
@@ -356,6 +414,7 @@ export const useRosterManagement = ({
 
     return {
         addPlayer,
+        addUserSheetPlayer,
         cancelIdentityImport,
         editingPlayerId,
         failedParses,
