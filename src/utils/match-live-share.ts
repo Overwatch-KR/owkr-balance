@@ -30,6 +30,8 @@ export interface LoadedMatchLiveSession {
     userSheet: UserSheetSnapshot;
 }
 
+const MATCH_LIVE_API = '/api/match-shares?mode=live';
+
 /**
  * @description 유저 시트의 현재 BattleTag·역할 티어를 공동 작업 Player 모델로 변환한다.
  */
@@ -196,7 +198,7 @@ export const createMatchLiveSession = async (
     if (!participants) {
         throw new Error('공동 작업하려면 참가자 모두 유저 시트의 Discord ID와 연결되어 있어야 합니다.');
     }
-    const response = await requestJson<MatchLiveCreateResponse>('/api/match-live', {
+    const response = await requestJson<MatchLiveCreateResponse>(MATCH_LIVE_API, {
         method: 'POST',
         credentials: 'same-origin',
         headers: {
@@ -219,7 +221,7 @@ export const fetchMatchLiveSession = async (
     const code = normalizeMatchShareCode(codeInput);
     if (code.length !== 10) throw new Error('공동 작업 코드 10자리를 확인해 주세요.');
     const response = await requestJson<MatchLiveSessionSnapshot>(
-        `/api/match-live?code=${encodeURIComponent(code)}`,
+        `${MATCH_LIVE_API}&code=${encodeURIComponent(code)}`,
         { credentials: 'same-origin' },
     );
     const session = normalizeMatchLiveSessionSnapshot(response);
@@ -253,7 +255,7 @@ export const updateMatchLiveSession = async (
     if (!participants) {
         throw new Error('Discord ID가 없는 참가자가 있어 공동 작업 상태를 동기화할 수 없습니다.');
     }
-    const response = await requestJson<MatchLiveSessionSnapshot>('/api/match-live', {
+    const response = await requestJson<MatchLiveSessionSnapshot>(MATCH_LIVE_API, {
         method: 'PUT',
         credentials: 'same-origin',
         headers: {
