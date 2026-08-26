@@ -71,9 +71,9 @@ describe('match live store', () => {
     it('기대 revision이 맞을 때만 다음 revision으로 갱신한다', async () => {
         const { redis } = createRedis();
         const created = await createMatchLiveSession(redis, participants);
-        const nextParticipants = [
+        const nextParticipants: MatchLiveParticipant[] = [
             ...participants,
-            { discordUserId: '11111111111111103', position: null as const },
+            { discordUserId: '11111111111111103', position: null },
         ];
 
         const updated = await updateMatchLiveSession(
