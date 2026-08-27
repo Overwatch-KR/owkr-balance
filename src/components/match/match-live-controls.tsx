@@ -3,7 +3,7 @@ import { Check, ClipboardCopy, Link2, Loader2, LogOut, Radio, Users } from 'luci
 import {
     normalizeMatchShareCode,
     type MatchLiveSessionSnapshot,
-} from '../../../domains/balance/shared/public';
+} from '#domain/balance';
 
 interface MatchLiveControlsProps {
     canStart: boolean;

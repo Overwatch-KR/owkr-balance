@@ -37,7 +37,9 @@ export default defineConfig({
   plugins: [boundra(), react(), appVersionPlugin(buildVersion)],
   resolve: {
     alias: {
-      'src': path.resolve(__dirname, './src')
+      src: path.resolve(__dirname, './src'),
+      '@application': path.resolve(__dirname, './src/application'),
+      '@presentation': path.resolve(__dirname, './src/components'),
     },
   },
 })

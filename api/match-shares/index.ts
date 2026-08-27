@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { normalizeMatchShareCode } from '../../domains/balance/shared/public.js';
+import { normalizeMatchShareCode } from '#domain/balance';
 import { getSessionUser, hasValidCsrfToken } from '../_lib/auth.js';
 import { sendUnexpectedError } from '../_lib/error.js';
 import { disableResponseCache } from '../_lib/http.js';

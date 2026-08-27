@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Check, ClipboardCopy, Download, Loader2, Share2 } from 'lucide-react';
-import { normalizeMatchShareCode } from '../../../domains/balance/shared/public';
+import { normalizeMatchShareCode } from '#domain/balance';
 
 interface MatchShareControlsProps {
     canCreate: boolean;

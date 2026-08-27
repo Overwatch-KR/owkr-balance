@@ -18,6 +18,12 @@ OWKR Balance의 운영 배포 내용을 날짜별로 정리한 문서입니다.
 
 ## 미배포
 
+### 2026-08-27
+
+- 프런트엔드에 `application` 계층을 도입해 참가자 편집·명단 가져오기 오케스트레이션을 표현 컴포넌트와 분리하고, ESLint로 application → presentation 역방향 의존을 차단했습니다.
+- 클라이언트와 Vercel Functions의 도메인 공개 API import를 `#domain/*` 진입점으로 정리하고, `@application/*`·`@presentation/*` 경로 별칭과 구조 규칙을 추가했습니다.
+- 참가자 작업실·이벤트 참여자·내전 관리 페이지의 상단 내비게이션을 공통 `PageHeader` breadcrumb 구조로 통일했습니다.
+
 ### 2026-08-26
 
 - 관리자끼리 같은 10자리 코드로 참가 명단·대기열·팀 역할 배치를 연결하고, Redis revision 충돌 검증과 약 1.5초 주기 동기화로 실시간 공동 작업할 수 있도록 추가했습니다.

@@ -6,7 +6,7 @@ export type {
     Rank,
     Role,
     Tier,
-} from '../../domains/player/shared/public';
+} from '#domain/player';
 
 export type {
     BalanceMetrics,
@@ -15,4 +15,4 @@ export type {
     RoleAssignment,
     SwapSource,
     TeamResult,
-} from '../../domains/balance/shared/public';
+} from '#domain/balance';

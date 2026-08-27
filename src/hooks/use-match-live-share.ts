@@ -3,7 +3,7 @@ import {
     createMatchLiveParticipants,
     type MatchLiveSessionSnapshot,
     type MatchResultData,
-} from '../../domains/balance/shared/public';
+} from '#domain/balance';
 import type { Player } from '../types';
 import { getErrorMessage } from '../utils/api';
 import {

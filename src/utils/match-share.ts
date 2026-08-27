@@ -6,7 +6,7 @@ import {
     type MatchResultData,
     type MatchShareParticipant,
     type MatchSharePosition,
-} from '../../domains/balance/shared/public';
+} from '#domain/balance';
 import type { Player } from '../types';
 import { requestJson } from './api';
 import { parseLineToPlayer } from './parser/index';

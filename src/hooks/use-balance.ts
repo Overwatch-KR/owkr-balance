@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { MatchResultData, Player } from '../types';
-import type { BalanceOptions, BalanceWorkerResponse } from '../../domains/balance/shared/public';
+import type { BalanceOptions, BalanceWorkerResponse } from '#domain/balance';
 
 interface BalanceTeamsOptions extends BalanceOptions {
     preserveResult?: MatchResultData;

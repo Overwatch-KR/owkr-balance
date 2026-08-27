@@ -8,7 +8,7 @@ import {
     type MatchLiveSessionSnapshot,
     type MatchResultData,
     type MatchSharePosition,
-} from '../../domains/balance/shared/public';
+} from '#domain/balance';
 import type { Player } from '../types';
 import { findApiError, requestJson } from './api';
 import { parseLineToPlayer } from './parser/index';
