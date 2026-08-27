@@ -150,22 +150,14 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
         return () => window.removeEventListener(NAVIGATION_STATE_EVENT, handleNavigationState);
     }, []);
 
-    useEffect(() => {
-        setIsMoreOpen(false);
-        if (pathname !== '/' && pathname !== '/participants') {
-            setNavigationState(current => ({
-                ...current,
-                isGuideOpen: false,
-                isUserSheetOpen: false,
-            }));
-        }
-    }, [pathname]);
-
     const userName = user?.globalName ?? user?.username ?? '관리자';
     const accountStatus = useMemo(() => {
         if (authMode === 'discord') return 'Discord 관리자';
         return dataMode === 'local' ? '로컬 전용' : '로컬 인증';
     }, [authMode, dataMode]);
+    const isWorkspacePath = pathname === '/' || pathname === '/participants';
+    const isUserSheetActive = isWorkspacePath && navigationState.isUserSheetOpen;
+    const isGuideActive = isWorkspacePath && navigationState.isGuideOpen;
 
     const navigate = (nextPathname: string) => {
         const normalized = nextPathname.replace(/\/+$/, '') || '/';
@@ -177,7 +169,7 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
 
     const requestWorkspaceAction = (action: PendingNavigationAction) => {
         setIsMoreOpen(false);
-        if (pathname === '/' || pathname === '/participants') {
+        if (isWorkspacePath) {
             window.dispatchEvent(new Event(
                 action === 'user-sheet' ? OPEN_USER_SHEET_EVENT : OPEN_GUIDE_EVENT,
             ));
@@ -288,7 +280,7 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                             onClick={() => navigate('/scrims')}
                         />
                         <NavigationButton
-                            active={navigationState.isUserSheetOpen}
+                            active={isUserSheetActive}
                             collapsed={isCollapsed}
                             icon={FileSpreadsheet}
                             label="유저 시트"
@@ -314,7 +306,7 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
 
                     <div className="mt-auto space-y-2 pt-4">
                         <NavigationButton
-                            active={navigationState.isGuideOpen}
+                            active={isGuideActive}
                             collapsed={isCollapsed}
                             icon={BookOpen}
                             label="매칭 가이드"
@@ -379,14 +371,14 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                     onClick={() => navigate('/scrims')}
                 />
                 <MobileNavigationButton
-                    active={navigationState.isUserSheetOpen}
+                    active={isUserSheetActive}
                     icon={FileSpreadsheet}
                     label="유저 시트"
                     onClick={() => requestWorkspaceAction('user-sheet')}
                     showError={navigationState.userSheetHasError}
                 />
                 <MobileNavigationButton
-                    active={isMoreOpen || pathname === '/event-participants' || navigationState.isGuideOpen}
+                    active={isMoreOpen || pathname === '/event-participants' || isGuideActive}
                     icon={MoreHorizontal}
                     label="더보기"
                     onClick={() => setIsMoreOpen(current => !current)}
@@ -428,7 +420,7 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                                 onClick={() => navigate('/event-participants')}
                             />
                             <NavigationButton
-                                active={navigationState.isGuideOpen}
+                                active={isGuideActive}
                                 icon={BookOpen}
                                 label="매칭 가이드"
                                 onClick={() => requestWorkspaceAction('guide')}
