@@ -4,6 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "packageManager": "pnpm@11.9.0",
+  "imports": {
+    "#domain/balance": "./domains/balance/shared/public.ts",
+    "#domain/player": "./domains/player/shared/public.ts",
+    "#domain/scrim": "./domains/scrim/shared/public.ts",
+    "#domain/scrim/rules": "./domains/scrim/shared/rules.ts"
+  },
   "scripts": {
     "dev": "vite",
     "dev:full": "dotenv -e .env.local -- vercel dev",

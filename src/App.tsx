@@ -3,7 +3,7 @@ import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 import {
     MATCH_LIVE_MAX_PARTICIPANTS,
     swapMatchResultPlayers,
-} from '../domains/balance/shared/public';
+} from '#domain/balance';
 import {
     isMatchResultStale,
 } from './utils/player';
