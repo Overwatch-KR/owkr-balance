@@ -29,6 +29,21 @@ export default tseslint.config(
         },
     },
     {
+        files: ['src/application/**/*.{ts,tsx}'],
+        rules: {
+            'no-restricted-imports': ['error', {
+                patterns: [{
+                    group: [
+                        '../../components/**',
+                        '../components/**',
+                        '@presentation/**',
+                    ],
+                    message: 'application 계층은 presentation 컴포넌트에 의존할 수 없습니다.',
+                }],
+            }],
+        },
+    },
+    {
         files: ['api/**/*.ts', '*.{js,ts}'],
         languageOptions: {
             ecmaVersion: 'latest',
