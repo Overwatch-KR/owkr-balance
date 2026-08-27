@@ -15,20 +15,23 @@ OWKR Match is a web-based Overwatch 2 team balancing tool for managing competiti
 
 ```
 src/
-├── components/          # React components by feature
+├── App.tsx              # Composition root while app routing is incrementally extracted
+├── application/         # Cross-component use cases and orchestration
+│   └── roster/          # Roster editing/import workflows
+├── components/          # Presentation by feature
 │   ├── event/           # Event participation registration and management
+│   ├── layout/          # Shared page/header structure
 │   ├── player/form/     # Player input + bulk paste
 │   ├── player/list/     # Player list display
 │   ├── match/result/    # Team cards + swap UI
-│   ├── scrim/          # Scrim operations, surveys, and reviews
+│   ├── scrim/           # Scrim operations, surveys, and reviews
 │   └── roles/icon/      # Role icons
-├── hooks/
-│   └── use-balance.ts  # Balance worker state
-├── types/              # Compatibility exports for domain types
-├── constants/          # Tier definitions, scoring
+├── hooks/               # View/browser hooks and compatibility re-exports
+├── types/               # Compatibility exports for domain types
+├── constants/           # Tier definitions, scoring
 └── utils/
-    ├── parser/         # Discord chat log parsing
-    └── storage/        # Browser session and UI preference storage
+    ├── parser/          # Discord chat log parsing
+    └── storage/         # Browser session and UI preference storage
 
 api/                     # Vercel Functions and server stores
 domains/balance/         # Core balancing algorithm and result model
@@ -37,6 +40,8 @@ domains/scrim/           # Shared scrim contracts and public boundaries
 .github/workflows/       # CI and deployment workflows
 ```
 
+The frontend uses a pragmatic layered architecture: `components` (presentation) may call `application` (use cases), and both consume domain public APIs. Do not duplicate the existing domain core into generic controller/service/repository folders.
+
 ## Commands
 
 ```bash
@@ -44,7 +49,7 @@ pnpm dev      # Start Vite frontend development server
 pnpm build    # Production build to dist/
 pnpm lint     # ESLint check
 pnpm preview  # Preview production build
-pnpm check    # Typecheck, lint, test, and build
+pnpm check    # Typecheck, lint, test, boundaries, and build
 ```
 
 ## Key Concepts
@@ -70,9 +75,13 @@ PlayerName#1234 다3! 플2 골1         # ! = preferred
 ## Patterns & Conventions
 
 - **Components:** Functional + hooks only, no class components
+- **Application:** Put workflows that coordinate multiple states/effects under `src/application/<feature>/`; application code must not import presentation components
 - **State:** useState/useEffect, localStorage persistence, no Redux
 - **Naming:** PascalCase components, camelCase functions, UPPER_SNAKE constants
 - **Styling:** Tailwind dark theme (`#0b0c10` bg), blue/cyan gradients for CTAs
+- **Page navigation:** Full admin pages use `src/components/layout/page-header.tsx` with breadcrumbs; reserve standalone back buttons for modal/step/detail flows
+- **Imports:** External domain consumers use `#domain/balance`, `#domain/player`, `#domain/scrim`, or `#domain/scrim/rules`; avoid deep `../../domains/**/shared/**` imports
+- **Layer aliases:** Use `@application/*` and `@presentation/*` when a cross-layer frontend import is clearer than a long relative path; keep short same-feature relative imports
 - **TypeScript:** Strict mode, explicit types, interfaces for data models
 - **JSDoc:** Flow-focused, concise, and every JSDoc block must include an `@description` tag; avoid exhaustive narration
 - **CSS:** Keep style files free of comments
@@ -96,9 +105,10 @@ PlayerName#1234 다3! 플2 골1         # ! = preferred
 
 - `domains/balance/shared/balance.ts` - Core balancing algorithm (most complex logic)
 - `domains/player/shared/model.ts` - Player, rank, role, and tier model
+- `src/application/roster/use-roster-management.ts` - Roster orchestration entry point
 - `src/hooks/use-balance.ts` - Balance Web Worker lifecycle
 - `src/utils/parser/index.ts` - Player input parsing
-- `src/App.tsx` - Main component orchestrating state
+- `src/App.tsx` - Current application composition root
 - `src/constants/index.ts` - Tier definitions, scoring formula
 - `docs/project-structure.md` - Directory responsibilities and dependency direction
 
