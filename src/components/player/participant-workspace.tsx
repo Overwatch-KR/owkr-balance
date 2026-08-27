@@ -1,7 +1,6 @@
 import type { ComponentProps } from 'react';
 import {
     AlertCircle,
-    ArrowLeft,
     ArrowRight,
     Database,
     ListChecks,
@@ -11,6 +10,7 @@ import {
 } from 'lucide-react';
 import type { PlayerInputMode } from '../../hooks/use-player-input';
 import type { UserSheetEntry } from '../../utils/user-sheet';
+import { PageHeader } from '../layout/page-header';
 import PlayerForm from './form';
 import PlayerList from './list';
 import { ParticipantUserSheetPicker } from './participant-user-sheet-picker';
@@ -110,42 +110,31 @@ export const ParticipantWorkspace = ({
 
     return (
         <div className="space-y-5">
-            <header
-                id="participant-workspace-header"
-                className="flex flex-col gap-4 rounded-2xl border border-slate-800/80 bg-surface-elevated/75 px-5 py-5 shadow-xl shadow-black/10 sm:flex-row sm:items-center sm:justify-between"
-            >
-                <div className="flex min-w-0 items-start gap-3">
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-700/80 text-slate-400 transition-colors hover:border-slate-600 hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
-                        aria-label="매칭 대시보드로 돌아가기"
-                    >
-                        <ArrowLeft size={18} aria-hidden="true" />
-                    </button>
-                    <div className="min-w-0">
-                        <h1 className="text-xl font-bold text-white sm:text-2xl">참가자 작업실</h1>
-                        <p className="mt-1 text-sm text-slate-500">
-                            명단 입력부터 참여 대조, 정보 보완까지 한곳에서 처리합니다.
-                        </p>
-                    </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-cyan-500/10 px-3 py-1.5 text-xs font-semibold text-cyan-200">
-                        <Users size={13} aria-hidden="true" />
-                        참가 {participantCount}/10
-                    </span>
-                    <span className="rounded-full bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-300">
-                        대기 {waitlistCount}명
-                    </span>
-                    {reviewCount > 0 && (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-300">
-                            <AlertCircle size={13} aria-hidden="true" />
-                            보완 {reviewCount}명
+            <PageHeader
+                breadcrumbs={[
+                    { label: '매칭', onClick: onClose },
+                    { label: '참가자 작업실' },
+                ]}
+                title="참가자 작업실"
+                description="명단 입력부터 참여 대조, 정보 보완까지 한곳에서 처리합니다."
+                meta={(
+                    <>
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-cyan-500/10 px-3 py-1.5 text-xs font-semibold text-cyan-200">
+                            <Users size={13} aria-hidden="true" />
+                            참가 {participantCount}/10
                         </span>
-                    )}
-                </div>
-            </header>
+                        <span className="rounded-full bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-300">
+                            대기 {waitlistCount}명
+                        </span>
+                        {reviewCount > 0 && (
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-300">
+                                <AlertCircle size={13} aria-hidden="true" />
+                                보완 {reviewCount}명
+                            </span>
+                        )}
+                    </>
+                )}
+            />
 
             <section
                 id="participant-next-step"

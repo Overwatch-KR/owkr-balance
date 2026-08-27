@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
+import type { EventParticipationSnapshot } from '#domain/scrim/rules';
+import type { ScrimRosterParticipant } from '#domain/scrim';
 import { useToast } from '../../hooks/use-toast';
 import { getErrorMessage, requestJson } from '../../utils/api';
-import type { EventParticipationSnapshot } from '../../../domains/scrim/shared/rules';
-import type { ScrimRosterParticipant } from '../../../domains/scrim/shared/public';
 import { AppToast } from '../app-toast';
+import { PageHeader } from '../layout/page-header';
 import { EventParticipantActions } from './event-participant-actions';
 import { EventParticipantSummary } from './event-participant-summary';
 import { EventUserSheetPicker } from './event-user-sheet-picker';
@@ -120,13 +121,15 @@ export function EventParticipantsPage({ csrfToken, onClose }: EventParticipantsP
     return (
         <main className="min-h-screen bg-surface px-4 py-6 text-slate-200 md:px-8 md:py-8">
             <div className="mx-auto max-w-4xl">
-                <header className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                        <p className="text-xs font-semibold text-cyan-300">2026 넥슨 이벤트</p>
-                        <h1 className="mt-1 text-2xl font-bold text-white">이벤트 참여자</h1>
-                        <p className="mt-1 text-sm text-slate-400">팀 결과에서 등록한 실제 참여자를 확인하고 수정합니다.</p>
-                    </div>
-                    <div className="flex items-center gap-2">
+                <PageHeader
+                    breadcrumbs={[
+                        { label: '매칭', onClick: onClose },
+                        { label: '이벤트 참여자' },
+                    ]}
+                    eyebrow="2026 넥슨 이벤트"
+                    title="이벤트 참여자"
+                    description="팀 결과에서 등록한 실제 참여자를 확인하고 수정합니다."
+                    actions={(
                         <button
                             type="button"
                             className="btn-ghost"
@@ -140,15 +143,11 @@ export function EventParticipantsPage({ csrfToken, onClose }: EventParticipantsP
                             />
                             {isRefreshing ? '새로고침 중' : '새로고침'}
                         </button>
-                        <button type="button" className="btn-ghost" onClick={onClose}>
-                            <ArrowLeft size={16} className="mr-1 inline" aria-hidden="true" />
-                            매칭으로 돌아가기
-                        </button>
-                    </div>
-                </header>
+                    )}
+                />
 
                 {error ? (
-                    <section className="card mt-6 border border-rose-400/20" role="alert">
+                    <section className="card border border-rose-400/20" role="alert">
                         <h2 className="font-semibold text-rose-200">참여자 명단을 불러오지 못했습니다</h2>
                         <p className="mt-2 text-sm text-slate-400">{error}</p>
                         <button type="button" className="btn-ghost mt-4" onClick={() => void load('refresh')}>
