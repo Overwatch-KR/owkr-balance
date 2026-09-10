@@ -144,17 +144,20 @@ pnpm install
 pnpm dev:local-only
 ```
 
-`dev:local-only`는 별도 `.env.local` 설정 없이 실행할 수 있으며 원격 Redis 연결을 코드에서
-차단합니다. 운영 데이터가 필요한 개발에만 `.env.example`을 `.env.local`로 복사해 설정합니다.
+기본 `pnpm dev`는 `dev:local-only`를 실행합니다. 별도 `.env.local`, Discord 로그인 또는
+Vercel 계정 연결 없이 시작하며 원격 Redis 연결을 코드에서 차단합니다. 운영 데이터가 필요한
+개발에만 `.env.example`을 `.env.local`로 복사해 설정합니다.
 
-`pnpm dev`는 Vite 정적 화면만 실행합니다. 로그인, 유저 시트와 메모 API까지 확인하려면
-Vercel Functions를 함께 실행하는 다음 명령 중 하나를 사용해야 합니다.
+API 없이 Vite 정적 화면만 확인하려면 `pnpm dev:frontend`를 사용합니다. 로그인, 유저 시트와
+메모 API까지 확인하려면 Vercel Functions를 함께 실행하는 다음 명령 중 하나를 사용해야 합니다.
 
 | 명령 | 인증 방식 | 용도 |
 | --- | --- | --- |
+| `pnpm dev` | 고정 로컬 사용자 | `dev:local-only`와 같은 기본 안전 실행 |
 | `pnpm dev:local-only` | 고정 로컬 사용자 | 원격 저장소 없이 참가 명단·팀 결과 UI 테스트 |
 | `pnpm dev:local` | 고정 로컬 사용자 | Discord OAuth 없이 운영 Redis에 연결 |
 | `pnpm dev:full` | 실제 Discord OAuth | OAuth 로그인과 운영 환경에 가까운 인증 흐름 검증 |
+| `pnpm dev:frontend` | API 없음 | Vite 정적 화면만 빠르게 확인 |
 
 ### 로컬 전용 후보 조합 Dialog 테스트
 
