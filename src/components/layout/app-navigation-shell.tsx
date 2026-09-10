@@ -1,4 +1,12 @@
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import {
+    type MouseEvent as ReactMouseEvent,
+    type Ref,
+    type ReactNode,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 import {
     BookOpen,
     CalendarCheck2,
@@ -37,6 +45,10 @@ interface AppNavigationShellProps {
 
 interface NavigationButtonProps {
     active?: boolean;
+    ariaControls?: string;
+    ariaExpanded?: boolean;
+    ariaHasPopup?: 'dialog';
+    buttonRef?: Ref<HTMLButtonElement>;
     collapsed?: boolean;
     icon: typeof Swords;
     label: string;
@@ -44,10 +56,19 @@ interface NavigationButtonProps {
     showError?: boolean;
 }
 
+interface NavigationLinkProps extends Omit<NavigationButtonProps, 'ariaControls' | 'ariaExpanded' | 'ariaHasPopup' | 'buttonRef' | 'onClick'> {
+    href: string;
+    onNavigate: (event: ReactMouseEvent<HTMLAnchorElement>) => void;
+}
+
 const normalizePathname = () => window.location.pathname.replace(/\/+$/, '') || '/';
 
 const NavigationButton = ({
     active = false,
+    ariaControls,
+    ariaExpanded,
+    ariaHasPopup,
+    buttonRef,
     collapsed = false,
     icon: Icon,
     label,
@@ -55,8 +76,11 @@ const NavigationButton = ({
     showError = false,
 }: NavigationButtonProps) => (
     <button
+        ref={buttonRef}
         type="button"
-        aria-current={active ? 'page' : undefined}
+        aria-controls={ariaControls}
+        aria-expanded={ariaExpanded}
+        aria-haspopup={ariaHasPopup}
         aria-label={label}
         title={collapsed ? label : undefined}
         onClick={onClick}
@@ -79,16 +103,57 @@ const NavigationButton = ({
     </button>
 );
 
+const NavigationLink = ({
+    active = false,
+    collapsed = false,
+    href,
+    icon: Icon,
+    label,
+    onNavigate,
+    showError = false,
+}: NavigationLinkProps) => (
+    <a
+        href={href}
+        aria-current={active ? 'page' : undefined}
+        aria-label={label}
+        title={collapsed ? label : undefined}
+        onClick={onNavigate}
+        className={`relative flex min-h-11 w-full items-center rounded-xl text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${
+            collapsed ? 'justify-center px-2' : 'gap-3 px-3'
+        } ${
+            active
+                ? 'bg-cyan-400/10 text-cyan-100 ring-1 ring-inset ring-cyan-400/20'
+                : 'text-slate-400 hover:bg-white/5 hover:text-slate-100'
+        }`}
+    >
+        <Icon size={18} className="shrink-0" aria-hidden="true" />
+        {!collapsed && <span className="truncate">{label}</span>}
+        {showError && (
+            <span
+                className={`absolute h-2 w-2 rounded-full bg-amber-400 ${collapsed ? 'right-2 top-2' : 'right-3'}`}
+                aria-label="연결 오류"
+            />
+        )}
+    </a>
+);
+
 const MobileNavigationButton = ({
     active = false,
+    ariaControls,
+    ariaExpanded,
+    ariaHasPopup,
+    buttonRef,
     icon: Icon,
     label,
     onClick,
     showError = false,
 }: Omit<NavigationButtonProps, 'collapsed'>) => (
     <button
+        ref={buttonRef}
         type="button"
-        aria-current={active ? 'page' : undefined}
+        aria-controls={ariaControls}
+        aria-expanded={ariaExpanded}
+        aria-haspopup={ariaHasPopup}
         onClick={onClick}
         className={`relative flex min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 py-2 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-400/70 ${
             active ? 'text-cyan-200' : 'text-slate-500 hover:text-slate-200'
@@ -102,11 +167,38 @@ const MobileNavigationButton = ({
     </button>
 );
 
+const MobileNavigationLink = ({
+    active = false,
+    href,
+    icon: Icon,
+    label,
+    onNavigate,
+    showError = false,
+}: Omit<NavigationLinkProps, 'collapsed'>) => (
+    <a
+        href={href}
+        aria-current={active ? 'page' : undefined}
+        onClick={onNavigate}
+        className={`relative flex min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 py-2 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-400/70 ${
+            active ? 'text-cyan-200' : 'text-slate-500 hover:text-slate-200'
+        }`}
+    >
+        <Icon size={19} aria-hidden="true" />
+        <span className="max-w-full truncate">{label}</span>
+        {showError && (
+            <span className="absolute right-[calc(50%-14px)] top-2 h-2 w-2 rounded-full bg-amber-400" aria-label="연결 오류" />
+        )}
+    </a>
+);
+
 /**
  * @description 인증된 관리자 화면을 데스크톱 사이드바와 모바일 바텀 내비게이션으로 감싼다.
  */
 export function AppNavigationShell({ children }: AppNavigationShellProps) {
     const { authMode, dataMode, isLoading, logout, user } = useAuth();
+    const moreDialogRef = useRef<HTMLElement>(null);
+    const moreTriggerRef = useRef<HTMLButtonElement>(null);
+    const previousFocusRef = useRef<HTMLElement | null>(null);
     const [pathname, setPathname] = useState(normalizePathname);
     const [isCollapsed, setIsCollapsed] = useState(() => {
         try {
@@ -150,6 +242,62 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
         return () => window.removeEventListener(NAVIGATION_STATE_EVENT, handleNavigationState);
     }, []);
 
+    useEffect(() => {
+        if (!isMoreOpen) return;
+
+        previousFocusRef.current = document.activeElement instanceof HTMLElement
+            ? document.activeElement
+            : null;
+        const dialog = moreDialogRef.current;
+        const getFocusableElements = () => Array.from(dialog?.querySelectorAll<HTMLElement>(
+            'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ) ?? []);
+        const animationFrame = window.requestAnimationFrame(() => {
+            getFocusableElements()[0]?.focus();
+        });
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                setIsMoreOpen(false);
+                return;
+            }
+            if (event.key !== 'Tab') return;
+
+            const focusableElements = getFocusableElements();
+            const firstElement = focusableElements[0];
+            const lastElement = focusableElements.at(-1);
+            if (!firstElement || !lastElement) {
+                event.preventDefault();
+                return;
+            }
+            if (event.shiftKey && document.activeElement === firstElement) {
+                event.preventDefault();
+                lastElement.focus();
+            } else if (!event.shiftKey && document.activeElement === lastElement) {
+                event.preventDefault();
+                firstElement.focus();
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+        return () => {
+            window.cancelAnimationFrame(animationFrame);
+            document.removeEventListener('keydown', handleKeyDown);
+            const previousFocus = previousFocusRef.current;
+            previousFocusRef.current = null;
+            if (previousFocus?.isConnected) previousFocus.focus();
+        };
+    }, [isMoreOpen]);
+
+    useEffect(() => {
+        const desktopMedia = window.matchMedia('(min-width: 1024px)');
+        const closeMobileMenu = (event: MediaQueryListEvent) => {
+            if (event.matches) setIsMoreOpen(false);
+        };
+        desktopMedia.addEventListener('change', closeMobileMenu);
+        return () => desktopMedia.removeEventListener('change', closeMobileMenu);
+    }, []);
+
     const userName = user?.globalName ?? user?.username ?? '관리자';
     const accountStatus = useMemo(() => {
         if (authMode === 'discord') return 'Discord 관리자';
@@ -158,6 +306,9 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
     const isWorkspacePath = pathname === '/' || pathname === '/participants';
     const isUserSheetActive = isWorkspacePath && navigationState.isUserSheetOpen;
     const isGuideActive = isWorkspacePath && navigationState.isGuideOpen;
+    const hasWorkspaceOverlay = isUserSheetActive || isGuideActive;
+
+    const isRouteActive = (route: string) => pathname === route && !hasWorkspaceOverlay;
 
     const navigate = (nextPathname: string) => {
         const normalized = nextPathname.replace(/\/+$/, '') || '/';
@@ -165,6 +316,24 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
         if (normalized === pathname) return;
         window.history.pushState({}, '', normalized);
         window.dispatchEvent(new PopStateEvent('popstate'));
+    };
+
+    const handleNavigationLink = (
+        event: ReactMouseEvent<HTMLAnchorElement>,
+        nextPathname: string,
+    ) => {
+        if (
+            event.defaultPrevented
+            || event.button !== 0
+            || event.metaKey
+            || event.ctrlKey
+            || event.shiftKey
+            || event.altKey
+        ) {
+            return;
+        }
+        event.preventDefault();
+        navigate(nextPathname);
     };
 
     const requestWorkspaceAction = (action: PendingNavigationAction) => {
@@ -219,17 +388,17 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                 }`}
             >
                 <div className={`flex h-20 items-center border-b border-slate-800/60 ${isCollapsed ? 'justify-center px-2' : 'justify-between px-4'}`}>
-                    <button
-                        type="button"
+                    <a
+                        href="/"
                         aria-label="매칭으로 이동"
                         title={isCollapsed ? 'OWKR Balance' : undefined}
-                        onClick={() => navigate('/')}
+                        onClick={event => handleNavigationLink(event, '/')}
                         className="min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
                     >
                         <span className="block bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-lg font-bold tracking-tight text-transparent">
                             {isCollapsed ? 'OW' : 'OWKR Balance'}
                         </span>
-                    </button>
+                    </a>
                     {!isCollapsed && (
                         <button
                             type="button"
@@ -258,29 +427,34 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
 
                 <nav className="flex min-h-0 flex-1 flex-col px-3 py-4" aria-label="관리자 기능">
                     <div className="space-y-1">
-                        <NavigationButton
-                            active={pathname === '/'}
+                        <NavigationLink
+                            active={isRouteActive('/')}
                             collapsed={isCollapsed}
+                            href="/"
                             icon={Swords}
                             label="매칭"
-                            onClick={() => navigate('/')}
+                            onNavigate={event => handleNavigationLink(event, '/')}
                         />
-                        <NavigationButton
-                            active={pathname === '/participants'}
+                        <NavigationLink
+                            active={isRouteActive('/participants')}
                             collapsed={isCollapsed}
+                            href="/participants"
                             icon={Users}
                             label="참가자 관리"
-                            onClick={() => navigate('/participants')}
+                            onNavigate={event => handleNavigationLink(event, '/participants')}
                         />
-                        <NavigationButton
-                            active={pathname === '/scrims'}
+                        <NavigationLink
+                            active={isRouteActive('/scrims')}
                             collapsed={isCollapsed}
+                            href="/scrims"
                             icon={CalendarDays}
                             label="내전 관리"
-                            onClick={() => navigate('/scrims')}
+                            onNavigate={event => handleNavigationLink(event, '/scrims')}
                         />
                         <NavigationButton
                             active={isUserSheetActive}
+                            ariaExpanded={isUserSheetActive}
+                            ariaHasPopup="dialog"
                             collapsed={isCollapsed}
                             icon={FileSpreadsheet}
                             label="유저 시트"
@@ -295,18 +469,21 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                                 기타
                             </p>
                         )}
-                        <NavigationButton
-                            active={pathname === '/event-participants'}
+                        <NavigationLink
+                            active={isRouteActive('/event-participants')}
                             collapsed={isCollapsed}
+                            href="/event-participants"
                             icon={CalendarCheck2}
                             label="이벤트 참여자"
-                            onClick={() => navigate('/event-participants')}
+                            onNavigate={event => handleNavigationLink(event, '/event-participants')}
                         />
                     </div>
 
                     <div className="mt-auto space-y-2 pt-4">
                         <NavigationButton
                             active={isGuideActive}
+                            ariaExpanded={isGuideActive}
+                            ariaHasPopup="dialog"
                             collapsed={isCollapsed}
                             icon={BookOpen}
                             label="매칭 가이드"
@@ -342,7 +519,7 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                 </nav>
             </aside>
 
-            <div className={`min-h-screen pb-20 transition-[padding] duration-200 lg:pb-0 ${
+            <div className={`min-h-screen pb-[calc(5rem+env(safe-area-inset-bottom))] transition-[padding] duration-200 lg:pb-0 ${
                 isCollapsed ? 'lg:pl-20' : 'lg:pl-52'
             }`}>
                 {children}
@@ -352,26 +529,31 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                 className="fixed inset-x-0 bottom-0 z-[70] flex min-h-16 border-t border-slate-800/80 bg-slate-950/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden"
                 aria-label="주요 메뉴"
             >
-                <MobileNavigationButton
-                    active={pathname === '/'}
+                <MobileNavigationLink
+                    active={isRouteActive('/')}
+                    href="/"
                     icon={Swords}
                     label="매칭"
-                    onClick={() => navigate('/')}
+                    onNavigate={event => handleNavigationLink(event, '/')}
                 />
-                <MobileNavigationButton
-                    active={pathname === '/participants'}
+                <MobileNavigationLink
+                    active={isRouteActive('/participants')}
+                    href="/participants"
                     icon={Users}
                     label="참가자"
-                    onClick={() => navigate('/participants')}
+                    onNavigate={event => handleNavigationLink(event, '/participants')}
                 />
-                <MobileNavigationButton
-                    active={pathname === '/scrims'}
+                <MobileNavigationLink
+                    active={isRouteActive('/scrims')}
+                    href="/scrims"
                     icon={CalendarDays}
                     label="내전"
-                    onClick={() => navigate('/scrims')}
+                    onNavigate={event => handleNavigationLink(event, '/scrims')}
                 />
                 <MobileNavigationButton
                     active={isUserSheetActive}
+                    ariaExpanded={isUserSheetActive}
+                    ariaHasPopup="dialog"
                     icon={FileSpreadsheet}
                     label="유저 시트"
                     onClick={() => requestWorkspaceAction('user-sheet')}
@@ -379,9 +561,13 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                 />
                 <MobileNavigationButton
                     active={isMoreOpen || pathname === '/event-participants' || isGuideActive}
+                    ariaControls="mobile-more-dialog"
+                    ariaExpanded={isMoreOpen}
+                    ariaHasPopup="dialog"
                     icon={MoreHorizontal}
                     label="더보기"
                     onClick={() => setIsMoreOpen(current => !current)}
+                    buttonRef={moreTriggerRef}
                 />
             </nav>
 
@@ -389,23 +575,27 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                 <div className="fixed inset-0 z-[75] lg:hidden">
                     <button
                         type="button"
+                        tabIndex={-1}
+                        aria-hidden="true"
                         className="absolute inset-0 bg-slate-950/65 backdrop-blur-sm"
                         aria-label="더보기 메뉴 닫기"
                         onClick={() => setIsMoreOpen(false)}
                     />
                     <section
+                        id="mobile-more-dialog"
+                        ref={moreDialogRef}
                         role="dialog"
                         aria-modal="true"
-                        aria-label="더보기 메뉴"
+                        aria-labelledby="mobile-more-title"
                         className="absolute inset-x-0 bottom-0 rounded-t-3xl border-t border-slate-700/70 bg-slate-950 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 shadow-2xl"
                     >
                         <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-700" aria-hidden="true" />
                         <div className="mb-2 flex items-center justify-between">
-                            <h2 className="text-sm font-semibold text-white">더보기</h2>
+                            <h2 id="mobile-more-title" className="text-sm font-semibold text-white">더보기</h2>
                             <button
                                 type="button"
                                 onClick={() => setIsMoreOpen(false)}
-                                className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-white/5 hover:text-slate-200"
+                                className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-white/5 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
                                 aria-label="더보기 메뉴 닫기"
                             >
                                 <X size={18} aria-hidden="true" />
@@ -413,14 +603,17 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                         </div>
 
                         <div className="space-y-1">
-                            <NavigationButton
-                                active={pathname === '/event-participants'}
+                            <NavigationLink
+                                active={isRouteActive('/event-participants')}
+                                href="/event-participants"
                                 icon={CalendarCheck2}
                                 label="이벤트 참여자"
-                                onClick={() => navigate('/event-participants')}
+                                onNavigate={event => handleNavigationLink(event, '/event-participants')}
                             />
                             <NavigationButton
                                 active={isGuideActive}
+                                ariaExpanded={isGuideActive}
+                                ariaHasPopup="dialog"
                                 icon={BookOpen}
                                 label="매칭 가이드"
                                 onClick={() => requestWorkspaceAction('guide')}

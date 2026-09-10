@@ -4,7 +4,7 @@ import {
     normalizeMatchShareCode,
     normalizeMatchShareParticipants,
     type MatchShareParticipant,
-} from '#domain/balance';
+} from '../../domains/balance/shared/public.js';
 
 const MATCH_SHARE_KEY_PREFIX = 'match-shares:v1:';
 const MATCH_SHARE_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';

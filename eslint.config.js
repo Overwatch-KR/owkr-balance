@@ -52,10 +52,16 @@ export default tseslint.config(
         rules: {
             'no-undef': 'off',
             'no-restricted-imports': ['error', {
-                patterns: [{
-                    group: ['../src/**', '../../src/**', '../../../src/**'],
-                    message: '서버 코드는 src에 의존할 수 없습니다. 공유 로직은 domains의 공개 API로 이동하세요.',
-                }],
+                patterns: [
+                    {
+                        group: ['../src/**', '../../src/**', '../../../src/**'],
+                        message: '서버 코드는 src에 의존할 수 없습니다. 공유 로직은 domains의 공개 API로 이동하세요.',
+                    },
+                    {
+                        group: ['#domain/**'],
+                        message: 'Vercel Functions는 #domain 별칭의 TypeScript 대상을 배포 산출물에 포함하지 못할 수 있습니다. domains 공개 API의 상대 .js 경로를 사용하세요.',
+                    },
+                ],
             }],
         },
     },
