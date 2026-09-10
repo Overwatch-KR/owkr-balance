@@ -3,7 +3,7 @@ import type { Redis } from '@upstash/redis';
 import {
     normalizeMatchLiveParticipants,
     type MatchLiveParticipant,
-} from '#domain/balance';
+} from '../../domains/balance/shared/public.js';
 
 const MATCH_LIVE_KEY_PREFIX = 'match-live:v1:';
 const MATCH_LIVE_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';

@@ -18,10 +18,15 @@ OWKR Balance의 운영 배포 내용을 날짜별로 정리한 문서입니다.
 
 ## 미배포
 
+### 2026-09-10
+
+- Vercel Functions에서 도메인 TypeScript 별칭을 해석하지 못해 내전 공유 코드와 실시간 공동 작업 API가 실행 전에 실패하던 문제를 수정하고, 서버 코드에서 같은 별칭을 다시 사용하지 못하도록 검사 규칙을 추가했습니다.
+- 관리자 내비게이션의 페이지 이동을 실제 링크로 제공하고, 모바일 더보기의 키보드 포커스·Escape 닫기·safe area 여백과 현재 상태 전달을 보완했습니다.
+
 ### 2026-08-27
 
 - 프런트엔드에 `application` 계층을 도입해 참가자 편집·명단 가져오기 오케스트레이션을 표현 컴포넌트와 분리하고, ESLint로 application → presentation 역방향 의존을 차단했습니다.
-- 클라이언트와 Vercel Functions의 도메인 공개 API import를 `#domain/*` 진입점으로 정리하고, `@application/*`·`@presentation/*` 경로 별칭과 구조 규칙을 추가했습니다.
+- 클라이언트의 도메인 공개 API import를 `#domain/*` 진입점으로 정리하고, `@application/*`·`@presentation/*` 경로 별칭과 구조 규칙을 추가했습니다.
 - 참가자 작업실·이벤트 참여자·내전 관리 페이지의 상단 내비게이션을 공통 `PageHeader` breadcrumb 구조로 통일했습니다.
 
 ### 2026-08-26
