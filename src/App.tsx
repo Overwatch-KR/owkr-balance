@@ -18,11 +18,10 @@ import { useToast } from './hooks/use-toast';
 import { useMatchActions } from './hooks/use-match-actions';
 import { useMatchLiveShare } from './hooks/use-match-live-share';
 import { useRosterManagement } from './hooks/use-roster-management';
-import { useAuth, type AuthMode, type AuthUser, type DataMode } from './hooks/use-auth';
+import { useAuth, type AuthUser, type DataMode } from './hooks/use-auth';
 import { useMatchSession } from './hooks/use-match-session';
 import { useUserSheet } from './hooks/use-user-sheet';
 import { getErrorMessage, requestJson } from './utils/api';
-import { clearPlayerNoteCache } from './utils/player-note';
 import { readUiPreferences, writeShowAllRanksPreference } from './utils/storage/ui-preferences';
 import type { Player, SwapSource } from './types';
 import {
@@ -47,15 +46,13 @@ import { MatchShareControls } from './components/match/match-share-controls';
 import { EventParticipantsPage } from './components/event/event-participants-page';
 import { ScrimManager } from './components/scrim/scrim-manager';
 
-const UserSheetModal = lazy(() => import('./components/user-sheet/user-sheet-modal').then(module => ({
-    default: module.UserSheetModal,
+const UserSheetPage = lazy(() => import('./components/user-sheet/user-sheet-page').then(module => ({
+    default: module.UserSheetPage,
 })));
 interface MatchAppProps {
-    authMode: AuthMode;
     csrfToken: string;
     dataMode: DataMode;
     isPageNavigating: boolean;
-    logout: () => Promise<void>;
     navigate: (pathname: string) => void;
     pathname: string;
     user: AuthUser;
@@ -73,11 +70,9 @@ const PageLoadingBar = () => (
 );
 
 const MatchApp = ({
-    authMode,
     csrfToken,
     dataMode,
     isPageNavigating,
-    logout,
     navigate,
     pathname,
     user,
@@ -100,11 +95,10 @@ const MatchApp = ({
     const [swapSource, setSwapSource] = useState<SwapSource | null>(null);
     const [showAllRanks, setShowAllRanks] = useState(() => readUiPreferences().showAllRanks);
     const [ignorePreferences, setIgnorePreferences] = useState(false);
-    const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [errorDetails, setErrorDetails] = useState<ErrorDetails | null>(null);
     const playerEditReturnPathRef = useRef(pathname);
     const isGuideActiveRef = useRef(false);
-    const userSheet = useUserSheet();
+    const userSheet = useUserSheet(pathname === '/user-sheet');
     const { dismissToast, showToast, toast } = useToast();
     const registeredEventParticipantIdsRef = useRef<Set<string> | null>(null);
     const pendingEventParticipantIdsRef = useRef(new Set<string>());
@@ -396,18 +390,6 @@ const MatchApp = ({
             throw error;
         }
     }, [navigate, setAlternatives, setPlayers, setResult, showToast, userSheet]);
-    const handleLogout = async () => {
-        if (isLoggingOut) return;
-        setIsLoggingOut(true);
-        try {
-            userSheet.close();
-            await logout();
-            clearPlayerNoteCache(user.id);
-        } catch (error) {
-            showToast('error', getErrorMessage(error, '로그아웃하지 못했습니다. 다시 시도해 주세요.'));
-            setIsLoggingOut(false);
-        }
-    };
     const currentAdminName = user.globalName ?? user.username;
     const handleShowAllRanksChange = useCallback((show: boolean) => {
         setShowAllRanks(show);
@@ -457,7 +439,8 @@ const MatchApp = ({
         noteCacheScope: user.id,
         userSheetByBattleTag,
         onOpenUserSheet: (battleTag: string, entryId?: string) => {
-            userSheet.open(battleTag, entryId);
+            userSheet.select(battleTag, entryId);
+            navigate('/user-sheet');
         },
     };
 
@@ -475,6 +458,64 @@ const MatchApp = ({
         );
     }
 
+    if (pathname === '/user-sheet') {
+        return (
+            <MotionConfig reducedMotion="user">
+                <AppHeader
+                    isGuideOpen={false}
+                    onOpenGuide={handleToggleGuide}
+                    userSheetHasError={Boolean(userSheet.error)}
+                />
+                <Suspense
+                    fallback={(
+                        <main className="flex min-h-screen items-center justify-center bg-surface text-sm text-slate-400">
+                            유저 시트를 여는 중…
+                        </main>
+                    )}
+                >
+                    <UserSheetPage
+                        key={userSheet.selectedEntryId ?? userSheet.selectedBattleTag ?? 'all-users'}
+                        csrfToken={csrfToken}
+                        entries={userSheet.entries}
+                        error={userSheet.error}
+                        initialBattleTag={userSheet.selectedBattleTag}
+                        initialEntryId={userSheet.selectedEntryId}
+                        isLoading={userSheet.isLoading}
+                        noteCacheScope={user.id}
+                        participantBattleTags={participantBattleTags}
+                        sheetVersion={userSheet.sheetVersion}
+                        onEntriesChange={(snapshot, message) => {
+                            userSheet.updateSnapshot(snapshot);
+                            showToast('success', message);
+                        }}
+                        onRetry={() => void userSheet.retry()}
+                        onSaveError={(message) => {
+                            showDetailedError(message, {
+                                title: '유저 시트를 저장하지 못했습니다',
+                                description: message,
+                                hint: '동시 수정 충돌은 표시되는 병합 화면에서 내 초안과 최신값을 비교해 해결할 수 있습니다. 그 외에는 배틀태그 오류와 중복 행을 확인해 주세요.',
+                            });
+                        }}
+                        onSnapshotChange={userSheet.updateSnapshot}
+                        onClose={() => navigate('/')}
+                    />
+                </Suspense>
+                <AnimatePresence>
+                    {errorDetails && (
+                        <ErrorDetailsModal
+                            details={errorDetails}
+                            onClose={() => setErrorDetails(null)}
+                        />
+                    )}
+                </AnimatePresence>
+                <AnimatePresence>
+                    {toast && <AppToast toast={toast} onDismiss={dismissToast} />}
+                </AnimatePresence>
+                <AnimatePresence>{isPageNavigating && <PageLoadingBar />}</AnimatePresence>
+            </MotionConfig>
+        );
+    }
+
     return (
         <MotionConfig reducedMotion="user">
         <div className="min-h-screen bg-surface text-slate-200 font-sans">
@@ -485,20 +526,8 @@ const MatchApp = ({
                 본문으로 건너뛰기
             </a>
             <AppHeader
-                authMode={authMode}
-                dataMode={dataMode}
                 isGuideOpen={isGuideOpen || isGuideResumePromptOpen}
-                isLoggingOut={isLoggingOut}
-                isUserSheetOpen={userSheet.isOpen}
-                onLogout={() => void handleLogout()}
-                onOpenEventParticipants={() => navigate('/event-participants')}
                 onOpenGuide={handleToggleGuide}
-                onOpenScrims={() => navigate('/scrims')}
-                onOpenUserSheet={() => {
-                    setSwapSource(null);
-                    userSheet.open();
-                }}
-                userName={currentAdminName}
                 userSheetHasError={Boolean(userSheet.error)}
             />
 
@@ -578,44 +607,6 @@ const MatchApp = ({
                     </div>
                 )}
             </main>
-            <AnimatePresence>
-                {userSheet.isOpen && (
-                    <Suspense
-                        fallback={(
-                            <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/85 text-sm text-slate-400 backdrop-blur-sm">
-                                유저 시트를 여는 중…
-                            </div>
-                        )}
-                    >
-                        <UserSheetModal
-                            key={userSheet.selectedEntryId ?? userSheet.selectedBattleTag ?? 'all-users'}
-                            csrfToken={csrfToken}
-                            entries={userSheet.entries}
-                            error={userSheet.error}
-                            initialBattleTag={userSheet.selectedBattleTag}
-                            initialEntryId={userSheet.selectedEntryId}
-                            isLoading={userSheet.isLoading}
-                            noteCacheScope={user.id}
-                            participantBattleTags={participantBattleTags}
-                            sheetVersion={userSheet.sheetVersion}
-                            onEntriesChange={(snapshot, message) => {
-                                userSheet.updateSnapshot(snapshot);
-                                showToast('success', message);
-                            }}
-                            onRetry={() => void userSheet.retry()}
-                            onSaveError={(message) => {
-                                showDetailedError(message, {
-                                    title: '유저 시트를 저장하지 못했습니다',
-                                    description: message,
-                                    hint: '동시 수정 충돌은 표시되는 병합 화면에서 내 초안과 최신값을 비교해 해결할 수 있습니다. 그 외에는 배틀태그 오류와 중복 행을 확인해 주세요.',
-                                });
-                            }}
-                            onSnapshotChange={userSheet.updateSnapshot}
-                            onClose={userSheet.close}
-                        />
-                    </Suspense>
-                )}
-            </AnimatePresence>
             <AnimatePresence>
                 {pendingIdentityImport && (
                     <RosterIdentityResolver
@@ -729,15 +720,13 @@ const AuthenticatedApp = (props: AuthenticatedAppProps) => {
 };
 
 const App = () => {
-    const { authMode, csrfToken, dataMode, error, isLoading, logout, retry, user } = useAuth();
+    const { csrfToken, dataMode, error, isLoading, retry, user } = useAuth();
     if (isLoading) return <LoadingScreen />;
     if (!user) return <LoginScreen serviceError={error} onRetry={retry} />;
     return (
         <AuthenticatedApp
-            authMode={authMode}
             csrfToken={csrfToken}
             dataMode={dataMode}
-            logout={logout}
             user={user}
         />
     );

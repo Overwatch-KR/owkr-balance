@@ -40,7 +40,7 @@ const GUIDE_ITEMS = [
         title: '공용 정보와 개인 메모를 구분해요',
     },
     {
-        description: '시트가 열린 동안에는 변경 사항을 주기적으로 확인합니다. 여러 관리자가 함께 편집했다면 저장 전에 새로고침해 최신 내용을 먼저 확인하세요.',
+        description: '유저 시트 페이지를 보고 있는 동안 변경 사항을 주기적으로 확인합니다. 여러 관리자가 함께 편집했다면 저장 전에 새로고침해 최신 내용을 먼저 확인하세요.',
         icon: RefreshCcw,
         title: '함께 편집할 때는 최신 상태를 확인해요',
     },
@@ -116,7 +116,7 @@ export function UserSheetGuide({ onClose, onStartTour }: UserSheetGuideProps) {
                             최신 데이터 확인
                         </span>
                         <p className="mt-2 text-xs leading-relaxed text-slate-400">
-                            시트가 열려 있으면 1분마다 자동 확인합니다. 창으로 돌아오거나 상단의 새로고침을 누르면 즉시 최신 데이터를 불러옵니다.
+                            유저 시트 페이지를 보고 있으면 1분마다 자동 확인합니다. 창으로 돌아오거나 상단의 새로고침을 누르면 즉시 최신 데이터를 불러옵니다.
                         </p>
                         <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
                             여러 운영자가 함께 작업했다면 전체 편집 전에 한 번 새로고침해 주세요.

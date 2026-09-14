@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { createSessionCookie } from '../_lib/auth';
 import handler from './me';
 
 const createRequest = (host = 'localhost:3000'): VercelRequest => ({
@@ -71,6 +72,31 @@ describe('GET /api/auth/me', () => {
             authMode: 'local',
             dataMode: 'local',
             loggedIn: true,
+        }));
+    });
+
+    it('Discord 로그인 세션의 프로필 이미지 URL을 사용자 정보에 포함한다', () => {
+        vi.stubEnv('NODE_ENV', 'development');
+        vi.stubEnv('OWKR_LOCAL_AUTH_BYPASS', 'false');
+        vi.stubEnv('JWT_SECRET', 'test-secret-with-at-least-32-characters');
+        const request = createRequest();
+        const cookie = createSessionCookie(request, {
+            avatarUrl: 'https://cdn.discordapp.com/avatars/123/avatar.webp?size=128',
+            id: '123',
+            username: 'discord-admin',
+            globalName: '운영자',
+        });
+        request.headers.cookie = cookie.split(';', 1)[0] ?? '';
+        const response = createResponse();
+
+        handler(request, response);
+
+        expect(response.json).toHaveBeenCalledWith(expect.objectContaining({
+            loggedIn: true,
+            user: expect.objectContaining({
+                avatarUrl: 'https://cdn.discordapp.com/avatars/123/avatar.webp?size=128',
+                id: '123',
+            }),
         }));
     });
 });

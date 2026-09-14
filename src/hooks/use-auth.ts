@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { getErrorMessage, requestJson } from '../utils/api';
 
 export interface AuthUser {
+    avatarUrl?: string;
     id: string;
     username: string;
     globalName?: string;

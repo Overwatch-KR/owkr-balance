@@ -24,23 +24,25 @@ import {
 import { useAuth } from '../../hooks/use-auth';
 
 export const APP_PATH_CHANGE_EVENT = 'owkr:navigation:path-change';
-export const OPEN_USER_SHEET_EVENT = 'owkr:navigation:open-user-sheet';
 export const OPEN_GUIDE_EVENT = 'owkr:navigation:open-guide';
 export const NAVIGATION_STATE_EVENT = 'owkr:navigation:state';
 export const PENDING_NAVIGATION_ACTION_KEY = 'owkr:navigation:pending-action';
 
 const NAVIGATION_COLLAPSED_KEY = 'owkr:navigation:collapsed';
 
-type PendingNavigationAction = 'user-sheet' | 'guide';
-
 export interface AppNavigationStateDetail {
     isGuideOpen: boolean;
-    isUserSheetOpen: boolean;
     userSheetHasError: boolean;
 }
 
 interface AppNavigationShellProps {
     children: ReactNode;
+}
+
+interface UserProfileAvatarProps {
+    avatarUrl?: string;
+    className: string;
+    userName: string;
 }
 
 interface NavigationButtonProps {
@@ -62,6 +64,37 @@ interface NavigationLinkProps extends Omit<NavigationButtonProps, 'ariaControls'
 }
 
 const normalizePathname = () => window.location.pathname.replace(/\/+$/, '') || '/';
+
+const UserProfileAvatar = ({
+    avatarUrl,
+    className,
+    userName,
+}: UserProfileAvatarProps) => (
+    <div
+        role="img"
+        aria-label={`${userName} 프로필`}
+        title={`${userName} 프로필`}
+        className={`relative flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-cyan-400/10 font-bold text-cyan-200 ring-1 ring-cyan-400/20 ${className}`}
+    >
+        <span aria-hidden="true">
+            {userName.slice(0, 1).toUpperCase() || <UserRound size={16} />}
+        </span>
+        {avatarUrl ? (
+            <img
+                src={avatarUrl}
+                alt=""
+                aria-hidden="true"
+                decoding="async"
+                referrerPolicy="no-referrer"
+                data-discord-avatar="true"
+                className="absolute inset-0 h-full w-full object-cover"
+                onError={event => {
+                    event.currentTarget.hidden = true;
+                }}
+            />
+        ) : null}
+    </div>
+);
 
 const NavigationButton = ({
     active = false,
@@ -211,7 +244,6 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [navigationState, setNavigationState] = useState<AppNavigationStateDetail>({
         isGuideOpen: false,
-        isUserSheetOpen: false,
         userSheetHasError: false,
     });
 
@@ -304,9 +336,9 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
         return dataMode === 'local' ? '로컬 전용' : '로컬 인증';
     }, [authMode, dataMode]);
     const isWorkspacePath = pathname === '/' || pathname === '/participants';
-    const isUserSheetActive = isWorkspacePath && navigationState.isUserSheetOpen;
+    const isUserSheetActive = pathname === '/user-sheet';
     const isGuideActive = isWorkspacePath && navigationState.isGuideOpen;
-    const hasWorkspaceOverlay = isUserSheetActive || isGuideActive;
+    const hasWorkspaceOverlay = isGuideActive;
 
     const isRouteActive = (route: string) => pathname === route && !hasWorkspaceOverlay;
 
@@ -336,17 +368,15 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
         navigate(nextPathname);
     };
 
-    const requestWorkspaceAction = (action: PendingNavigationAction) => {
+    const requestGuide = () => {
         setIsMoreOpen(false);
         if (isWorkspacePath) {
-            window.dispatchEvent(new Event(
-                action === 'user-sheet' ? OPEN_USER_SHEET_EVENT : OPEN_GUIDE_EVENT,
-            ));
+            window.dispatchEvent(new Event(OPEN_GUIDE_EVENT));
             return;
         }
 
         try {
-            sessionStorage.setItem(PENDING_NAVIGATION_ACTION_KEY, action);
+            sessionStorage.setItem(PENDING_NAVIGATION_ACTION_KEY, 'guide');
         } catch {
             // 저장소를 사용할 수 없어도 매칭 화면 이동은 유지한다.
         }
@@ -387,43 +417,43 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                     isCollapsed ? 'w-20' : 'w-52'
                 }`}
             >
-                <div className={`flex h-20 items-center border-b border-slate-800/60 ${isCollapsed ? 'justify-center px-2' : 'justify-between px-4'}`}>
+                <div
+                    data-sidebar-header="true"
+                    className={`relative flex h-20 items-center border-b border-slate-800/60 ${isCollapsed ? 'justify-center px-2' : 'px-4'}`}
+                >
                     <a
                         href="/"
                         aria-label="매칭으로 이동"
                         title={isCollapsed ? 'OWKR Balance' : undefined}
                         onClick={event => handleNavigationLink(event, '/')}
-                        className="min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+                        data-sidebar-logo={isCollapsed ? 'compact' : 'full'}
+                        className="min-w-0 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
                     >
-                        <span className="block bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-lg font-bold tracking-tight text-transparent">
-                            {isCollapsed ? 'OW' : 'OWKR Balance'}
-                        </span>
+                        {isCollapsed ? (
+                            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-400/10 text-cyan-200 ring-1 ring-inset ring-cyan-400/25">
+                                <Swords size={20} aria-hidden="true" />
+                            </span>
+                        ) : (
+                            <span className="block bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-lg font-bold tracking-tight text-transparent">
+                                OWKR Balance
+                            </span>
+                        )}
                     </a>
-                    {!isCollapsed && (
-                        <button
-                            type="button"
-                            onClick={toggleCollapsed}
-                            className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-white/5 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
-                            aria-label="사이드바 접기"
-                        >
-                            <ChevronLeft size={18} aria-hidden="true" />
-                        </button>
-                    )}
-                </div>
-
-                {isCollapsed && (
-                    <div className="px-3 pt-3">
-                        <button
-                            type="button"
-                            onClick={toggleCollapsed}
-                            className="flex h-10 w-full items-center justify-center rounded-xl text-slate-500 transition hover:bg-white/5 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
-                            aria-label="사이드바 펼치기"
-                            title="사이드바 펼치기"
-                        >
+                    <button
+                        type="button"
+                        onClick={toggleCollapsed}
+                        data-sidebar-toggle="true"
+                        className="absolute -right-3 top-1/2 z-10 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-slate-700/80 bg-slate-950 text-slate-500 shadow-lg transition hover:border-slate-600 hover:bg-slate-900 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+                        aria-label={isCollapsed ? '사이드바 펼치기' : '사이드바 접기'}
+                        title={isCollapsed ? '사이드바 펼치기' : '사이드바 접기'}
+                    >
+                        {isCollapsed ? (
                             <ChevronRight size={18} aria-hidden="true" />
-                        </button>
-                    </div>
-                )}
+                        ) : (
+                            <ChevronLeft size={18} aria-hidden="true" />
+                        )}
+                    </button>
+                </div>
 
                 <nav className="flex min-h-0 flex-1 flex-col px-3 py-4" aria-label="관리자 기능">
                     <div className="space-y-1">
@@ -451,14 +481,13 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                             label="내전 관리"
                             onNavigate={event => handleNavigationLink(event, '/scrims')}
                         />
-                        <NavigationButton
+                        <NavigationLink
                             active={isUserSheetActive}
-                            ariaExpanded={isUserSheetActive}
-                            ariaHasPopup="dialog"
                             collapsed={isCollapsed}
+                            href="/user-sheet"
                             icon={FileSpreadsheet}
                             label="유저 시트"
-                            onClick={() => requestWorkspaceAction('user-sheet')}
+                            onNavigate={event => handleNavigationLink(event, '/user-sheet')}
                             showError={navigationState.userSheetHasError}
                         />
                     </div>
@@ -487,14 +516,16 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                             collapsed={isCollapsed}
                             icon={BookOpen}
                             label="매칭 가이드"
-                            onClick={() => requestWorkspaceAction('guide')}
+                            onClick={requestGuide}
                         />
 
                         <div className={`rounded-xl border border-slate-800/70 bg-slate-900/70 ${isCollapsed ? 'p-2' : 'p-3'}`}>
                             <div className={`flex items-center ${isCollapsed ? 'flex-col gap-2' : 'gap-3'}`}>
-                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cyan-400/10 text-sm font-bold text-cyan-200 ring-1 ring-cyan-400/20">
-                                    {userName.slice(0, 1).toUpperCase() || <UserRound size={16} />}
-                                </div>
+                                <UserProfileAvatar
+                                    avatarUrl={user.avatarUrl}
+                                    className="h-9 w-9 text-sm"
+                                    userName={userName}
+                                />
                                 {!isCollapsed && (
                                     <div className="min-w-0 flex-1">
                                         <p className="truncate text-sm font-semibold text-slate-100">{userName}</p>
@@ -550,13 +581,12 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                     label="내전"
                     onNavigate={event => handleNavigationLink(event, '/scrims')}
                 />
-                <MobileNavigationButton
+                <MobileNavigationLink
                     active={isUserSheetActive}
-                    ariaExpanded={isUserSheetActive}
-                    ariaHasPopup="dialog"
+                    href="/user-sheet"
                     icon={FileSpreadsheet}
                     label="유저 시트"
-                    onClick={() => requestWorkspaceAction('user-sheet')}
+                    onNavigate={event => handleNavigationLink(event, '/user-sheet')}
                     showError={navigationState.userSheetHasError}
                 />
                 <MobileNavigationButton
@@ -616,14 +646,16 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                                 ariaHasPopup="dialog"
                                 icon={BookOpen}
                                 label="매칭 가이드"
-                                onClick={() => requestWorkspaceAction('guide')}
+                                onClick={requestGuide}
                             />
                         </div>
 
                         <div className="mt-4 flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900/80 p-3">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cyan-400/10 font-bold text-cyan-200 ring-1 ring-cyan-400/20">
-                                {userName.slice(0, 1).toUpperCase() || <UserRound size={17} />}
-                            </div>
+                            <UserProfileAvatar
+                                avatarUrl={user.avatarUrl}
+                                className="h-10 w-10 text-base"
+                                userName={userName}
+                            />
                             <div className="min-w-0 flex-1">
                                 <p className="truncate text-sm font-semibold text-white">{userName}</p>
                                 <p className="mt-0.5 text-xs text-slate-500">{accountStatus}</p>

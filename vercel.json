@@ -50,6 +50,15 @@
       ]
     },
     {
+      "source": "/user-sheet",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
       "source": "/participate/:token",
       "headers": [
         {
@@ -88,6 +97,10 @@
     },
     {
       "source": "/event-participants",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/user-sheet",
       "destination": "/index.html"
     },
     {

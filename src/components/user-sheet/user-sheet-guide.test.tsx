@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { UserSheetGuide } from './user-sheet-guide';
-import { UserSheetModal } from './user-sheet-modal';
+import { UserSheetPage } from './user-sheet-page';
 import { UserSheetTour } from './user-sheet-tour';
 
 describe('UserSheetGuide', () => {
@@ -19,9 +19,9 @@ describe('UserSheetGuide', () => {
         expect(markup).toContain('1분마다 자동 확인');
     });
 
-    it('시트 상단에서 가이드와 새로고침을 함께 제공한다', () => {
+    it('전용 페이지 상단에서 탐색 경로와 가이드·새로고침을 함께 제공한다', () => {
         const markup = renderToStaticMarkup(
-            <UserSheetModal
+            <UserSheetPage
                 csrfToken="csrf-token"
                 entries={[]}
                 error={null}
@@ -43,6 +43,8 @@ describe('UserSheetGuide', () => {
         expect(guideButtonIndex).toBeGreaterThan(-1);
         expect(refreshButtonIndex).toBeGreaterThan(guideButtonIndex);
         expect(markup).toContain('aria-label="시트 가이드"');
+        expect(markup).toContain('공유 운영 데이터');
+        expect(markup).toContain('aria-current="page"');
     });
 });
 

@@ -6,45 +6,44 @@ import {
     type UserSheetSnapshot,
 } from '../utils/user-sheet';
 
-const USER_SHEET_SESSION_KEY = 'owkr_user_sheet_modal';
+const USER_SHEET_SELECTION_KEY = 'owkr_user_sheet_selection';
+const LEGACY_USER_SHEET_MODAL_KEY = 'owkr_user_sheet_modal';
 const USER_SHEET_REFRESH_INTERVAL_MS = 60_000;
 
-interface StoredUserSheetModalState {
+interface StoredUserSheetSelection {
     battleTag?: string;
     entryId?: string;
-    isOpen: boolean;
 }
 
-const readStoredModalState = (): StoredUserSheetModalState => {
+const readStoredSelection = (): StoredUserSheetSelection => {
     try {
-        const value = sessionStorage.getItem(USER_SHEET_SESSION_KEY);
-        if (!value) return { isOpen: false };
-        const parsed = JSON.parse(value) as Partial<StoredUserSheetModalState>;
+        const value = sessionStorage.getItem(USER_SHEET_SELECTION_KEY)
+            ?? sessionStorage.getItem(LEGACY_USER_SHEET_MODAL_KEY);
+        if (!value) return {};
+        const parsed = JSON.parse(value) as Partial<StoredUserSheetSelection>;
         return {
-            isOpen: parsed.isOpen === true,
             battleTag: typeof parsed.battleTag === 'string' ? parsed.battleTag : undefined,
             entryId: typeof parsed.entryId === 'string' ? parsed.entryId : undefined,
         };
     } catch {
-        return { isOpen: false };
+        return {};
     }
 };
 
 /**
- * @description 공유 유저 시트의 로딩·재시도와 모달 진입 상태를 한곳에서 관리한다.
+ * @description 공유 유저 시트의 로딩·재검증과 페이지에서 이어 볼 선택 항목을 관리한다.
  */
-export const useUserSheet = () => {
-    const [storedModalState] = useState(readStoredModalState);
+export const useUserSheet = (isActive = false) => {
+    const [storedSelection] = useState(readStoredSelection);
     const [entries, setEntries] = useState<UserSheetEntry[]>([]);
     const [sheetVersion, setSheetVersion] = useState(0);
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [isOpen, setIsOpen] = useState(storedModalState.isOpen);
     const [selectedBattleTag, setSelectedBattleTag] = useState<string | undefined>(
-        storedModalState.battleTag,
+        storedSelection.battleTag,
     );
     const [selectedEntryId, setSelectedEntryId] = useState<string | undefined>(
-        storedModalState.entryId,
+        storedSelection.entryId,
     );
     const requestIdRef = useRef(0);
 
@@ -81,7 +80,7 @@ export const useUserSheet = () => {
     }, [retry]);
 
     useEffect(() => {
-        if (!isOpen) return;
+        if (!isActive) return;
 
         const refreshVisibleSheet = () => {
             if (document.visibilityState === 'visible') void revalidate();
@@ -99,24 +98,18 @@ export const useUserSheet = () => {
             window.removeEventListener('focus', refreshVisibleSheet);
             document.removeEventListener('visibilitychange', refreshVisibleSheet);
         };
-    }, [isOpen, revalidate]);
+    }, [isActive, revalidate]);
 
-    const open = useCallback((battleTag?: string, entryId?: string) => {
-        sessionStorage.setItem(USER_SHEET_SESSION_KEY, JSON.stringify({
-            isOpen: true,
-            battleTag,
-            entryId,
-        } satisfies StoredUserSheetModalState));
+    const select = useCallback((battleTag?: string, entryId?: string) => {
+        const selection = { battleTag, entryId } satisfies StoredUserSheetSelection;
+        try {
+            sessionStorage.setItem(USER_SHEET_SELECTION_KEY, JSON.stringify(selection));
+            sessionStorage.removeItem(LEGACY_USER_SHEET_MODAL_KEY);
+        } catch {
+            // 저장소가 차단돼도 현재 화면의 선택 상태는 유지한다.
+        }
         setSelectedBattleTag(battleTag);
         setSelectedEntryId(entryId);
-        setIsOpen(true);
-    }, []);
-
-    const close = useCallback(() => {
-        sessionStorage.removeItem(USER_SHEET_SESSION_KEY);
-        setIsOpen(false);
-        setSelectedBattleTag(undefined);
-        setSelectedEntryId(undefined);
     }, []);
 
     const updateSnapshot = useCallback((snapshot: UserSheetSnapshot) => {
@@ -126,14 +119,12 @@ export const useUserSheet = () => {
     }, []);
 
     return {
-        close,
         entries,
         error,
         isLoading,
-        isOpen,
-        open,
         revalidate,
         retry,
+        select,
         selectedBattleTag,
         selectedEntryId,
         sheetVersion,

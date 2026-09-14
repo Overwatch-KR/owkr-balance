@@ -11,6 +11,8 @@ describe('DiscordLoginPolicyPage', () => {
         expect(markup).toContain('이용 목적');
         expect(markup).toContain('처리하는 정보');
         expect(markup).toContain('Discord 사용자 ID');
+        expect(markup).toContain('프로필 이미지');
+        expect(markup).toContain('서명된 로그인 세션');
         expect(markup).toContain('관리자 목록과 대조');
         expect(markup).toContain('권한 범위와 보관');
         expect(markup).toContain('OAuth 액세스 토큰은 저장하지 않습니다');
