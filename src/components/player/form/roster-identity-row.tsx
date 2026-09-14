@@ -94,7 +94,7 @@ export function RosterIdentityRow({
                                 : MATCH_LABELS[draft.matchKind]}
                         </span>
                     </div>
-                    <p className="mt-1 truncate font-mono text-[11px] text-slate-600">
+                    <p className="mt-1 truncate font-mono text-xs text-slate-500">
                         {draft.player.name}
                     </p>
                 </div>

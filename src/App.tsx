@@ -28,7 +28,6 @@ import {
     RosterIdentityResolver,
 } from './components/player/form/roster-identity-resolver';
 import PlayerList from './components/player/list';
-import { ParticipantDashboardSummary } from './components/player/participant-dashboard-summary';
 import { ParticipantWorkspace } from './components/player/participant-workspace';
 import { OnboardingGuide } from './components/onboarding-guide';
 import { GuideResumePrompt } from './components/guide-resume-prompt';
@@ -40,9 +39,9 @@ import {
     type ErrorDetails,
 } from './components/common/error-details-modal';
 import { AppHeader } from './components/layout/app-header';
-import { MatchLiveControls } from './components/match/match-live-controls';
 import { MatchResultPanel } from './components/match/match-result-panel';
-import { MatchShareControls } from './components/match/match-share-controls';
+import { MatchSharingPanel } from './components/match/match-sharing-panel';
+import { MatchWorkspaceHeader } from './components/match/match-workspace-header';
 import { EventParticipantsPage } from './components/event/event-participants-page';
 import { ScrimManager } from './components/scrim/scrim-manager';
 
@@ -447,6 +446,15 @@ const MatchApp = ({
     if (pathname === '/scrims') {
         return (
             <MotionConfig reducedMotion="user">
+                <AppHeader
+                    isGuideOpen={false}
+                    isLiveConnected={isLiveConnected}
+                    isLivePublishing={isLivePublishing}
+                    liveSessionCode={liveSession?.code}
+                    liveSyncError={liveSyncError}
+                    onOpenGuide={handleToggleGuide}
+                    userSheetHasError={Boolean(userSheet.error)}
+                />
                 <ScrimManager
                     csrfToken={csrfToken}
                     players={players}
@@ -463,6 +471,10 @@ const MatchApp = ({
             <MotionConfig reducedMotion="user">
                 <AppHeader
                     isGuideOpen={false}
+                    isLiveConnected={isLiveConnected}
+                    isLivePublishing={isLivePublishing}
+                    liveSessionCode={liveSession?.code}
+                    liveSyncError={liveSyncError}
                     onOpenGuide={handleToggleGuide}
                     userSheetHasError={Boolean(userSheet.error)}
                 />
@@ -527,6 +539,10 @@ const MatchApp = ({
             </a>
             <AppHeader
                 isGuideOpen={isGuideOpen || isGuideResumePromptOpen}
+                isLiveConnected={isLiveConnected}
+                isLivePublishing={isLivePublishing}
+                liveSessionCode={liveSession?.code}
+                liveSyncError={liveSyncError}
                 onOpenGuide={handleToggleGuide}
                 userSheetHasError={Boolean(userSheet.error)}
             />
@@ -553,56 +569,55 @@ const MatchApp = ({
                         onClose={() => navigate('/')}
                     />
                 ) : (
-                    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(380px,430px)_minmax(0,1fr)] xl:items-start">
-                        <div className="flex min-h-0 min-w-0 flex-col gap-4 xl:sticky xl:top-24 xl:h-[calc(100dvh-8rem)]">
-                            <ParticipantDashboardSummary
-                                participantCount={participants.length}
-                                waitlistCount={waitlist.length}
-                                reviewCount={failedParses.length}
-                                onOpen={() => navigate('/participants')}
-                            />
-                            <PlayerList {...playerListProps} />
-                        </div>
+                    <div className="grid min-w-0 gap-5">
+                        <MatchWorkspaceHeader
+                            participantCount={participants.length}
+                            waitlistCount={waitlist.length}
+                            onManageParticipants={() => navigate('/participants')}
+                        />
 
-                        <div className="grid min-w-0 content-start gap-4">
-                            <MatchLiveControls
-                                canStart={canStartLiveSession}
-                                isConnected={isLiveConnected}
-                                isConnecting={isLiveConnecting}
-                                isPublishing={isLivePublishing}
-                                isRemote={dataMode === 'remote'}
-                                session={liveSession}
-                                syncError={liveSyncError}
-                                onStart={handleStartLiveSession}
-                                onJoin={handleJoinLiveSession}
-                                onLeave={handleLeaveLiveSession}
-                            />
-                            <MatchShareControls
-                                canCreate={Boolean(result) && !isResultStale}
-                                isRemote={dataMode === 'remote'}
-                                userId={user.id}
-                                onCreate={handleCreateMatchShare}
-                                onImport={handleImportMatchShare}
-                            />
-                            <MatchResultPanel
-                                alternatives={alternatives}
-                                ignorePreferences={ignorePreferences}
-                                isBalancing={isBalancing}
-                                isReady={isReady}
-                                isResultStale={isResultStale}
-                                onCancelSwap={() => setSwapSource(null)}
-                                onClearResult={handleClearResult}
-                                onIgnorePreferencesChange={setIgnorePreferences}
-                                onRunMatching={() => void handleRunMatching({ ignorePreferences })}
-                                onSelectAlternative={handleSelectAlternative}
-                                onShowAllRanksChange={handleShowAllRanksChange}
-                                onSlotClick={handleSlotClick}
-                                participantCount={participants.length}
-                                result={result}
-                                showAllRanks={showAllRanks}
-                                swapSource={swapSource}
-                                userSheetByBattleTag={userSheetByBattleTag}
-                            />
+                        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(380px,430px)_minmax(0,1fr)] xl:items-start">
+                            <aside className="order-2 flex min-h-0 min-w-0 flex-col xl:order-1 xl:sticky xl:top-24 xl:h-[calc(100dvh-8rem)]">
+                                <PlayerList {...playerListProps} />
+                            </aside>
+
+                            <div className="order-1 grid min-w-0 content-start gap-5 xl:order-2">
+                                <MatchResultPanel
+                                    alternatives={alternatives}
+                                    ignorePreferences={ignorePreferences}
+                                    isBalancing={isBalancing}
+                                    isReady={isReady}
+                                    isResultStale={isResultStale}
+                                    onCancelSwap={() => setSwapSource(null)}
+                                    onClearResult={handleClearResult}
+                                    onIgnorePreferencesChange={setIgnorePreferences}
+                                    onRunMatching={() => void handleRunMatching({ ignorePreferences })}
+                                    onSelectAlternative={handleSelectAlternative}
+                                    onShowAllRanksChange={handleShowAllRanksChange}
+                                    onSlotClick={handleSlotClick}
+                                    participantCount={participants.length}
+                                    result={result}
+                                    showAllRanks={showAllRanks}
+                                    swapSource={swapSource}
+                                    userSheetByBattleTag={userSheetByBattleTag}
+                                />
+                                <MatchSharingPanel
+                                    canCreateSnapshot={Boolean(result) && !isResultStale}
+                                    canStartLive={canStartLiveSession}
+                                    isLiveConnected={isLiveConnected}
+                                    isLiveConnecting={isLiveConnecting}
+                                    isLivePublishing={isLivePublishing}
+                                    isRemote={dataMode === 'remote'}
+                                    liveSession={liveSession}
+                                    liveSyncError={liveSyncError}
+                                    userId={user.id}
+                                    onCreateSnapshot={handleCreateMatchShare}
+                                    onImportSnapshot={handleImportMatchShare}
+                                    onJoinLive={handleJoinLiveSession}
+                                    onLeaveLive={handleLeaveLiveSession}
+                                    onStartLive={handleStartLiveSession}
+                                />
+                            </div>
                         </div>
                     </div>
                 )}

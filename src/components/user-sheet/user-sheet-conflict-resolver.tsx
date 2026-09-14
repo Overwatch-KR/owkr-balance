@@ -109,7 +109,7 @@ export function UserSheetConflictResolver({
                                 </div>
                                 <div className="grid md:grid-cols-3">
                                     <div className="border-b border-slate-800 p-3 md:border-b-0 md:border-r">
-                                        <p className="text-[10px] font-medium uppercase tracking-wide text-slate-600">수정 전</p>
+                                        <p className="text-[11px] font-medium tracking-wide text-slate-500">수정 전</p>
                                         <p className="mt-2 whitespace-pre-wrap break-words text-xs leading-relaxed text-slate-500">
                                             {displayValue(conflict.baseValue)}
                                         </p>

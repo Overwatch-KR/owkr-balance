@@ -82,7 +82,7 @@ export function UserSheetEditorTable({
                 </caption>
                 <thead className="sticky top-0 z-20 bg-slate-900">
                     <tr>
-                        <th className="sticky left-0 z-30 w-12 border-b border-r border-slate-700 bg-slate-900 px-2 py-2.5 text-center font-medium text-slate-600">#</th>
+                        <th className="sticky left-0 z-30 w-12 border-b border-r border-slate-700 bg-slate-900 px-2 py-2.5 text-center font-medium text-slate-500">#</th>
                         {COLUMNS.map(column => (
                             <th key={column.field} className={`${column.width} border-b border-r border-slate-700 px-2.5 py-2.5 font-medium text-slate-400`}>
                                 {column.label}
@@ -115,7 +115,7 @@ export function UserSheetEditorTable({
                                     error ? 'bg-rose-500/[0.045]' : ''
                                 }`}
                             >
-                                <td className="sticky left-0 z-10 border-b border-r border-slate-800 bg-slate-900/95 px-2 py-1 text-center tabular-nums text-slate-600 group-hover:text-slate-400">
+                                <td className="sticky left-0 z-10 border-b border-r border-slate-800 bg-slate-900/95 px-2 py-1 text-center tabular-nums text-slate-500 group-hover:text-slate-300">
                                     {rowIndex + 1}
                                 </td>
                                 {COLUMNS.map((column, columnIndex) => (

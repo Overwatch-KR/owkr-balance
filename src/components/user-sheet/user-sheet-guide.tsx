@@ -20,9 +20,9 @@ const GUIDE_ITEMS = [
         title: 'Discord ID가 기준이에요',
     },
     {
-        description: '이 시트는 반복해서 만나는 유저의 공유 정보용입니다. 이번 내전에 넣을 10명은 참가자 작업실에서 따로 선택하고 관리합니다.',
+        description: '이 시트는 반복해서 만나는 유저의 공유 정보용입니다. 이번 내전에 넣을 10명은 참가자 페이지에서 따로 선택하고 관리합니다.',
         icon: UsersRound,
-        title: '현재 매칭 명단과는 별도예요',
+        title: '현재 명단과는 별도예요',
     },
     {
         description: '한 명은 상세 화면의 바로 수정, 여러 명은 전체 편집을 사용하세요. 표의 7개 열을 그대로 붙여넣을 수도 있습니다.',
@@ -30,7 +30,7 @@ const GUIDE_ITEMS = [
         title: '작업 범위에 맞게 편집해요',
     },
     {
-        description: '시트의 역할별 티어는 참고 정보입니다. 팀 밸런스 계산은 참가자 작업실에 저장된 현재 명단의 티어를 사용합니다.',
+        description: '시트의 역할별 티어는 참고 정보입니다. 팀 밸런스 계산은 참가자 페이지의 현재 명단에 저장된 티어를 사용합니다.',
         icon: UsersRound,
         title: '티어는 참고용이에요',
     },
@@ -66,7 +66,7 @@ export function UserSheetGuide({ onClose, onStartTour }: UserSheetGuideProps) {
                             운영진이 함께 관리하는 유저 정보
                         </h2>
                         <p className="mt-1.5 text-sm leading-relaxed text-slate-400">
-                            자주 만나는 유저의 정보와 특이사항을 관리하는 공유 목록입니다. 이번 경기의 참가자·티어 입력과 팀 편성은 매칭 화면에서 진행해요.
+                            자주 만나는 유저의 정보와 특이사항을 관리하는 공유 목록입니다. 이번 내전의 참가자·티어 입력은 참가자 페이지에서, 팀 편성은 대진표에서 진행합니다.
                         </p>
                     </div>
                     <button

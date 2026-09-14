@@ -421,7 +421,7 @@ export function RosterIdentityResolver({
                                 <label htmlFor="bulk-discord-ids" className="text-xs font-medium text-slate-300">
                                     Discord ID 한 번에 붙여넣기
                                 </label>
-                                <p className="mt-1 text-[11px] text-slate-600">
+                                <p className="mt-1 text-xs text-slate-500">
                                     `별명 123456789012345678` 형식 또는 미해결 인원 순서대로 한 줄씩 입력하세요.
                                 </p>
                             </div>
@@ -529,7 +529,7 @@ export function RosterIdentityResolver({
                 </div>
 
                 <footer className="flex shrink-0 flex-col gap-3 border-t border-slate-800 px-4 py-3 sm:flex-row sm:items-center sm:justify-between md:px-6">
-                    <p className="text-[11px] text-slate-600">
+                    <p className="text-xs text-slate-500">
                         {isLocalOnly
                             ? '이 명단과 팀 결과는 현재 브라우저에만 30분 동안 저장됩니다.'
                             : '개인 운영 메모와 관리자 특이사항은 자동 갱신하지 않습니다.'}

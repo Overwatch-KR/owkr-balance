@@ -81,7 +81,7 @@ const MatchResult = ({
                     <AlertTriangle size={17} className="mt-0.5 shrink-0 text-amber-400" aria-hidden="true" />
                     <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold">참가자 정보가 변경되었습니다.</p>
-                        <p className="mt-0.5 text-xs text-amber-300/80">다시 매칭해 주세요.</p>
+                        <p className="mt-0.5 text-xs text-amber-300/80">팀을 다시 배정해 주세요.</p>
                     </div>
                     {onRematch ? (
                         <button
@@ -93,7 +93,7 @@ const MatchResult = ({
                             {isRematching
                                 ? <Loader2 size={14} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
                                 : <RefreshCcw size={14} aria-hidden="true" />}
-                            {isRematching ? '매칭 중…' : '다시 매칭'}
+                            {isRematching ? '배정 중…' : '다시 배정'}
                         </button>
                     ) : null}
                 </div>
@@ -203,7 +203,7 @@ const MatchResult = ({
                         <div className="flex flex-wrap items-center justify-between gap-2">
                             <div>
                                 <p className="text-sm font-medium text-slate-300">다른 추천 조합</p>
-                                <p className="mt-0.5 text-[11px] text-slate-600">
+                                <p className="mt-0.5 text-xs text-slate-500">
                                     현재 조합과 팀 구성이 의미 있게 다른 후보입니다.
                                 </p>
                             </div>

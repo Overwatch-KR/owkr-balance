@@ -18,7 +18,7 @@ interface ParticipantUserSheetPickerProps {
 const normalizeSearchText = (value: string): string => value.trim().toLocaleLowerCase('ko-KR');
 
 /**
- * @description 참가자 작업실에서 공유 유저 시트를 검색해 현재 로스터에 바로 추가한다.
+ * @description 참가자 페이지에서 공유 유저 시트를 검색해 현재 명단에 바로 추가한다.
  */
 export function ParticipantUserSheetPicker({
     entries,
@@ -153,7 +153,7 @@ export function ParticipantUserSheetPicker({
                 <div className="mt-5 rounded-xl border border-dashed border-slate-800 px-4 py-8 text-center">
                     <Search size={22} className="mx-auto text-slate-600" aria-hidden="true" />
                     <p className="mt-2 text-sm text-slate-400">검색어를 입력해 참가자를 찾으세요.</p>
-                    <p className="mt-1 text-xs text-slate-600">현재 유저 시트 {entries.length}명</p>
+                    <p className="mt-1 text-xs text-slate-500">유저 시트에 {entries.length}명 저장됨</p>
                 </div>
             )}
         </section>

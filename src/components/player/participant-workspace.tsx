@@ -109,14 +109,14 @@ export const ParticipantWorkspace = ({
     const isReady = remainingCount === 0;
 
     return (
-        <div className="space-y-5">
+        <div className="space-y-4">
             <PageHeader
                 breadcrumbs={[
-                    { label: '매칭', onClick: onClose },
-                    { label: '참가자 작업실' },
+                    { label: '대진표', onClick: onClose },
+                    { label: '참가자' },
                 ]}
-                title="참가자 작업실"
-                description="명단 입력부터 참여 대조, 정보 보완까지 한곳에서 처리합니다."
+                title="참가자"
+                description="이번 내전의 참가 명단을 추가하고 확인합니다."
                 meta={(
                     <>
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-cyan-500/10 px-3 py-1.5 text-xs font-semibold text-cyan-200">
@@ -136,45 +136,35 @@ export const ParticipantWorkspace = ({
                 )}
             />
 
-            <section
+            <div
                 id="participant-next-step"
-                className={`flex flex-col gap-4 rounded-2xl border px-5 py-4 shadow-lg shadow-black/10 sm:flex-row sm:items-center sm:justify-between ${
-                    isReady
-                        ? 'border-cyan-400/25 bg-gradient-to-r from-cyan-500/10 via-blue-500/[0.07] to-transparent'
-                        : 'border-slate-800/80 bg-slate-950/35'
-                }`}
-                aria-labelledby="participant-next-step-title"
+                className="flex min-h-10 flex-wrap items-center justify-between gap-3 px-1"
             >
-                <div className="min-w-0">
-                    <p className="text-xs font-semibold text-emerald-300">입력 내용 자동 저장 · 30분</p>
-                    <h2 id="participant-next-step-title" className="mt-1 text-base font-semibold text-white">
-                        {isReady ? '참가자 10명이 준비됐어요' : `팀 편성까지 ${remainingCount}명 더 필요해요`}
-                    </h2>
-                    <p className="mt-1 text-sm text-slate-400">
-                        {isReady
-                            ? '팀 편성 화면으로 이동해 자동 배정을 실행해 보세요.'
-                            : '참가자를 추가하거나 수정하면 이 브라우저에 30분 동안 바로 저장됩니다.'}
-                    </p>
+                <p className={`text-sm ${isReady ? 'text-emerald-300' : 'text-slate-400'}`}>
+                    <span className="font-medium">
+                        {isReady ? '10명 준비 완료' : `팀 편성까지 ${remainingCount}명`}
+                    </span>
+                    <span className="mx-2 text-slate-700" aria-hidden="true">·</span>
+                    <span className="text-xs text-slate-500">입력 내용은 30분간 자동 저장</span>
                     {reviewCount > 0 && (
-                        <p className="mt-2 text-xs font-medium text-amber-300">
-                            가져오지 못한 항목 {reviewCount}건은 입력 탭에서 따로 확인할 수 있어요.
-                        </p>
+                        <span className="ml-2 text-xs text-amber-300">보완 {reviewCount}건</span>
                     )}
-                </div>
-                <button
-                    type="button"
-                    onClick={onContinueToMatching}
-                    disabled={!isReady}
-                    className="btn-primary inline-flex min-h-11 shrink-0 items-center justify-center gap-2 px-4 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                    팀 편성 화면으로 이동
-                    <ArrowRight size={16} aria-hidden="true" />
-                </button>
-            </section>
+                </p>
+                {isReady && (
+                    <button
+                        type="button"
+                        onClick={onContinueToMatching}
+                        className="btn-primary inline-flex min-h-10 shrink-0 items-center justify-center gap-2 px-3 text-sm"
+                    >
+                        팀 편성으로
+                        <ArrowRight size={15} aria-hidden="true" />
+                    </button>
+                )}
+            </div>
 
             <div className="grid min-w-0 gap-5 xl:grid-cols-[190px_minmax(420px,1fr)_minmax(320px,390px)] xl:items-start">
                 <nav
-                    className="card grid grid-cols-2 gap-2 p-2 sm:grid-cols-4 xl:sticky xl:top-24 xl:grid-cols-1 xl:p-3"
+                    className="grid grid-cols-4 gap-1 rounded-xl border border-slate-800/80 bg-surface-elevated/45 p-1.5 xl:sticky xl:top-24 xl:grid-cols-1 xl:p-2"
                     aria-label="참가자 입력 방식"
                 >
                     {INPUT_MODES.map(({ mode, id, label, description, icon: Icon }) => {
@@ -186,17 +176,17 @@ export const ParticipantWorkspace = ({
                                 type="button"
                                 aria-pressed={isActive}
                                 onClick={() => formProps.onModeChange(mode)}
-                                className={`group flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-2 py-3 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 xl:min-h-[4.5rem] xl:flex-row xl:justify-start xl:gap-3 xl:px-3 xl:text-left ${
+                                className={`group flex min-h-11 min-w-0 flex-col items-center justify-center gap-1 rounded-lg px-1.5 py-2 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 xl:min-h-14 xl:flex-row xl:justify-start xl:gap-3 xl:px-3 xl:text-left ${
                                     isActive
-                                        ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/20'
+                                        ? 'bg-blue-500/15 text-cyan-100 ring-1 ring-inset ring-cyan-400/20'
                                         : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
                                 }`}
                             >
                                 <Icon size={18} className="shrink-0" aria-hidden="true" />
                                 <span className="min-w-0">
-                                    <span className="block truncate text-xs font-semibold sm:text-sm">{label}</span>
+                                    <span className="block truncate text-[11px] font-semibold sm:text-sm">{label}</span>
                                     <span className={`mt-0.5 hidden text-[11px] xl:block ${
-                                        isActive ? 'text-blue-100/75' : 'text-slate-600 group-hover:text-slate-500'
+                                        isActive ? 'text-blue-100/80' : 'text-slate-500 group-hover:text-slate-400'
                                     }`}>
                                         {description}
                                     </span>
@@ -208,8 +198,8 @@ export const ParticipantWorkspace = ({
 
                 <section className="min-w-0">
                     <div className="mb-3 px-1">
-                        <h2 className="text-lg font-semibold text-white">{activeCopy.title}</h2>
-                        <p className="mt-1 text-sm text-slate-500">{activeCopy.description}</p>
+                        <h2 className="text-base font-semibold text-white sm:text-lg">{activeCopy.title}</h2>
+                        <p className="mt-1 text-sm text-slate-400">{activeCopy.description}</p>
                     </div>
                     {activeMode === 'sheet' ? (
                         <ParticipantUserSheetPicker

@@ -74,7 +74,7 @@ export function UserSheetBrowser({
                             className="btn-primary w-full"
                         >
                             <Pencil size={14} aria-hidden="true" />
-                            유저 시트 편집
+                            전체 편집
                         </button>
                     </div>
                     <label id="user-sheet-search" className="relative">
@@ -101,15 +101,15 @@ export function UserSheetBrowser({
                             </button>
                         )}
                     </label>
-                    <p className="px-1 text-[11px] text-slate-600">
+                    <p className="px-1 text-xs text-slate-500">
                         {query.trim() ? `${filteredEntries.length}명 검색됨` : `총 ${entries.length}명 저장됨`}
                     </p>
                 </div>
                 <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-2">
                     {filteredEntries.length === 0 ? (
-                        <div className="flex flex-col items-center px-3 py-8 text-center text-xs leading-relaxed text-slate-600">
+                        <div className="flex flex-col items-center px-3 py-8 text-center text-xs leading-relaxed text-slate-500">
                             <DouMascot variant={entries.length === 0 ? 'empty' : 'search'} size={64} className="mb-3 opacity-80" decorative />
-                            <p>{entries.length === 0 ? '저장된 유저가 없습니다. 유저 시트 편집에서 등록해 주세요.' : '검색 결과가 없습니다.'}</p>
+                            <p>{entries.length === 0 ? '저장된 유저가 없습니다. 전체 편집에서 먼저 추가해 주세요.' : '검색 결과가 없습니다.'}</p>
                         </div>
                     ) : filteredEntries.map(entry => {
                         const isParticipant = participantBattleTags.has(
@@ -134,7 +134,7 @@ export function UserSheetBrowser({
                                         <span className="shrink-0 rounded bg-cyan-500/15 px-1.5 py-0.5 text-[10px] text-cyan-300">참가 중</span>
                                     )}
                                 </span>
-                                <span className="mt-1 block truncate font-mono text-[11px] text-slate-600">{entry.battleTag}</span>
+                                <span className="mt-1 block truncate font-mono text-[11px] text-slate-500">{entry.battleTag}</span>
                                 <span className={`mt-0.5 block truncate font-mono text-[10px] ${
                                     entry.discordUserId ? 'text-cyan-300/55' : 'text-rose-300/75'
                                 }`}>
@@ -180,7 +180,7 @@ export function UserSheetBrowser({
                     <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
                         <DouMascot variant="search" size={96} className="mb-3 opacity-80" decorative />
                         <p className="text-sm font-medium text-slate-400">조회할 유저를 선택해 주세요</p>
-                        <p className="mt-1 text-xs text-slate-600">유저를 선택하면 상세 정보에서 바로 수정할 수 있습니다.</p>
+                        <p className="mt-1 text-xs text-slate-500">유저를 선택하면 상세 정보에서 바로 수정할 수 있습니다.</p>
                     </div>
                 )}
             </div>

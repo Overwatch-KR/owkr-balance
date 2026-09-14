@@ -130,12 +130,11 @@ export function UserSheetPage({
                 <div id="user-sheet-overview">
                     <PageHeader
                         breadcrumbs={[
-                            { label: '매칭', onClick: onClose },
+                            { label: '대진표', onClick: onClose },
                             { label: '유저 시트' },
                         ]}
-                        eyebrow="공유 운영 데이터"
                         title="유저 시트"
-                        description="Discord ID를 기준으로 반복해서 만나는 유저의 티어와 공용 특이사항을 관리합니다."
+                        description="자주 만나는 플레이어의 BattleTag, 티어, 메모를 저장합니다."
                         meta={(
                             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300">
                                 <FileSpreadsheet size={13} aria-hidden="true" />
@@ -170,11 +169,11 @@ export function UserSheetPage({
                                             startTour();
                                         }}
                                         className={`btn-ghost ${isGuideActive ? 'bg-cyan-500/10 text-cyan-200' : ''}`}
-                                        aria-label="시트 가이드"
+                                        aria-label="유저 시트 사용법"
                                         aria-pressed={isGuideActive}
                                     >
                                         <BookOpen size={15} aria-hidden="true" />
-                                        시트 가이드
+                                        사용법
                                     </button>
                                 ) : null}
                                 {mode === 'BROWSE' ? (
@@ -216,7 +215,7 @@ export function UserSheetPage({
                     </div>
                 ) : null}
 
-                <section className="card flex h-[calc(100dvh-17rem)] min-h-[36rem] flex-col overflow-hidden p-0">
+                <section className="card flex min-h-[22rem] flex-col overflow-hidden p-0 sm:h-[calc(100dvh-12rem)] sm:min-h-[32rem]">
                     {mode === 'GUIDE' ? (
                         <UserSheetGuide
                             onClose={() => setMode('BROWSE')}

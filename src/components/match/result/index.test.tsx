@@ -134,7 +134,7 @@ describe('MatchResult', () => {
             />,
         );
 
-        expect(markup).toContain('다시 매칭</button>');
+        expect(markup).toContain('다시 배정</button>');
     });
 
     it('재매칭 중에는 경고 안의 버튼에도 진행 상태를 표시한다', () => {
@@ -149,8 +149,8 @@ describe('MatchResult', () => {
             />,
         );
 
-        expect(markup).toContain('매칭 중…');
-        expect(markup).toMatch(/disabled=""[^>]*>.*매칭 중…/s);
+        expect(markup).toContain('배정 중…');
+        expect(markup).toMatch(/disabled=""[^>]*>.*배정 중…/s);
     });
 
     it('역할별 평균 티어 차이를 밸런스 요약에 함께 표시한다', () => {

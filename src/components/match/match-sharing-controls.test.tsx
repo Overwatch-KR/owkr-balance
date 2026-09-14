@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MatchLiveSessionSnapshot } from '#domain/balance';
 import { MatchLiveControls } from './match-live-controls';
 import { MatchShareControls } from './match-share-controls';
+import { MatchSharingPanel } from './match-sharing-panel';
 
 const liveSession: MatchLiveSessionSnapshot = {
     code: 'LIVE234567',
@@ -43,8 +44,8 @@ describe('match sharing controls', () => {
             />,
         );
 
-        expect(markup).toContain('실시간 대진표 공유');
-        expect(markup).toContain('수정 중 약 0.5초 간격');
+        expect(markup).toContain('함께 편집');
+        expect(markup).toContain('명단·팀 변경을 자동으로 맞춥니다.');
         expect(markup).toContain('새로고침해도 이 브라우저에서 자동으로 다시 연결됩니다.');
         expect(markup.match(/LIVE234567/g)).toHaveLength(1);
     });
@@ -87,9 +88,36 @@ describe('match sharing controls', () => {
             />,
         );
 
-        expect(markup).toContain('읽기 전용 결과 공유');
-        expect(markup).toContain('이후 수정은 동기화되지 않습니다.');
+        expect(markup).toContain('결과 전달');
+        expect(markup).toContain('24시간 동안 읽기 전용으로 전달합니다.');
         expect(markup.match(/READ234567/g)).toHaveLength(1);
         expect(markup).toContain('placeholder="읽기 전용 코드 10자리"');
+    });
+
+    it('두 공유 방식을 접힌 보조 영역으로 묶고 연결 상태만 먼저 보여준다', () => {
+        const markup = renderToStaticMarkup(
+            <MatchSharingPanel
+                canCreateSnapshot
+                canStartLive
+                isLiveConnected
+                isLiveConnecting={false}
+                isLivePublishing={false}
+                isRemote
+                liveSession={liveSession}
+                liveSyncError=""
+                userId="admin-1"
+                onCreateSnapshot={vi.fn()}
+                onImportSnapshot={vi.fn()}
+                onJoinLive={vi.fn()}
+                onLeaveLive={vi.fn()}
+                onStartLive={vi.fn()}
+            />,
+        );
+
+        expect(markup).toContain('<details');
+        expect(markup).toContain('<summary');
+        expect(markup).toContain('LIVE234567 · 실시간 연결됨');
+        expect(markup).toContain('함께 편집');
+        expect(markup).toContain('결과 전달');
     });
 });

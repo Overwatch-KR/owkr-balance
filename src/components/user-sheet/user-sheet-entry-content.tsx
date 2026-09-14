@@ -92,7 +92,7 @@ export function UserSheetEntryContent({
                                         현재 참가자
                                     </span>
                                 )}
-                                <span className="truncate text-xs text-slate-600">
+                                <span className="truncate text-xs text-slate-500">
                                     최종 수정 · {entry.updatedByName} · {new Date(entry.updatedAt).toLocaleString('ko-KR')}
                                 </span>
                             </div>
@@ -168,7 +168,7 @@ export function UserSheetEntryContent({
                                         현재 참가자
                                     </span>
                                 )}
-                                <span className="text-xs text-slate-600">
+                                <span className="text-xs text-slate-500">
                                     최종 수정 · {entry.updatedByName} · {new Date(entry.updatedAt).toLocaleString('ko-KR')}
                                 </span>
                             </div>

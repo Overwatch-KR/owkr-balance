@@ -50,7 +50,7 @@ export function MatchResultPanel({
     return (
         <section className="grid min-w-0 content-start gap-6" aria-labelledby="match-result-title">
             <div className="flex min-h-11 flex-wrap items-center justify-between gap-3">
-                <h2 id="match-result-title" className="text-lg font-semibold text-white">팀 배정 결과</h2>
+                <h2 id="match-result-title" className="text-lg font-semibold text-white">팀 배정</h2>
                 <div className="flex flex-wrap justify-end gap-2">
                     <button
                         id="matching-preference-option"
@@ -85,7 +85,7 @@ export function MatchResultPanel({
                             ? <Loader2 size={16} className="animate-spin" aria-hidden="true" />
                             : <Shuffle size={16} aria-hidden="true" />}
                         {isReady
-                            ? isResultStale ? '다시 매칭' : '팀 자동 배정'
+                            ? isResultStale ? '다시 배정' : '팀 자동 배정'
                             : `${10 - participantCount}명 더 필요`}
                     </button>
                 </div>
@@ -98,7 +98,7 @@ export function MatchResultPanel({
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="flex h-[500px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-800"
+                        className="flex min-h-[320px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-800 px-6 sm:min-h-[420px]"
                     >
                         {isBalancing ? (
                             <div className="flex flex-col items-center gap-4">

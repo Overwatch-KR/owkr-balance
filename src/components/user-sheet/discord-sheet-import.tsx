@@ -204,7 +204,7 @@ export function DiscordSheetImport({ onImport }: DiscordSheetImportProps) {
                                 setResult(null);
                             }}
                             onKeyDown={handleTextareaKeyDown}
-                            className="custom-scrollbar min-h-32 w-full resize-y bg-transparent px-4 py-3 font-mono text-xs leading-relaxed text-slate-100 outline-none placeholder:text-slate-600"
+                            className="custom-scrollbar min-h-32 w-full resize-y bg-transparent px-4 py-3 font-mono text-xs leading-relaxed text-slate-100 outline-none placeholder:text-slate-500"
                             placeholder={'상민역할 아이콘, 다이아 — 오늘 오후 3:02\nPlayer#1234 다3!/플2?/마5\n재봉역할 아이콘, 플래티넘 — 오늘 오후 3:03\nOther#5678 플1/다4/골2\n…'}
                             spellCheck={false}
                             aria-describedby="discord-sheet-import-help discord-sheet-import-status"

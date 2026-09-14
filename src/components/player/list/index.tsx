@@ -164,7 +164,7 @@ const PlayerList = ({
                 <div className="flex min-w-0 items-center gap-2">
                     <Users size={17} className="shrink-0 text-slate-400" aria-hidden="true" />
                     <h2 id="player-management-title" className="truncate text-sm font-semibold text-white">
-                        참가자 관리
+                        현재 명단
                     </h2>
                     <span className="shrink-0 text-xs tabular-nums text-slate-500">총 {totalCount}명</span>
                 </div>
@@ -264,7 +264,7 @@ const PlayerList = ({
                                 <li className="flex animate-fade-in flex-col items-center justify-center py-10 text-center">
                                     <DouMascot variant="empty" size={64} className="mb-3 opacity-80" decorative />
                                     <p className="text-sm text-slate-500">아직 추가된 플레이어가 없습니다</p>
-                                    <p className="mt-1 text-xs text-slate-600">채팅을 붙여넣거나 직접 입력해 주세요</p>
+                                    <p className="mt-1 text-xs text-slate-500">채팅을 붙여넣거나 직접 입력해 주세요</p>
                                 </li>
                             )}
                         </ul>
@@ -277,7 +277,7 @@ const PlayerList = ({
                         tabIndex={0}
                         className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
                     >
-                        <p className="mb-2 px-1 text-[11px] text-slate-600">참가자 삭제 시 대기열 첫 번째 인원이 자동 승격됩니다</p>
+                        <p className="mb-2 px-1 text-xs text-slate-500">참가자를 삭제하면 대기열의 첫 번째 플레이어가 자동으로 참가합니다</p>
                         <ul className="space-y-1.5" aria-label="대기열 목록">
                             {waitlist.map((player) => renderPlayerItem(player, true))}
 

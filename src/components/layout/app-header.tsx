@@ -8,15 +8,23 @@ import {
 
 interface AppHeaderProps {
     isGuideOpen: boolean;
+    isLiveConnected: boolean;
+    isLivePublishing: boolean;
+    liveSessionCode?: string;
+    liveSyncError: string;
     onOpenGuide: () => void;
     userSheetHasError: boolean;
 }
 
 /**
- * @description 전역 Navigation Shell과 매칭 가이드 상태를 연결하고 유저 시트 오류 상태를 전달한다.
+ * @description 전역 내비게이션과 대진표 사용법 상태를 연결하고 공동 작업 상태를 전달한다.
  */
 export function AppHeader({
     isGuideOpen,
+    isLiveConnected,
+    isLivePublishing,
+    liveSessionCode,
+    liveSyncError,
     onOpenGuide,
     userSheetHasError,
 }: AppHeaderProps) {
@@ -45,10 +53,21 @@ export function AppHeader({
         window.dispatchEvent(new CustomEvent<AppNavigationStateDetail>(NAVIGATION_STATE_EVENT, {
             detail: {
                 isGuideOpen,
+                isLiveConnected,
+                isLivePublishing,
+                liveSessionCode,
+                liveSyncError,
                 userSheetHasError,
             },
         }));
-    }, [isGuideOpen, userSheetHasError]);
+    }, [
+        isGuideOpen,
+        isLiveConnected,
+        isLivePublishing,
+        liveSessionCode,
+        liveSyncError,
+        userSheetHasError,
+    ]);
 
     return null;
 }

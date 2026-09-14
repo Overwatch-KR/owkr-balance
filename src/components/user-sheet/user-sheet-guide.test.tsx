@@ -12,8 +12,8 @@ describe('UserSheetGuide', () => {
 
         expect(markup).toContain('유저 시트 전용 가이드');
         expect(markup).toContain('Discord ID가 기준이에요');
-        expect(markup).toContain('현재 매칭 명단과는 별도예요');
-        expect(markup).toContain('팀 밸런스 계산은 참가자 작업실에 저장된 현재 명단의 티어');
+        expect(markup).toContain('현재 명단과는 별도예요');
+        expect(markup).toContain('팀 밸런스 계산은 참가자 페이지의 현재 명단에 저장된 티어');
         expect(markup).toContain('특이사항은 모든 관리자와 대진표에 공유');
         expect(markup).toContain('디스코드 표시명');
         expect(markup).toContain('1분마다 자동 확인');
@@ -37,13 +37,13 @@ describe('UserSheetGuide', () => {
             />,
         );
 
-        const guideButtonIndex = markup.indexOf('시트 가이드');
+        const guideButtonIndex = markup.indexOf('사용법');
         const refreshButtonIndex = markup.indexOf('새로고침');
 
         expect(guideButtonIndex).toBeGreaterThan(-1);
         expect(refreshButtonIndex).toBeGreaterThan(guideButtonIndex);
-        expect(markup).toContain('aria-label="시트 가이드"');
-        expect(markup).toContain('공유 운영 데이터');
+        expect(markup).toContain('aria-label="유저 시트 사용법"');
+        expect(markup).toContain('자주 만나는 플레이어의 BattleTag');
         expect(markup).toContain('aria-current="page"');
     });
 });
@@ -61,7 +61,7 @@ describe('UserSheetTour', () => {
         );
 
         expect(markup).toContain('시트 가이드 · 1/7');
-        expect(markup).toContain('시트와 현재 매칭 명단을 구분해요');
+        expect(markup).toContain('시트와 현재 명단을 구분해요');
         expect(markup).toContain('Discord ID');
         expect(markup).toContain('다음');
         expect(markup).toContain('이전');

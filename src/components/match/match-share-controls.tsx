@@ -99,11 +99,11 @@ export function MatchShareControls({
                     <div className="flex items-center gap-2">
                         <Share2 size={16} className="text-cyan-300" aria-hidden="true" />
                         <h2 id="match-share-title" className="text-sm font-semibold text-white">
-                            읽기 전용 결과 공유
+                            결과 전달
                         </h2>
                     </div>
                     <p className="mt-1 max-w-2xl text-xs leading-relaxed text-slate-500">
-                        한 시점의 팀 결과만 24시간 전달하며 이후 수정은 동기화되지 않습니다. 함께 수정하려면 위의 실시간 공유를 사용하세요.
+                        현재 팀 결과를 24시간 동안 읽기 전용으로 전달합니다.
                     </p>
                 </div>
                 <button
@@ -157,7 +157,7 @@ export function MatchShareControls({
                     autoComplete="off"
                     spellCheck={false}
                     placeholder="읽기 전용 코드 10자리"
-                    className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 font-mono text-sm uppercase tracking-[0.16em] text-white outline-none transition-colors placeholder:font-sans placeholder:tracking-normal placeholder:text-slate-600 focus:border-cyan-500 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 font-mono text-sm uppercase tracking-[0.16em] text-white outline-none transition-colors placeholder:font-sans placeholder:tracking-normal placeholder:text-slate-500 focus:border-cyan-500 disabled:cursor-not-allowed disabled:opacity-50"
                 />
                 <button
                     type="button"

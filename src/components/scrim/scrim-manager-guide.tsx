@@ -15,7 +15,7 @@ interface ScrimManagerGuideProps {
 
 const GUIDE_ITEMS = [
     {
-        description: '매칭 화면의 앞 10명을 기준으로 로스터 스냅샷을 만들고, 선택한 한국 시간 일정으로 내전을 등록합니다. 등록 뒤 현재 매칭 명단을 바꿔도 기존 기록의 로스터는 바뀌지 않습니다.',
+        description: '현재 명단의 앞 10명을 기준으로 로스터 스냅샷을 만들고, 선택한 한국 시간 일정으로 내전을 등록합니다. 등록한 뒤 참가자 명단을 바꿔도 기존 기록의 로스터는 바뀌지 않습니다.',
         icon: CalendarPlus,
         title: '먼저 내전과 로스터를 등록해요',
     },
