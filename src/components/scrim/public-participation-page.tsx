@@ -323,13 +323,13 @@ export function PublicParticipationPage() {
                                         <textarea
                                             name="satisfaction-opinion"
                                             autoComplete="off"
-                                            className="min-h-32 w-full resize-y rounded-lg bg-transparent px-3 py-3 text-sm text-white outline-none placeholder:text-slate-600"
+                                            className="min-h-32 w-full resize-y rounded-lg bg-transparent px-3 py-3 text-sm text-white outline-none placeholder:text-slate-500"
                                             value={otherOpinion}
                                             onChange={event => setOtherOpinion(event.target.value)}
                                             maxLength={1000}
                                             placeholder="별점과 관계없이 자유롭게 의견을 남겨 주세요. 개인을 특정할 수 있는 정보는 적지 말아 주세요…"
                                         />
-                                        <div className="flex justify-end px-2 pb-1 text-xs tabular-nums text-slate-600">
+                                        <div className="flex justify-end px-2 pb-1 text-xs tabular-nums text-slate-500">
                                             {otherOpinion.length}/1000
                                         </div>
                                     </div>

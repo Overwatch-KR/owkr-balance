@@ -16,6 +16,7 @@ import {
     FileSpreadsheet,
     LogOut,
     MoreHorizontal,
+    Radio,
     Swords,
     UserRound,
     Users,
@@ -32,11 +33,20 @@ const NAVIGATION_COLLAPSED_KEY = 'owkr:navigation:collapsed';
 
 export interface AppNavigationStateDetail {
     isGuideOpen: boolean;
+    isLiveConnected: boolean;
+    isLivePublishing: boolean;
+    liveSessionCode?: string;
+    liveSyncError: string;
     userSheetHasError: boolean;
 }
 
 interface AppNavigationShellProps {
     children: ReactNode;
+}
+
+interface LiveSessionStatusBarProps {
+    state: AppNavigationStateDetail;
+    onNavigate: (event: ReactMouseEvent<HTMLAnchorElement>) => void;
 }
 
 interface UserProfileAvatarProps {
@@ -84,6 +94,8 @@ const UserProfileAvatar = ({
                 src={avatarUrl}
                 alt=""
                 aria-hidden="true"
+                width={40}
+                height={40}
                 decoding="async"
                 referrerPolicy="no-referrer"
                 data-discord-avatar="true"
@@ -95,6 +107,65 @@ const UserProfileAvatar = ({
         ) : null}
     </div>
 );
+
+/**
+ * @description 어느 관리자 페이지에서든 현재 공동 작업 연결과 저장 상태를 표시한다.
+ */
+export const LiveSessionStatusBar = ({
+    state,
+    onNavigate,
+}: LiveSessionStatusBarProps) => {
+    if (!state.isLiveConnected && !state.liveSyncError) return null;
+
+    const hasError = Boolean(state.liveSyncError);
+    const statusLabel = hasError
+        ? '실시간 공유 연결 확인 필요'
+        : state.isLivePublishing
+            ? '실시간 변경 저장 중…'
+            : '실시간 공유 중';
+
+    return (
+        <div
+            className={`sticky top-0 z-[60] border-b backdrop-blur-xl ${
+                hasError
+                    ? 'border-amber-500/25 bg-amber-950/90'
+                    : 'border-emerald-500/20 bg-slate-950/[0.92]'
+            }`}
+            role="status"
+            aria-live="polite"
+        >
+            <div className="mx-auto flex min-h-11 max-w-[1600px] items-center justify-between gap-3 px-4 md:px-8">
+                <div className="flex min-w-0 items-center gap-2.5">
+                    <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
+                        hasError ? 'bg-amber-500/15 text-amber-300' : 'bg-emerald-500/15 text-emerald-300'
+                    }`}>
+                        <Radio size={13} aria-hidden="true" />
+                    </span>
+                    <span className={`truncate text-xs font-medium sm:text-sm ${
+                        hasError ? 'text-amber-200' : 'text-emerald-200'
+                    }`}>
+                        {statusLabel}
+                    </span>
+                    {state.liveSessionCode && (
+                        <code
+                            translate="no"
+                            className="hidden rounded bg-white/[0.06] px-2 py-1 font-mono text-xs tracking-[0.08em] text-slate-300 sm:inline"
+                        >
+                            {state.liveSessionCode}
+                        </code>
+                    )}
+                </div>
+                <a
+                    href="/"
+                    onClick={onNavigate}
+                    className="shrink-0 rounded-md px-2 py-1.5 text-xs font-medium text-slate-300 transition-colors hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+                >
+                    대진표 보기
+                </a>
+            </div>
+        </div>
+    );
+};
 
 const NavigationButton = ({
     active = false,
@@ -189,7 +260,7 @@ const MobileNavigationButton = ({
         aria-haspopup={ariaHasPopup}
         onClick={onClick}
         className={`relative flex min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 py-2 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-400/70 ${
-            active ? 'text-cyan-200' : 'text-slate-500 hover:text-slate-200'
+            active ? 'text-cyan-200' : 'text-slate-400 hover:text-slate-200'
         }`}
     >
         <Icon size={19} aria-hidden="true" />
@@ -213,7 +284,7 @@ const MobileNavigationLink = ({
         aria-current={active ? 'page' : undefined}
         onClick={onNavigate}
         className={`relative flex min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 py-2 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-400/70 ${
-            active ? 'text-cyan-200' : 'text-slate-500 hover:text-slate-200'
+            active ? 'text-cyan-200' : 'text-slate-400 hover:text-slate-200'
         }`}
     >
         <Icon size={19} aria-hidden="true" />
@@ -244,6 +315,9 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [navigationState, setNavigationState] = useState<AppNavigationStateDetail>({
         isGuideOpen: false,
+        isLiveConnected: false,
+        isLivePublishing: false,
+        liveSyncError: '',
         userSheetHasError: false,
     });
 
@@ -378,7 +452,7 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
         try {
             sessionStorage.setItem(PENDING_NAVIGATION_ACTION_KEY, 'guide');
         } catch {
-            // 저장소를 사용할 수 없어도 매칭 화면 이동은 유지한다.
+            // 저장소를 사용할 수 없어도 대진표 이동은 유지한다.
         }
         navigate('/');
     };
@@ -423,7 +497,7 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                 >
                     <a
                         href="/"
-                        aria-label="매칭으로 이동"
+                        aria-label="대진표로 이동"
                         title={isCollapsed ? 'OWKR Balance' : undefined}
                         onClick={event => handleNavigationLink(event, '/')}
                         data-sidebar-logo={isCollapsed ? 'compact' : 'full'}
@@ -462,7 +536,7 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                             collapsed={isCollapsed}
                             href="/"
                             icon={Swords}
-                            label="매칭"
+                            label="대진표"
                             onNavigate={event => handleNavigationLink(event, '/')}
                         />
                         <NavigationLink
@@ -470,7 +544,7 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                             collapsed={isCollapsed}
                             href="/participants"
                             icon={Users}
-                            label="참가자 관리"
+                            label="참가자"
                             onNavigate={event => handleNavigationLink(event, '/participants')}
                         />
                         <NavigationLink
@@ -478,7 +552,7 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                             collapsed={isCollapsed}
                             href="/scrims"
                             icon={CalendarDays}
-                            label="내전 관리"
+                            label="내전"
                             onNavigate={event => handleNavigationLink(event, '/scrims')}
                         />
                         <NavigationLink
@@ -494,7 +568,7 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
 
                     <div className="mt-5 border-t border-slate-800/60 pt-4">
                         {!isCollapsed && (
-                            <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-600">
+                            <p className="mb-2 px-3 text-[11px] font-semibold tracking-[0.08em] text-slate-500">
                                 기타
                             </p>
                         )}
@@ -515,7 +589,7 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                             ariaHasPopup="dialog"
                             collapsed={isCollapsed}
                             icon={BookOpen}
-                            label="매칭 가이드"
+                            label="대진표 사용법"
                             onClick={requestGuide}
                         />
 
@@ -553,6 +627,10 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
             <div className={`min-h-screen pb-[calc(5rem+env(safe-area-inset-bottom))] transition-[padding] duration-200 lg:pb-0 ${
                 isCollapsed ? 'lg:pl-20' : 'lg:pl-52'
             }`}>
+                <LiveSessionStatusBar
+                    state={navigationState}
+                    onNavigate={event => handleNavigationLink(event, '/')}
+                />
                 {children}
             </div>
 
@@ -564,7 +642,7 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                     active={isRouteActive('/')}
                     href="/"
                     icon={Swords}
-                    label="매칭"
+                    label="대진표"
                     onNavigate={event => handleNavigationLink(event, '/')}
                 />
                 <MobileNavigationLink
@@ -645,7 +723,7 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                                 ariaExpanded={isGuideActive}
                                 ariaHasPopup="dialog"
                                 icon={BookOpen}
-                                label="매칭 가이드"
+                                label="대진표 사용법"
                                 onClick={requestGuide}
                             />
                         </div>

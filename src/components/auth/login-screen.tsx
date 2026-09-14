@@ -55,7 +55,7 @@ const LoginScreen = ({ serviceError, onRetry }: LoginScreenProps) => {
                 <div className="flex flex-1 items-center justify-center py-6">
                     <div className="w-full max-w-md text-center">
                         <p className="mx-auto max-w-xs text-sm leading-6 text-slate-300/80">
-                            OWKR 관리자 전용 내전 매칭 서비스
+                            OWKR 관리자 전용 내전 팀 편성 서비스
                         </p>
 
                         <div className="mt-6 rounded-lg border border-white/10 bg-slate-950/35 p-2 shadow-2xl shadow-black/30 backdrop-blur-xl">

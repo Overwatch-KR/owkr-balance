@@ -46,7 +46,7 @@ export function ScrimReviewTab({ onSave, scrim }: ScrimReviewTabProps) {
                 <span className="mb-2 block text-sm font-medium text-slate-200">관리자 기록</span>
                 <div className="rounded-xl border border-slate-700/70 bg-slate-950/70 p-1.5 transition focus-within:border-violet-400/70 focus-within:ring-2 focus-within:ring-violet-400/15">
                     <textarea
-                        className="min-h-64 w-full resize-y rounded-lg bg-transparent px-3 py-3 text-sm leading-relaxed text-white outline-none placeholder:text-slate-600"
+                        className="min-h-64 w-full resize-y rounded-lg bg-transparent px-3 py-3 text-sm leading-relaxed text-white outline-none placeholder:text-slate-500"
                         name="admin-review"
                         autoComplete="off"
                         value={draft}
@@ -54,7 +54,7 @@ export function ScrimReviewTab({ onSave, scrim }: ScrimReviewTabProps) {
                         maxLength={4_000}
                         placeholder="예: 2세트 이후 역할 변경, 진행 지연 원인, 다음 내전에서 유지하거나 바꿀 점…"
                     />
-                    <div className="flex items-center justify-between px-2 pb-1 text-xs text-slate-600">
+                    <div className="flex items-center justify-between px-2 pb-1 text-xs text-slate-500">
                         <span>
                             {scrim.adminReviewUpdatedAt && scrim.adminReviewUpdatedBy
                                 ? `마지막 수정 · ${scrim.adminReviewUpdatedBy} · ${new Date(scrim.adminReviewUpdatedAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}`

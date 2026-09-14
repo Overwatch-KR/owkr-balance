@@ -53,8 +53,8 @@ const USER_SHEET_TOUR_STEPS: readonly UserSheetTourStep[] = [
         id: 'overview',
         icon: KeyRound,
         target: '#user-sheet-overview',
-        title: '시트와 현재 매칭 명단을 구분해요',
-        description: '유저 시트는 운영진이 함께 관리하는 공유 목록입니다. 현재 내전의 참가자와 티어는 참가자 작업실에서 관리하고, 여기서는 Discord ID를 기준으로 유저 정보를 유지합니다.',
+        title: '시트와 현재 명단을 구분해요',
+        description: '유저 시트는 운영진이 함께 관리하는 공유 목록입니다. 현재 내전의 참가자와 티어는 참가자 페이지에서 관리하고, 여기서는 Discord ID를 기준으로 유저 정보를 유지합니다.',
     },
     {
         id: 'search',
@@ -71,7 +71,7 @@ const USER_SHEET_TOUR_STEPS: readonly UserSheetTourStep[] = [
         target: '#user-sheet-quick-edit',
         fallback: '#user-sheet-actions',
         title: '한 명은 상세 화면에서 수정해요',
-        description: '선택한 유저의 공용 정보 수정을 누르면 이름, BattleTag, 역할 티어와 공용 특이사항을 수정합니다. 개인 운영 메모는 별도 저장 버튼으로 관리하며, 이 화면의 티어 수정은 현재 매칭 명단을 바꾸지 않습니다.',
+        description: '선택한 유저의 공용 정보 수정을 누르면 이름, BattleTag, 역할 티어와 공용 특이사항을 수정합니다. 개인 운영 메모는 별도 저장 버튼으로 관리하며, 이 화면의 티어 수정은 현재 명단을 바꾸지 않습니다.',
         emptyDescription: '유저를 등록한 뒤 목록에서 선택하면 공용 정보 수정과 개인 운영 메모 저장을 서로 분리해 관리할 수 있습니다.',
     },
     {

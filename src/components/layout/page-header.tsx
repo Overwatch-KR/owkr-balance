@@ -26,7 +26,7 @@ export const PageHeader = ({
     meta,
     title,
 }: PageHeaderProps) => (
-    <header className="card mb-6 flex flex-col gap-5 p-5 sm:p-6 lg:flex-row lg:items-start lg:justify-between">
+    <header className="mb-6 flex flex-col gap-4 border-b border-slate-800/80 pb-5 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0 flex-1">
             <nav aria-label="페이지 경로" className="mb-3 flex min-w-0 flex-wrap items-center gap-1 text-xs text-slate-500">
                 {breadcrumbs.map((item, index) => {
@@ -59,7 +59,7 @@ export const PageHeader = ({
                     {eyebrow}
                 </p>
             )}
-            <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">{title}</h1>
+            <h1 className="text-pretty text-2xl font-semibold tracking-tight text-white sm:text-3xl">{title}</h1>
             {description && (
                 <div className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-400">
                     {description}

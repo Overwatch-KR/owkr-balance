@@ -337,7 +337,7 @@ export function UserSheetEditor({
                     <p className="mt-1 text-xs leading-relaxed text-slate-500">
                         Google Sheets의 7개 열을 첫 셀에 붙여넣거나 각 칸을 직접 수정하세요.
                     </p>
-                    <p className="mt-1 inline-flex items-center gap-1.5 text-[11px] text-slate-600">
+                    <p className="mt-1 inline-flex items-center gap-1.5 text-xs text-slate-500">
                         <Info size={12} className="shrink-0" aria-hidden="true" />
                         배틀태그는 Player#1234 형식 · 역할 티어의 !, ?, ★는 자동 제거
                     </p>
@@ -425,7 +425,7 @@ export function UserSheetEditor({
                     {validation.errors.size > 0 && (
                         <span className="whitespace-nowrap text-rose-300">오류 {validation.errors.size}개</span>
                     )}
-                    <span className="hidden text-slate-600 sm:inline">가로 스크롤로 모든 열을 확인할 수 있습니다.</span>
+                    <span className="hidden text-slate-500 sm:inline">가로 스크롤로 모든 열을 확인할 수 있습니다.</span>
                 </div>
                 <div className="flex gap-1">
                     <button

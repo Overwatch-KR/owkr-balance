@@ -10,6 +10,9 @@ describe('AppHeader navigation bridge', () => {
         const markup = renderToStaticMarkup(
             <AppHeader
                 isGuideOpen={false}
+                isLiveConnected={false}
+                isLivePublishing={false}
+                liveSyncError=""
                 onOpenGuide={vi.fn()}
                 userSheetHasError={false}
             />,

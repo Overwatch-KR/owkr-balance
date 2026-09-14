@@ -306,7 +306,7 @@ export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManag
             <div className="mx-auto max-w-6xl">
                 <PageHeader
                     breadcrumbs={[
-                        { label: '매칭', onClick: onClose },
+                        { label: '대진표', onClick: onClose },
                         { label: '내전 관리' },
                     ]}
                     title="내전 관리"

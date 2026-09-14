@@ -77,11 +77,11 @@ export function MatchLiveControls({
                     <div className="flex items-center gap-2">
                         <Radio size={16} className="text-emerald-300" aria-hidden="true" />
                         <h2 id="match-live-title" className="text-sm font-semibold text-white">
-                            실시간 대진표 공유
+                            함께 편집
                         </h2>
                     </div>
                     <p className="mt-1 max-w-2xl text-xs leading-relaxed text-slate-500">
-                        같은 코드로 참여한 관리자끼리 참가 명단·대기열·팀 배치를 수정 중 약 0.5초 간격으로 확인하고, 활동이 없으면 요청을 줄입니다.
+                        같은 코드로 접속한 관리자와 명단·팀 변경을 자동으로 맞춥니다.
                     </p>
                 </div>
                 {isConnected ? (
@@ -118,9 +118,7 @@ export function MatchLiveControls({
                         <div className="min-w-0">
                             <div className="flex items-center gap-2 text-xs text-slate-400">
                                 <span className={`h-2 w-2 rounded-full ${syncError ? 'bg-amber-400' : 'bg-emerald-400'}`} />
-                                <span>{isPublishing ? '변경 저장 중…' : syncError ? '연결 확인 필요' : '동기화 연결됨'}</span>
-                                <span className="text-slate-700">·</span>
-                                <span>revision {session.revision}</span>
+                                <span>{isPublishing ? '변경 저장 중…' : syncError ? '연결 확인 필요' : '연결됨'}</span>
                             </div>
                             <strong className="mt-1 block font-mono text-sm tracking-[0.14em] text-emerald-200">
                                 {session.code}
@@ -162,7 +160,7 @@ export function MatchLiveControls({
                             autoComplete="off"
                             spellCheck={false}
                             placeholder="실시간 공유 코드 10자리"
-                            className="min-w-0 w-full rounded-lg border border-slate-700 bg-slate-950/60 py-2 pl-9 pr-3 font-mono text-sm uppercase tracking-[0.16em] text-white outline-none transition-colors placeholder:font-sans placeholder:tracking-normal placeholder:text-slate-600 focus:border-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="min-w-0 w-full rounded-lg border border-slate-700 bg-slate-950/60 py-2 pl-9 pr-3 font-mono text-sm uppercase tracking-[0.16em] text-white outline-none transition-colors placeholder:font-sans placeholder:tracking-normal placeholder:text-slate-500 focus:border-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
                         />
                     </div>
                     <button

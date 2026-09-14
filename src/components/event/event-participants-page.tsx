@@ -123,7 +123,7 @@ export function EventParticipantsPage({ csrfToken, onClose }: EventParticipantsP
             <div className="mx-auto max-w-4xl">
                 <PageHeader
                     breadcrumbs={[
-                        { label: '매칭', onClick: onClose },
+                        { label: '대진표', onClick: onClose },
                         { label: '이벤트 참여자' },
                     ]}
                     eyebrow="2026 넥슨 이벤트"

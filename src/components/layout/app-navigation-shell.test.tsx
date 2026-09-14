@@ -1,6 +1,9 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { AppNavigationShell } from './app-navigation-shell';
+import {
+    AppNavigationShell,
+    LiveSessionStatusBar,
+} from './app-navigation-shell';
 
 vi.mock('../../hooks/use-auth', () => ({
     useAuth: () => ({
@@ -101,5 +104,26 @@ describe('AppNavigationShell', () => {
         expect(markup).toMatch(/data-sidebar-header="true".*data-sidebar-toggle="true"/s);
         expect(markup).toContain('aria-label="사이드바 펼치기"');
         expect(markup).not.toContain('>OW</span>');
+    });
+
+    it('실시간 공유 상태를 모든 페이지 위에 표시할 수 있다', () => {
+        const markup = renderToStaticMarkup(
+            <LiveSessionStatusBar
+                state={{
+                    isGuideOpen: false,
+                    isLiveConnected: true,
+                    isLivePublishing: false,
+                    liveSessionCode: 'LIVE234567',
+                    liveSyncError: '',
+                    userSheetHasError: false,
+                }}
+                onNavigate={vi.fn()}
+            />,
+        );
+
+        expect(markup).toContain('aria-live="polite"');
+        expect(markup).toContain('실시간 공유 중');
+        expect(markup).toContain('LIVE234567');
+        expect(markup).toContain('대진표 보기');
     });
 });

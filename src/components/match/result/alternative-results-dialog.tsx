@@ -127,7 +127,7 @@ export function AlternativeResultsDialog({
                 </div>
 
                 <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-800 px-4 py-3 md:px-6">
-                    <p className="text-[11px] text-slate-600">
+                    <p className="text-xs text-slate-500">
                         조합을 적용하기 전까지 현재 결과는 변경되지 않습니다.
                     </p>
                     <button type="button" onClick={onClose} className="btn-ghost min-h-9 shrink-0 text-xs">

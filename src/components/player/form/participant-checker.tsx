@@ -100,7 +100,7 @@ const ParticipantChecker = ({
             {totalCount === 0 ? (
                 <div className="rounded-xl border border-slate-800 bg-surface/50 px-4 py-5 text-center">
                     <p className="text-sm text-slate-400">멘션 명단을 붙여넣으면 바로 대조합니다</p>
-                    <p className="mt-1 text-xs text-slate-600">굵은 글씨가 포함된 디스코드 복사본도 인식합니다</p>
+                    <p className="mt-1 text-xs text-slate-500">굵은 글씨가 포함된 Discord 복사본도 인식합니다</p>
                 </div>
             ) : (
                 <div className="space-y-3" aria-live="polite">
