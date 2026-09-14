@@ -80,6 +80,9 @@ export const cleanupExpired = (): void => {
         'owkr_result',
         'owkr_participant_mentions',
         'owkr_guide_progress',
+        'owkr_match_live_session',
+        'owkr_match_share_created',
+        'owkr_match_share_import',
     ] as const;
     const keysToCheck = Array.from(
         { length: localStorage.length },

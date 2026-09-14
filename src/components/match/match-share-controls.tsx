@@ -1,15 +1,27 @@
 import { useState } from 'react';
 import { Check, ClipboardCopy, Download, Loader2, Share2 } from 'lucide-react';
 import { normalizeMatchShareCode } from '#domain/balance';
+import { getWithExpiry, removeItem, setWithExpiry } from '../../utils/storage';
+
+const MATCH_SHARE_CODE_EXPIRY_MS = 24 * 60 * 60 * 1000;
+const MATCH_SHARE_CREATED_CODE_KEY_PREFIX = 'owkr_match_share_created:';
+const MATCH_SHARE_IMPORT_CODE_KEY_PREFIX = 'owkr_match_share_import:';
 
 interface MatchShareControlsProps {
     canCreate: boolean;
     isRemote: boolean;
+    userId: string;
     onCreate: () => Promise<string>;
     onImport: (code: string) => Promise<void>;
 }
 
 type PendingAction = 'create' | 'import' | null;
+
+const readStoredCode = (key: string): string => {
+    if (typeof localStorage === 'undefined') return '';
+    const code = normalizeMatchShareCode(getWithExpiry<string>(key) ?? '');
+    return code.length === 10 ? code : '';
+};
 
 /**
  * @description 관리자끼리 현재 명단·팀 배치를 코드로 만들고 다른 관리자의 코드를 불러오는 제어를 제공한다.
@@ -17,11 +29,14 @@ type PendingAction = 'create' | 'import' | null;
 export function MatchShareControls({
     canCreate,
     isRemote,
+    userId,
     onCreate,
     onImport,
 }: MatchShareControlsProps) {
-    const [code, setCode] = useState('');
-    const [createdCode, setCreatedCode] = useState('');
+    const createdCodeKey = `${MATCH_SHARE_CREATED_CODE_KEY_PREFIX}${userId}`;
+    const importCodeKey = `${MATCH_SHARE_IMPORT_CODE_KEY_PREFIX}${userId}`;
+    const [code, setCode] = useState(() => readStoredCode(importCodeKey));
+    const [createdCode, setCreatedCode] = useState(() => readStoredCode(createdCodeKey));
     const [pendingAction, setPendingAction] = useState<PendingAction>(null);
     const [copyCompleted, setCopyCompleted] = useState(false);
     const isBusy = pendingAction !== null;
@@ -33,11 +48,21 @@ export function MatchShareControls({
         try {
             const nextCode = await onCreate();
             setCreatedCode(nextCode);
-            setCode(nextCode);
+            setWithExpiry(createdCodeKey, nextCode, MATCH_SHARE_CODE_EXPIRY_MS);
         } catch {
             // 상위 화면의 공통 토스트가 실제 오류 메시지를 안내한다.
         } finally {
             setPendingAction(null);
+        }
+    };
+
+    const handleCodeChange = (value: string) => {
+        const nextCode = normalizeMatchShareCode(value);
+        setCode(nextCode);
+        if (nextCode.length === 10) {
+            setWithExpiry(importCodeKey, nextCode, MATCH_SHARE_CODE_EXPIRY_MS);
+        } else {
+            removeItem(importCodeKey);
         }
     };
 
@@ -74,11 +99,11 @@ export function MatchShareControls({
                     <div className="flex items-center gap-2">
                         <Share2 size={16} className="text-cyan-300" aria-hidden="true" />
                         <h2 id="match-share-title" className="text-sm font-semibold text-white">
-                            관리자 명단·밸런스 공유
+                            읽기 전용 결과 공유
                         </h2>
                     </div>
                     <p className="mt-1 max-w-2xl text-xs leading-relaxed text-slate-500">
-                        Discord ID와 팀·역할 위치만 24시간 저장합니다. 불러올 때 유저 시트의 최신 티어를 다시 적용합니다.
+                        한 시점의 팀 결과만 24시간 전달하며 이후 수정은 동기화되지 않습니다. 함께 수정하려면 위의 실시간 공유를 사용하세요.
                     </p>
                 </div>
                 <button
@@ -86,23 +111,44 @@ export function MatchShareControls({
                     onClick={() => void handleCreate()}
                     disabled={!isRemote || !canCreate || isBusy}
                     title={canCreate
-                        ? '현재 팀 배치의 공유 코드를 만듭니다.'
+                        ? '현재 팀 배치의 읽기 전용 코드를 만듭니다.'
                         : '최신 팀 배정 결과가 있어야 공유할 수 있습니다.'}
                     className="btn-ghost flex items-center gap-2 text-sm disabled:cursor-not-allowed disabled:opacity-40"
                 >
                     {pendingAction === 'create'
                         ? <Loader2 size={14} className="animate-spin" aria-hidden="true" />
                         : <Share2 size={14} aria-hidden="true" />}
-                    {pendingAction === 'create' ? '코드 만드는 중…' : '현재 결과 공유'}
+                    {pendingAction === 'create' ? '코드 만드는 중…' : '읽기 전용 코드 만들기'}
                 </button>
             </div>
 
-            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+            {createdCode && (
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-cyan-500/20 bg-cyan-500/5 px-3 py-2">
+                    <span className="text-xs text-slate-400">
+                        읽기 전용 코드 <strong className="ml-1 font-mono tracking-[0.12em] text-cyan-200">{createdCode}</strong>
+                    </span>
+                    <button
+                        type="button"
+                        onClick={() => void handleCopy()}
+                        className="flex items-center gap-1.5 text-xs font-medium text-cyan-300 transition-colors hover:text-cyan-200"
+                    >
+                        {copyCompleted
+                            ? <Check size={13} aria-hidden="true" />
+                            : <ClipboardCopy size={13} aria-hidden="true" />}
+                        {copyCompleted ? '복사됨' : '코드 복사'}
+                    </button>
+                </div>
+            )}
+
+            <div className="mt-4">
+                <span className="text-xs font-medium text-slate-400">공유받은 읽기 전용 코드 불러오기</span>
+            </div>
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
                 <label htmlFor="match-share-code" className="sr-only">내전 공유 코드</label>
                 <input
                     id="match-share-code"
                     value={code}
-                    onChange={event => setCode(normalizeMatchShareCode(event.target.value))}
+                    onChange={event => handleCodeChange(event.target.value)}
                     onKeyDown={event => {
                         if (event.key === 'Enter') void handleImport();
                     }}
@@ -110,7 +156,7 @@ export function MatchShareControls({
                     maxLength={10}
                     autoComplete="off"
                     spellCheck={false}
-                    placeholder="공유 코드 10자리"
+                    placeholder="읽기 전용 코드 10자리"
                     className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 font-mono text-sm uppercase tracking-[0.16em] text-white outline-none transition-colors placeholder:font-sans placeholder:tracking-normal placeholder:text-slate-600 focus:border-cyan-500 disabled:cursor-not-allowed disabled:opacity-50"
                 />
                 <button
@@ -125,24 +171,6 @@ export function MatchShareControls({
                     {pendingAction === 'import' ? '불러오는 중…' : '코드 불러오기'}
                 </button>
             </div>
-
-            {createdCode && (
-                <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-cyan-500/20 bg-cyan-500/5 px-3 py-2">
-                    <span className="text-xs text-slate-400">
-                        생성된 코드 <strong className="ml-1 font-mono tracking-[0.12em] text-cyan-200">{createdCode}</strong>
-                    </span>
-                    <button
-                        type="button"
-                        onClick={() => void handleCopy()}
-                        className="flex items-center gap-1.5 text-xs font-medium text-cyan-300 transition-colors hover:text-cyan-200"
-                    >
-                        {copyCompleted
-                            ? <Check size={13} aria-hidden="true" />
-                            : <ClipboardCopy size={13} aria-hidden="true" />}
-                        {copyCompleted ? '복사됨' : '코드 복사'}
-                    </button>
-                </div>
-            )}
 
             {!isRemote && (
                 <p className="mt-3 text-xs text-amber-300/80">

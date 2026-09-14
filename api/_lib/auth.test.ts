@@ -2,6 +2,7 @@ import type { VercelRequest } from '@vercel/node';
 import jwt, { type JwtPayload } from 'jsonwebtoken';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+    createDiscordAvatarUrl,
     createSessionCookie,
     getSessionUser,
     hasValidCsrfToken,
@@ -87,6 +88,7 @@ describe('local authentication', () => {
         expect(getSessionUser(request)).toBeNull();
 
         const cookie = createSessionCookie(request, {
+            avatarUrl: 'https://cdn.discordapp.com/avatars/discord-user-1/avatar.webp?size=128',
             id: 'discord-user-1',
             username: 'discord-admin',
             globalName: '운영자',
@@ -103,8 +105,18 @@ describe('local authentication', () => {
             id: 'discord-user-1',
             username: 'discord-admin',
             globalName: '운영자',
+            avatarUrl: 'https://cdn.discordapp.com/avatars/discord-user-1/avatar.webp?size=128',
             type: 'session',
         });
+    });
+
+    it('Discord 사용자 아바타 해시 또는 ID로 CDN URL을 만든다', () => {
+        expect(createDiscordAvatarUrl('80351110224678912', 'avatar-hash')).toBe(
+            'https://cdn.discordapp.com/avatars/80351110224678912/avatar-hash.webp?size=128',
+        );
+        expect(createDiscordAvatarUrl('80351110224678912')).toBe(
+            'https://cdn.discordapp.com/embed/avatars/5.png',
+        );
     });
 });
 

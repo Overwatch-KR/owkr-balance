@@ -22,6 +22,7 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
             dataMode,
             loggedIn: true,
             user: {
+                ...(user.avatarUrl ? { avatarUrl: user.avatarUrl } : {}),
                 id: user.id,
                 username: user.username,
                 globalName: user.globalName,

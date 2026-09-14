@@ -8,6 +8,7 @@ export interface SessionUser {
     id: string;
     username: string;
     globalName?: string;
+    avatarUrl?: string;
     csrfToken: string;
 }
 
@@ -74,6 +75,25 @@ export const isLocalAuthRequest = (req: VercelRequest): boolean => {
 export const isAllowedAdmin = (userId: string): boolean => (
     userId in ADMIN_USERS
 );
+
+/**
+ * @description Discord 사용자 ID와 선택적 아바타 해시를 표시 가능한 CDN 이미지 URL로 변환한다.
+ */
+export const createDiscordAvatarUrl = (
+    userId: string,
+    avatarHash?: string | null,
+): string => {
+    if (avatarHash) {
+        return `https://cdn.discordapp.com/avatars/${userId}/${avatarHash}.webp?size=128`;
+    }
+
+    try {
+        const defaultAvatarIndex = (BigInt(userId) >> 22n) % 6n;
+        return `https://cdn.discordapp.com/embed/avatars/${defaultAvatarIndex}.png`;
+    } catch {
+        return 'https://cdn.discordapp.com/embed/avatars/0.png';
+    }
+};
 
 /**
  * @description OAuth 요청 위조를 막는 state 값과 HttpOnly 쿠키를 만든다.

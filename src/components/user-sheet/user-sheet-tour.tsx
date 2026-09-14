@@ -104,7 +104,7 @@ const USER_SHEET_TOUR_STEPS: readonly UserSheetTourStep[] = [
         target: '#user-sheet-refresh',
         fallback: '#user-sheet-header-actions',
         title: '최신 데이터를 확인하고 마쳐요',
-        description: '시트가 열려 있으면 1분마다 자동으로 확인하고, 창으로 돌아오거나 새로고침을 누르면 즉시 갱신합니다. 여러 운영자가 함께 작업했다면 전체 편집 전에 새로고침해 충돌을 줄여 주세요.',
+        description: '유저 시트 페이지를 보고 있으면 1분마다 자동으로 확인하고, 창으로 돌아오거나 새로고침을 누르면 즉시 갱신합니다. 여러 운영자가 함께 작업했다면 전체 편집 전에 새로고침해 충돌을 줄여 주세요.',
     },
 ] as const;
 

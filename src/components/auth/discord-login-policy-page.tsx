@@ -55,6 +55,12 @@ export function DiscordLoginPolicyPage() {
                                     로그인 사용자를 표시하고 유저 시트의 마지막 수정자 이름을 기록합니다.
                                 </dd>
                             </div>
+                            <div>
+                                <dt className="font-medium text-slate-200">프로필 이미지</dt>
+                                <dd className="mt-1 text-slate-400">
+                                    현재 로그인한 관리자 계정을 사이드바에서 식별하는 용도로만 표시합니다.
+                                </dd>
+                            </div>
                         </dl>
                     </section>
 
@@ -70,6 +76,10 @@ export function DiscordLoginPolicyPage() {
                             <p>
                                 OAuth 액세스 토큰은 저장하지 않습니다. 로그인 세션은 1주일 후
                                 만료되며 로그아웃하면 즉시 종료됩니다.
+                            </p>
+                            <p>
+                                사용자명, 표시 이름과 프로필 이미지 주소는 서명된 로그인 세션에
+                                포함되며 세션과 함께 만료됩니다.
                             </p>
                             <p>
                                 유저 시트에 기록된 마지막 수정자 이름은 해당 항목이 다시 수정되거나

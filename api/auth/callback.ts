@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import {
     createClearedOAuthStateCookie,
+    createDiscordAvatarUrl,
     createSessionCookie,
     isAllowedAdmin,
     verifyOAuthState,
@@ -12,6 +13,7 @@ interface DiscordTokenResponse {
 }
 
 interface DiscordUserResponse {
+    avatar?: string | null;
     id: string;
     username: string;
     global_name?: string | null;
@@ -70,6 +72,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         const sessionCookie = createSessionCookie(req, {
+            avatarUrl: createDiscordAvatarUrl(discordUser.id, discordUser.avatar),
             id: discordUser.id,
             username: discordUser.username,
             globalName: discordUser.global_name ?? undefined,
