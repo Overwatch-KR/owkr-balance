@@ -77,11 +77,11 @@ export function MatchLiveControls({
                     <div className="flex items-center gap-2">
                         <Radio size={16} className="text-emerald-300" aria-hidden="true" />
                         <h2 id="match-live-title" className="text-sm font-semibold text-white">
-                            실시간 공동 작업
+                            실시간 대진표 공유
                         </h2>
                     </div>
                     <p className="mt-1 max-w-2xl text-xs leading-relaxed text-slate-500">
-                        같은 코드를 연 관리자끼리 참가 명단·대기열·팀 배치를 약 1.5초 간격으로 동기화합니다.
+                        같은 코드로 참여한 관리자끼리 참가 명단·대기열·팀 배치를 수정 중 약 0.5초 간격으로 확인하고, 활동이 없으면 요청을 줄입니다.
                     </p>
                 </div>
                 {isConnected ? (
@@ -100,14 +100,14 @@ export function MatchLiveControls({
                         onClick={() => void handleStart()}
                         disabled={!isRemote || !canStart || isBusy}
                         title={canStart
-                            ? '현재 명단으로 공동 작업 세션을 시작합니다.'
+                            ? '현재 명단으로 실시간 대진표 공유를 시작합니다.'
                             : 'Discord ID가 없는 참가자를 유저 시트와 먼저 연결해 주세요.'}
                         className="btn-ghost flex items-center gap-2 text-sm disabled:cursor-not-allowed disabled:opacity-40"
                     >
                         {isConnecting
                             ? <Loader2 size={14} className="animate-spin" aria-hidden="true" />
                             : <Users size={14} aria-hidden="true" />}
-                        {isConnecting ? '연결 중…' : '공동 작업 시작'}
+                        {isConnecting ? '연결 중…' : '실시간 공유 시작'}
                     </button>
                 )}
             </div>
@@ -125,6 +125,9 @@ export function MatchLiveControls({
                             <strong className="mt-1 block font-mono text-sm tracking-[0.14em] text-emerald-200">
                                 {session.code}
                             </strong>
+                            <span className="mt-1 block text-[11px] text-slate-500">
+                                새로고침해도 이 브라우저에서 자동으로 다시 연결됩니다.
+                            </span>
                         </div>
                         <button
                             type="button"
@@ -137,11 +140,6 @@ export function MatchLiveControls({
                             {copyCompleted ? '복사됨' : '코드 복사'}
                         </button>
                     </div>
-                    {syncError && (
-                        <p className="mt-2 text-xs leading-relaxed text-amber-300" role="status">
-                            {syncError}
-                        </p>
-                    )}
                 </div>
             ) : (
                 <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -163,7 +161,7 @@ export function MatchLiveControls({
                             maxLength={10}
                             autoComplete="off"
                             spellCheck={false}
-                            placeholder="공동 작업 코드 10자리"
+                            placeholder="실시간 공유 코드 10자리"
                             className="min-w-0 w-full rounded-lg border border-slate-700 bg-slate-950/60 py-2 pl-9 pr-3 font-mono text-sm uppercase tracking-[0.16em] text-white outline-none transition-colors placeholder:font-sans placeholder:tracking-normal placeholder:text-slate-600 focus:border-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
                         />
                     </div>
@@ -176,9 +174,15 @@ export function MatchLiveControls({
                         {isConnecting
                             ? <Loader2 size={14} className="animate-spin" aria-hidden="true" />
                             : <Radio size={14} aria-hidden="true" />}
-                        {isConnecting ? '연결 중…' : '코드로 참여'}
+                        {isConnecting ? '연결 중…' : '실시간 참여'}
                     </button>
                 </div>
+            )}
+
+            {syncError && (
+                <p className="mt-3 text-xs leading-relaxed text-amber-300" role="status">
+                    {syncError}
+                </p>
             )}
 
             {!isRemote && (

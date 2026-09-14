@@ -311,13 +311,14 @@ const MatchApp = ({
     const participantBattleTags = useMemo(() => new Set(
         players.slice(0, 10).map(player => normalizeUserSheetBattleTag(player.name)),
     ), [players]);
+    const updateUserSheetSnapshot = userSheet.updateSnapshot;
     const handleApplyLiveMatch = useCallback((loaded: LoadedMatchLiveSession) => {
-        userSheet.updateSnapshot(loaded.userSheet);
+        updateUserSheetSnapshot(loaded.userSheet);
         setPlayers(loaded.players);
         setResult(loaded.result);
         setAlternatives([]);
         setSwapSource(null);
-    }, [setAlternatives, setPlayers, setResult, userSheet.updateSnapshot]);
+    }, [setAlternatives, setPlayers, setResult, updateUserSheetSnapshot]);
     const handleLiveConflict = useCallback((message: string) => {
         showToast('error', message);
     }, [showToast]);
@@ -335,6 +336,7 @@ const MatchApp = ({
         enabled: dataMode === 'remote',
         players,
         result: isResultStale ? null : result,
+        userId: user.id,
         onApplyRemote: handleApplyLiveMatch,
         onConflict: handleLiveConflict,
     });
@@ -549,6 +551,7 @@ const MatchApp = ({
                             <MatchShareControls
                                 canCreate={Boolean(result) && !isResultStale}
                                 isRemote={dataMode === 'remote'}
+                                userId={user.id}
                                 onCreate={handleCreateMatchShare}
                                 onImport={handleImportMatchShare}
                             />
