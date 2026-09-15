@@ -29,7 +29,7 @@ export function UpdateAvailableNotice({ onDismiss, onReload }: UpdateAvailableNo
                 <button
                     type="button"
                     onClick={onDismiss}
-                    className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-white/5 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70"
+                    className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white/5 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70"
                     aria-label="업데이트 안내 닫기"
                 >
                     <X size={17} aria-hidden="true" />

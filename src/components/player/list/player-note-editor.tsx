@@ -35,7 +35,7 @@ interface PlayerNoteViewerProps {
  */
 export const PlayerNoteViewer = ({ content }: PlayerNoteViewerProps) => (
     <p className={`mt-3 whitespace-pre-wrap text-sm leading-relaxed ${
-        content ? 'text-slate-300' : 'text-slate-600'
+        content ? 'text-slate-300' : 'text-slate-500'
     }`}>
         {content || '등록된 개인 운영 메모가 없습니다.'}
     </p>
@@ -57,7 +57,7 @@ export const PlayerNoteForm = ({
             <span className="inline-flex min-w-0 items-center gap-2">
                 <LockKeyhole size={12} className="shrink-0" aria-hidden="true" />
                 <span className="shrink-0 font-medium">나만 보기</span>
-                <span className="truncate text-slate-500">현재 로그인한 계정에만 표시됩니다.</span>
+                <span className="truncate text-slate-400">현재 로그인한 계정에만 표시됩니다.</span>
             </span>
         </div>
         <textarea
@@ -73,7 +73,7 @@ export const PlayerNoteForm = ({
         {onSave && (
             <div className="mt-2 flex items-center justify-between gap-2">
                 <p
-                    className="min-w-0 truncate text-[11px] text-slate-500"
+                    className="min-w-0 truncate text-[11px] text-slate-400"
                     role="status"
                     aria-live="polite"
                 >
@@ -206,7 +206,7 @@ export const PlayerNoteEditor = ({
 
     if (isLoading) {
         return (
-            <div className="mt-2 flex items-center gap-2 rounded-lg bg-slate-950/40 px-3 py-3 text-xs text-slate-500">
+            <div className="mt-2 flex items-center gap-2 rounded-lg bg-slate-950/40 px-3 py-3 text-xs text-slate-400">
                 <Loader2 size={13} className="animate-spin" aria-hidden="true" />
                 개인 운영 메모를 불러오고 있습니다
             </div>

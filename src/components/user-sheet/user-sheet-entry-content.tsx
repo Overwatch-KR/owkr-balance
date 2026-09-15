@@ -92,7 +92,7 @@ export function UserSheetEntryContent({
                                         현재 참가자
                                     </span>
                                 )}
-                                <span className="truncate text-xs text-slate-500">
+                                <span className="truncate text-xs text-slate-400">
                                     최종 수정 · {entry.updatedByName} · {new Date(entry.updatedAt).toLocaleString('ko-KR')}
                                 </span>
                             </div>
@@ -123,7 +123,7 @@ export function UserSheetEntryContent({
                             {entry.discordName || entry.battleTag} 정보 수정
                         </h2>
                         <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                            <label className="grid gap-1.5 text-xs text-slate-500">
+                            <label className="grid gap-1.5 text-xs text-slate-400">
                                 디스코드 이름
                                 <input
                                     value={draft.discordName}
@@ -132,7 +132,7 @@ export function UserSheetEntryContent({
                                     autoComplete="off"
                                 />
                             </label>
-                            <label className="grid gap-1.5 text-xs text-slate-500">
+                            <label className="grid gap-1.5 text-xs text-slate-400">
                                 배틀태그
                                 <input
                                     value={draft.battleTag}
@@ -145,7 +145,7 @@ export function UserSheetEntryContent({
                                     aria-invalid={Boolean(validationMessage)}
                                 />
                             </label>
-                            <label className="grid gap-1.5 text-xs text-slate-500 sm:col-span-2">
+                            <label className="grid gap-1.5 text-xs text-slate-400 sm:col-span-2">
                                 Discord 고유 ID <span className="text-rose-300">*</span>
                                 <input
                                     value={draft.discordUserId ?? ''}
@@ -168,7 +168,7 @@ export function UserSheetEntryContent({
                                         현재 참가자
                                     </span>
                                 )}
-                                <span className="text-xs text-slate-500">
+                                <span className="text-xs text-slate-400">
                                     최종 수정 · {entry.updatedByName} · {new Date(entry.updatedAt).toLocaleString('ko-KR')}
                                 </span>
                             </div>
@@ -180,7 +180,7 @@ export function UserSheetEntryContent({
                                 <BattleTagCopyButton battleTag={entry.battleTag} />
                             </div>
                             <p className={`mt-2 inline-flex items-center gap-1.5 font-mono text-[11px] ${
-                                entry.discordUserId ? 'text-slate-500' : 'text-rose-300'
+                                entry.discordUserId ? 'text-slate-400' : 'text-rose-300'
                             }`}>
                                 <Fingerprint size={12} aria-hidden="true" />
                                 Discord ID · {entry.discordUserId || '입력 필요'}
@@ -227,7 +227,7 @@ export function UserSheetEntryContent({
                         <div key={item.field} className="rounded-xl border border-slate-800 bg-surface p-4">
                             <label
                                 htmlFor={`user-sheet-${item.field}`}
-                                className="flex items-center gap-2 text-xs text-slate-500"
+                                className="flex items-center gap-2 text-xs text-slate-400"
                             >
                                 <item.icon size={14} aria-hidden="true" />
                                 {item.label}
@@ -257,7 +257,7 @@ export function UserSheetEntryContent({
                         <label
                             htmlFor="user-sheet-note"
                             className={`flex items-center gap-2 text-xs ${
-                                entry.note || isEditing ? 'text-emerald-300/80' : 'text-slate-500'
+                                entry.note || isEditing ? 'text-emerald-300/80' : 'text-slate-400'
                             }`}
                         >
                             <MessageSquareText size={14} aria-hidden="true" />
@@ -300,7 +300,7 @@ export function UserSheetEntryContent({
                                         </span>
                                     )}
                                 </div>
-                                <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
+                                <p className="mt-1 text-[11px] leading-relaxed text-slate-400">
                                     현재 로그인한 관리자 본인에게만 보이며 특이사항 및 팀 결과와 분리됩니다.
                                 </p>
                             </div>

@@ -115,7 +115,7 @@ const MatchResult = ({
                 <div className="flex min-w-0 items-center gap-2">
                     <ArrowLeftRight
                         size={14}
-                        className={selectedSwapPlayer ? 'shrink-0 text-cyan-300' : 'shrink-0 text-slate-500'}
+                        className={selectedSwapPlayer ? 'shrink-0 text-cyan-300' : 'shrink-0 text-slate-400'}
                         aria-hidden="true"
                     />
                     <p className="min-w-0">
@@ -203,7 +203,7 @@ const MatchResult = ({
                         <div className="flex flex-wrap items-center justify-between gap-2">
                             <div>
                                 <p className="text-sm font-medium text-slate-300">다른 추천 조합</p>
-                                <p className="mt-0.5 text-xs text-slate-500">
+                                <p className="mt-0.5 text-xs text-slate-400">
                                     현재 조합과 팀 구성이 의미 있게 다른 후보입니다.
                                 </p>
                             </div>
@@ -231,7 +231,7 @@ const MatchResult = ({
                         </div>
                     </div>
                 ) : isGeneratingAlternatives ? (
-                    <div className="flex items-center gap-2 px-1 text-sm text-slate-500" role="status">
+                    <div className="flex items-center gap-2 px-1 text-sm text-slate-400" role="status">
                         <Loader2 size={14} className="animate-spin" aria-hidden="true" />
                         다른 팀 조합 계산 중…
                     </div>

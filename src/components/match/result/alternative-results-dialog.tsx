@@ -94,14 +94,14 @@ export function AlternativeResultsDialog({
                                 전체 팀 조합 비교
                             </h2>
                         </div>
-                        <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                        <p className="mt-1 text-xs leading-relaxed text-slate-400">
                             추천 후보 {candidates.length}개의 전체 로스터와 배정 티어를 비교하세요.
                         </p>
                     </div>
                     <button
                         type="button"
                         onClick={onClose}
-                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-white/5 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white/5 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
                         aria-label="전체 팀 조합 비교 닫기"
                     >
                         <X size={17} aria-hidden="true" />
@@ -127,7 +127,7 @@ export function AlternativeResultsDialog({
                 </div>
 
                 <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-800 px-4 py-3 md:px-6">
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-400">
                         조합을 적용하기 전까지 현재 결과는 변경되지 않습니다.
                     </p>
                     <button type="button" onClick={onClose} className="btn-ghost min-h-9 shrink-0 text-xs">

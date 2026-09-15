@@ -36,7 +36,7 @@ function LinkControlCard({
             <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                     <h3 className="font-semibold text-white">{title}</h3>
-                    <p className={`mt-1 text-xs ${link?.active ? 'text-emerald-300' : 'text-slate-500'}`}>
+                    <p className={`mt-1 text-xs ${link?.active ? 'text-emerald-300' : 'text-slate-400'}`}>
                         {link?.active
                             ? '활성화된 링크'
                             : kind === 'vote'
@@ -65,7 +65,7 @@ function LinkControlCard({
 
             {kind === 'satisfaction' && satisfactionExpiresAt ? (
                 <div className="mt-4 rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-2.5">
-                    <p className="text-xs text-slate-500">현재 응답 마감</p>
+                    <p className="text-xs text-slate-400">현재 응답 마감</p>
                     <p className="mt-0.5 text-sm font-medium text-slate-200">
                         {new Date(satisfactionExpiresAt).toLocaleString('ko-KR', {
                             timeZone: 'Asia/Seoul',

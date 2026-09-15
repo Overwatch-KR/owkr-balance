@@ -149,7 +149,7 @@ export const ParticipantWorkspace = ({
                         {isReady ? '10명 준비 완료' : `팀 편성까지 ${remainingCount}명`}
                     </span>
                     <span className="mx-2 text-slate-700" aria-hidden="true">·</span>
-                    <span className="text-xs text-slate-500">입력 내용은 30분간 자동 저장</span>
+                    <span className="text-xs text-slate-400">입력 내용은 30분간 자동 저장</span>
                     {reviewCount > 0 && (
                         <span className="ml-2 text-xs text-amber-300">보완 {reviewCount}건</span>
                     )}
@@ -190,7 +190,7 @@ export const ParticipantWorkspace = ({
                                 <span className="min-w-0">
                                     <span className="block truncate text-[11px] font-semibold sm:text-sm">{label}</span>
                                     <span className={`mt-0.5 hidden text-[11px] xl:block ${
-                                        isActive ? 'text-blue-100/80' : 'text-slate-500 group-hover:text-slate-400'
+                                        isActive ? 'text-blue-100/80' : 'text-slate-400 group-hover:text-slate-400'
                                     }`}>
                                         {description}
                                     </span>

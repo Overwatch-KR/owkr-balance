@@ -212,7 +212,7 @@ export function UserSheetPage({
                             onStartTour={startTour}
                         />
                     ) : isLoading && entries.length === 0 ? (
-                        <div className="flex min-h-0 flex-1 flex-col items-center justify-center text-center text-sm text-slate-500" role="status">
+                        <div className="flex min-h-0 flex-1 flex-col items-center justify-center text-center text-sm text-slate-400" role="status">
                             <DouMascot variant="loading" size={112} className="animate-pulse" decorative />
                             <p className="mt-4">유저 시트를 불러오는 중</p>
                         </div>

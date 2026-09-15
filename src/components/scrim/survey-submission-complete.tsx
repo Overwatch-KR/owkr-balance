@@ -37,7 +37,7 @@ export function SurveySubmissionComplete({ kind = 'satisfaction' }: SurveySubmis
                 <p className="mt-3 break-keep text-sm leading-7 text-slate-300 sm:text-base">
                     {description}
                 </p>
-                <p className="mt-1 break-keep text-sm text-slate-500">
+                <p className="mt-1 break-keep text-sm text-slate-400">
                     {alreadySubmitted}
                 </p>
                 <a

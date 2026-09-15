@@ -26,7 +26,7 @@ export const PlayerIdentity = ({ player, align = 'left', layout = 'stacked', gro
                 {hasDistinctDiscordName && (
                     <>
                         <span className="text-xs text-slate-700" aria-hidden="true">·</span>
-                        <span className="break-all font-mono text-xs font-normal text-slate-500" translate="no">
+                        <span className="break-all font-mono text-xs font-normal text-slate-400" translate="no">
                             {player.name}
                         </span>
                     </>
@@ -43,7 +43,7 @@ export const PlayerIdentity = ({ player, align = 'left', layout = 'stacked', gro
                 {hasDistinctDiscordName ? discordName : player.name}
             </span>
             {hasDistinctDiscordName && (
-                <span className="max-w-full truncate text-[11px] font-normal text-slate-500" translate="no">
+                <span className="max-w-full truncate text-[11px] font-normal text-slate-400" translate="no">
                     {player.name}
                 </span>
             )}

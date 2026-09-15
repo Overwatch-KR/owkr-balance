@@ -102,7 +102,7 @@ export function EventParticipantSummary({
                     })}
                 </ul>
             ) : (
-                <p className="mt-5 rounded-xl bg-slate-900 px-4 py-5 text-center text-sm text-slate-500">
+                <p className="mt-5 rounded-xl bg-slate-900 px-4 py-5 text-center text-sm text-slate-400">
                     {isEditing
                         ? '등록 후보가 없습니다. 유저 시트에서 참여자를 추가해 주세요.'
                         : '저장된 이벤트 참여자가 없습니다.'}

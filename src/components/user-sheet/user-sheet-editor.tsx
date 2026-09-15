@@ -334,10 +334,10 @@ export function UserSheetEditor({
                             {validation.activeRows.length}명 입력
                         </span>
                     </div>
-                    <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                    <p className="mt-1 text-xs leading-relaxed text-slate-400">
                         Google Sheets의 7개 열을 첫 셀에 붙여넣거나 각 칸을 직접 수정하세요.
                     </p>
-                    <p className="mt-1 inline-flex items-center gap-1.5 text-xs text-slate-500">
+                    <p className="mt-1 inline-flex items-center gap-1.5 text-xs text-slate-400">
                         <Info size={12} className="shrink-0" aria-hidden="true" />
                         배틀태그는 Player#1234 형식 · 역할 티어의 !, ?, ★는 자동 제거
                     </p>
@@ -358,7 +358,7 @@ export function UserSheetEditor({
                     </button>
                 </div>
                 <label className="relative w-full md:ml-auto md:w-80">
-                    <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" aria-hidden="true" />
+                    <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" aria-hidden="true" />
                     <span className="sr-only">편집 표 검색</span>
                     <input
                         type="search"
@@ -371,7 +371,7 @@ export function UserSheetEditor({
                         <button
                             type="button"
                             onClick={() => setTableQuery('')}
-                            className="btn-ghost absolute right-1.5 top-1/2 min-h-7 h-7 w-7 -translate-y-1/2 rounded-md p-0 text-slate-500"
+                            className="btn-ghost absolute right-1.5 top-1/2 min-h-7 h-7 w-7 -translate-y-1/2 rounded-md p-0 text-slate-400"
                             aria-label="편집 표 검색어 지우기"
                         >
                             <X size={13} aria-hidden="true" />
@@ -420,12 +420,12 @@ export function UserSheetEditor({
                         저장 대상 <strong className="font-semibold text-slate-200">{validation.activeRows.length}명</strong>
                     </span>
                     {tableQuery.trim() && (
-                        <span className="text-slate-500">검색 결과 {visibleRows.length}명</span>
+                        <span className="text-slate-400">검색 결과 {visibleRows.length}명</span>
                     )}
                     {validation.errors.size > 0 && (
                         <span className="whitespace-nowrap text-rose-300">오류 {validation.errors.size}개</span>
                     )}
-                    <span className="hidden text-slate-500 sm:inline">가로 스크롤로 모든 열을 확인할 수 있습니다.</span>
+                    <span className="hidden text-slate-400 sm:inline">가로 스크롤로 모든 열을 확인할 수 있습니다.</span>
                 </div>
                 <div className="flex gap-1">
                     <button
@@ -453,7 +453,7 @@ export function UserSheetEditor({
                         className={`inline-flex min-h-8 items-center gap-1 rounded-md px-2 text-xs transition-colors ${
                             isClearConfirming
                                 ? 'bg-rose-500/15 font-medium text-rose-200'
-                                : 'text-slate-500 hover:bg-rose-500/10 hover:text-rose-300'
+                                : 'text-slate-400 hover:bg-rose-500/10 hover:text-rose-300'
                         }`}
                     >
                         <Trash2 size={13} aria-hidden="true" />

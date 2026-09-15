@@ -17,7 +17,7 @@ interface HeroGridProps {
 function HeroImage({ hero }: { hero: Hero }) {
     const [failed, setFailed] = useState(false);
     return failed ? (
-        <span className="flex h-12 w-12 items-center justify-center rounded-md bg-slate-800 text-xs text-slate-500">?</span>
+        <span className="flex h-12 w-12 items-center justify-center rounded-md bg-slate-800 text-xs text-slate-400">?</span>
     ) : (
         <img
             alt=""

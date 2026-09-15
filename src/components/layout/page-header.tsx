@@ -28,12 +28,12 @@ export const PageHeader = ({
 }: PageHeaderProps) => (
     <header className="mb-5 flex flex-col gap-3 border-b border-slate-800/90 pb-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0 flex-1">
-            <nav aria-label="페이지 경로" className="mb-2 flex min-w-0 flex-wrap items-center gap-1 text-[11px] text-slate-500">
+            <nav aria-label="페이지 경로" className="mb-2 flex min-w-0 flex-wrap items-center gap-1 text-[11px] text-slate-400">
                 {breadcrumbs.map((item, index) => {
                     const isCurrent = index === breadcrumbs.length - 1;
                     return (
                         <span key={`${item.label}-${index}`} className="inline-flex min-w-0 items-center gap-1">
-                            {index > 0 && <ChevronRight size={13} className="shrink-0 text-slate-600" aria-hidden="true" />}
+                            {index > 0 && <ChevronRight size={13} className="shrink-0 text-slate-500" aria-hidden="true" />}
                             {item.onClick && !isCurrent ? (
                                 <button
                                     type="button"

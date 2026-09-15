@@ -51,9 +51,9 @@ const getAssignedRank = (player: Player, role: Role): Player['tank'] => (
 
 const getRoleIcon = (role: Role) => {
     switch (role) {
-        case 'TANK': return <TankIcon size={14} className="text-slate-500" aria-hidden="true" />;
-        case 'DPS': return <DamageIcon size={14} className="text-slate-500" aria-hidden="true" />;
-        case 'SUPPORT': return <SupportIcon size={14} className="text-slate-500" aria-hidden="true" />;
+        case 'TANK': return <TankIcon size={14} className="text-slate-400" aria-hidden="true" />;
+        case 'DPS': return <DamageIcon size={14} className="text-slate-400" aria-hidden="true" />;
+        case 'SUPPORT': return <SupportIcon size={14} className="text-slate-400" aria-hidden="true" />;
     }
 };
 
@@ -234,7 +234,7 @@ export function AlternativeResultCard({
 
             <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
                 <div className="rounded-lg bg-slate-950/45 px-2.5 py-2">
-                    <p className="text-[10px] text-slate-500">팀 평균 차이</p>
+                    <p className="text-[10px] text-slate-400">팀 평균 차이</p>
                     <p className="mt-0.5 text-xs font-semibold text-cyan-200">
                         {(candidate.teamA.realScore === candidate.teamB.realScore)
                             ? '거의 동일'
@@ -252,7 +252,7 @@ export function AlternativeResultCard({
                         ?? Math.abs(difference) * (role === 'TANK' ? 1 : 2);
                     return (
                         <div key={role} className="rounded-lg bg-slate-950/45 px-2.5 py-2">
-                            <p className="text-[10px] text-slate-500">{label} 평균 차이</p>
+                            <p className="text-[10px] text-slate-400">{label} 평균 차이</p>
                             <p className="mt-0.5 text-xs font-semibold text-slate-300">
                                 {difference === 0
                                     ? '거의 동일'
@@ -271,9 +271,9 @@ export function AlternativeResultCard({
                     <ArrowLeftRight size={12} className="text-cyan-400" aria-hidden="true" />
                     팀 이동 {changes.teamChangeCount}명
                 </span>
-                <span className="text-slate-600">·</span>
+                <span className="text-slate-500">·</span>
                 <span className="text-slate-400">역할 변경 {changes.roleChanged.length}명</span>
-                <span className="text-slate-600">·</span>
+                <span className="text-slate-500">·</span>
                 <span className={`inline-flex items-center gap-1 ${
                     exceptionCount === 0 ? 'text-emerald-300' : 'text-amber-300'
                 }`}>
@@ -292,10 +292,10 @@ export function AlternativeResultCard({
                     {changes.teamChangeCount > 0 ? (
                         <>
                             <p className="h-[18px] min-w-0 truncate leading-[18px] text-blue-300" title={changes.movedToTeam1.join(' · ')}>
-                                <span className="text-slate-500">1팀 합류</span> · {changes.movedToTeam1.join(' · ')}
+                                <span className="text-slate-400">1팀 합류</span> · {changes.movedToTeam1.join(' · ')}
                             </p>
                             <p className="h-[18px] min-w-0 truncate leading-[18px] text-red-300" title={changes.movedToTeam2.join(' · ')}>
-                                <span className="text-slate-500">2팀 합류</span> · {changes.movedToTeam2.join(' · ')}
+                                <span className="text-slate-400">2팀 합류</span> · {changes.movedToTeam2.join(' · ')}
                             </p>
                         </>
                     ) : (
@@ -312,7 +312,7 @@ export function AlternativeResultCard({
                     <div className="grid grid-cols-[minmax(0,1fr)_38px_minmax(0,1fr)] items-center border-b border-slate-800 bg-slate-950/35 px-2.5 py-2">
                         <div className="flex min-w-0 items-baseline gap-1.5">
                             <span className="text-xs font-semibold text-blue-300">1팀</span>
-                            <span className="font-mono text-[9px] tabular-nums text-slate-600">
+                            <span className="font-mono text-[9px] tabular-nums text-slate-500">
                                 {formatScore(candidate.teamA.realScore)}
                             </span>
                         </div>
@@ -320,7 +320,7 @@ export function AlternativeResultCard({
                             VS
                         </span>
                         <div className="flex min-w-0 items-baseline justify-end gap-1.5">
-                            <span className="font-mono text-[9px] tabular-nums text-slate-600">
+                            <span className="font-mono text-[9px] tabular-nums text-slate-500">
                                 {formatScore(candidate.teamB.realScore)}
                             </span>
                             <span className="text-xs font-semibold text-red-300">2팀</span>

@@ -450,7 +450,7 @@ export const OnboardingGuide = ({
                         <button
                             type="button"
                             onClick={onDismiss}
-                            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-white/5 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+                            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-white/5 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
                             aria-label="대진표 사용법 닫기"
                         >
                             <X size={16} aria-hidden="true" />

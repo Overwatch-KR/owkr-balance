@@ -85,13 +85,13 @@ const LoginScreen = ({ serviceError, onRetry }: LoginScreenProps) => {
                                 연결 다시 확인
                             </button>
                         )}
-                        <p className="mt-5 text-xs text-slate-500">등록된 관리자만 접근 가능합니다.</p>
+                        <p className="mt-5 text-xs text-slate-400">등록된 관리자만 접근 가능합니다.</p>
                     </div>
                 </div>
                 <footer className="flex shrink-0 justify-center">
                     <a
                         href="/discord-login-policy"
-                        className="inline-flex min-h-9 items-center rounded-md px-2 text-xs text-slate-500 underline decoration-slate-600 underline-offset-4 transition-colors hover:text-slate-300"
+                        className="inline-flex min-h-9 items-center rounded-md px-2 text-xs text-slate-400 underline decoration-slate-600 underline-offset-4 transition-colors hover:text-slate-300"
                     >
                         Discord 로그인 정보 이용 안내
                     </a>

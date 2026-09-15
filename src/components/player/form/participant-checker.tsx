@@ -86,12 +86,12 @@ const ParticipantChecker = ({
                 />
                 <UserCheck
                     size={17}
-                    className={includesAdmin ? 'text-cyan-300' : 'text-slate-500'}
+                    className={includesAdmin ? 'text-cyan-300' : 'text-slate-400'}
                     aria-hidden="true"
                 />
                 <span className="min-w-0">
                     <span className="block text-sm font-medium text-slate-200">나도 이번 내전에 참여합니다</span>
-                    <span className="mt-0.5 block text-xs text-slate-500">
+                    <span className="mt-0.5 block text-xs text-slate-400">
                         {currentAdminName} 님을 공지 참가자에 포함해 대조합니다
                     </span>
                 </span>
@@ -100,13 +100,13 @@ const ParticipantChecker = ({
             {totalCount === 0 ? (
                 <div className="rounded-xl border border-slate-800 bg-surface/50 px-4 py-5 text-center">
                     <p className="text-sm text-slate-400">멘션 명단을 붙여넣으면 바로 대조합니다</p>
-                    <p className="mt-1 text-xs text-slate-500">굵은 글씨가 포함된 Discord 복사본도 인식합니다</p>
+                    <p className="mt-1 text-xs text-slate-400">굵은 글씨가 포함된 Discord 복사본도 인식합니다</p>
                 </div>
             ) : (
                 <div className="space-y-3" aria-live="polite">
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                         <div className="rounded-lg bg-surface px-2 py-2.5 text-center">
-                            <p className="text-[10px] text-slate-500">공지 인원</p>
+                            <p className="text-[10px] text-slate-400">공지 인원</p>
                             <p className="mt-0.5 text-sm font-semibold tabular-nums text-slate-200">{totalCount}명</p>
                         </div>
                         <div className="rounded-lg bg-emerald-500/10 px-2 py-2.5 text-center">
@@ -162,7 +162,7 @@ const ParticipantChecker = ({
                                 <UserRoundX size={14} className="mt-0.5 shrink-0 text-rose-400" aria-hidden="true" />
                                 <div>
                                     <h3 className="text-xs font-semibold text-rose-300">공지에 없는 명단 참가자</h3>
-                                    <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
+                                    <p className="mt-1 text-[11px] leading-relaxed text-slate-400">
                                         잘못 추가했거나 디스코드 이름이 다른 참가자인지 확인해 주세요.
                                     </p>
                                 </div>

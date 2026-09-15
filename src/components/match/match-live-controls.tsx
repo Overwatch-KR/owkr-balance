@@ -80,7 +80,7 @@ export function MatchLiveControls({
                             함께 편집
                         </h2>
                     </div>
-                    <p className="mt-1 max-w-2xl text-xs leading-relaxed text-slate-500">
+                    <p className="mt-1 max-w-2xl text-xs leading-relaxed text-slate-400">
                         같은 코드로 접속한 관리자와 명단·팀 변경을 자동으로 맞춥니다.
                     </p>
                 </div>
@@ -123,7 +123,7 @@ export function MatchLiveControls({
                             <strong className="mt-1 block font-mono text-sm tracking-[0.14em] text-emerald-200">
                                 {session.code}
                             </strong>
-                            <span className="mt-1 block text-[11px] text-slate-500">
+                            <span className="mt-1 block text-[11px] text-slate-400">
                                 새로고침해도 이 브라우저에서 자동으로 다시 연결됩니다.
                             </span>
                         </div>
@@ -145,7 +145,7 @@ export function MatchLiveControls({
                     <div className="relative min-w-0 flex-1">
                         <Link2
                             size={15}
-                            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-600"
+                            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
                             aria-hidden="true"
                         />
                         <input
@@ -160,7 +160,7 @@ export function MatchLiveControls({
                             autoComplete="off"
                             spellCheck={false}
                             placeholder="실시간 공유 코드 10자리"
-                            className="min-w-0 w-full rounded-md border border-slate-700 bg-slate-950/60 py-2 pl-9 pr-3 font-mono text-sm uppercase tracking-[0.16em] text-white outline-none transition-colors placeholder:font-sans placeholder:tracking-normal placeholder:text-slate-500 focus:border-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="min-w-0 w-full rounded-md border border-slate-700 bg-slate-950/60 py-2 pl-9 pr-3 font-mono text-sm uppercase tracking-[0.16em] text-white outline-none transition-colors placeholder:font-sans placeholder:tracking-normal placeholder:text-slate-400 focus:border-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
                         />
                     </div>
                     <button

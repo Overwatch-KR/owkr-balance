@@ -31,7 +31,7 @@ export function EventParticipantIdentity({ participant }: EventParticipantIdenti
                 <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                     <span className="truncate font-semibold text-slate-100">{displayName}</span>
                     {!participant.discordName ? (
-                        <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
+                        <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] font-medium text-slate-400">
                             Discord 이름 없음
                         </span>
                     ) : null}
@@ -40,7 +40,7 @@ export function EventParticipantIdentity({ participant }: EventParticipantIdenti
                     <span className={discordUserId ? 'font-mono text-indigo-300' : 'text-amber-300/80'}>
                         Discord ID {discordUserId ?? '미등록'}
                     </span>
-                    <span className="min-w-0 truncate text-slate-500">
+                    <span className="min-w-0 truncate text-slate-400">
                         Battle.net <span className="text-slate-400">{participant.name}</span>
                     </span>
                 </span>

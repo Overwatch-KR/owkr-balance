@@ -94,12 +94,12 @@ export function RosterIdentityRow({
                                 : MATCH_LABELS[draft.matchKind]}
                         </span>
                     </div>
-                    <p className="mt-1 truncate font-mono text-xs text-slate-500">
+                    <p className="mt-1 truncate font-mono text-xs text-slate-400">
                         {draft.player.name}
                     </p>
                 </div>
 
-                {!isLocalOnly && <label className="grid gap-1 text-[11px] text-slate-500">
+                {!isLocalOnly && <label className="grid gap-1 text-[11px] text-slate-400">
                     시트 연결
                     <select
                         name={`roster-entry-${draft.player.id}`}
@@ -116,7 +116,7 @@ export function RosterIdentityRow({
                     </select>
                 </label>}
 
-                {!isLocalOnly && <label className="grid gap-1 text-[11px] text-slate-500">
+                {!isLocalOnly && <label className="grid gap-1 text-[11px] text-slate-400">
                     Discord 고유 ID
                     <input
                         name={`discord-user-id-${draft.player.id}`}

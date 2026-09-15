@@ -11,9 +11,9 @@ export default {
             },
             colors: {
                 surface: {
-                    DEFAULT: '#090b0f',
-                    elevated: '#101319',
-                    overlay: '#171b23',
+                    DEFAULT: '#0d1117',
+                    elevated: '#161c25',
+                    overlay: '#1d2632',
                 },
                 accent: {
                     DEFAULT: '#0284c7',

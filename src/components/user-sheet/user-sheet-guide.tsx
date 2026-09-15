@@ -72,7 +72,7 @@ export function UserSheetGuide({ onClose, onStartTour }: UserSheetGuideProps) {
                     <button
                         type="button"
                         onClick={onClose}
-                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
                         aria-label="시트 가이드 닫기"
                     >
                         <X size={17} aria-hidden="true" />
@@ -89,7 +89,7 @@ export function UserSheetGuide({ onClose, onStartTour }: UserSheetGuideProps) {
                                 <Icon size={17} aria-hidden="true" />
                             </span>
                             <h3 className="mt-3 text-sm font-semibold text-slate-100">{title}</h3>
-                            <p className="mt-1.5 text-xs leading-relaxed text-slate-500">{description}</p>
+                            <p className="mt-1.5 text-xs leading-relaxed text-slate-400">{description}</p>
                         </article>
                     ))}
                 </div>
@@ -105,7 +105,7 @@ export function UserSheetGuide({ onClose, onStartTour }: UserSheetGuideProps) {
                                 디스코드 표시명 · Discord ID · BattleTag · 탱커 · 딜러 · 힐러 · 특이사항
                             </code>
                         </div>
-                        <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
+                        <p className="mt-2 text-[11px] leading-relaxed text-slate-400">
                             Discord ID는 필수입니다. 기존 6열 데이터를 붙여넣은 경우 각 행의 ID를 모두 입력해야 저장할 수 있습니다.
                         </p>
                     </article>
@@ -118,7 +118,7 @@ export function UserSheetGuide({ onClose, onStartTour }: UserSheetGuideProps) {
                         <p className="mt-2 text-xs leading-relaxed text-slate-400">
                             유저 시트 페이지를 보고 있으면 1분마다 자동 확인합니다. 창으로 돌아오거나 상단의 새로고침을 누르면 즉시 최신 데이터를 불러옵니다.
                         </p>
-                        <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
+                        <p className="mt-2 text-[11px] leading-relaxed text-slate-400">
                             여러 운영자가 함께 작업했다면 전체 편집 전에 한 번 새로고침해 주세요.
                         </p>
                     </article>

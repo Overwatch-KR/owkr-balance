@@ -330,7 +330,7 @@ export function RosterIdentityResolver({
                                 참가자 식별 및 적용 검토
                             </h2>
                         </div>
-                        <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                        <p className="mt-1 text-xs leading-relaxed text-slate-400">
                             {isLocalOnly
                                 ? '원격 유저 시트에 연결하지 않고 현재 브라우저의 참가 명단에만 적용합니다.'
                                 : '기존 유저 연결과 변경 내용을 확인한 뒤 명단과 유저 시트를 한 번에 반영합니다.'}
@@ -340,7 +340,7 @@ export function RosterIdentityResolver({
                         type="button"
                         onClick={onCancel}
                         disabled={isSubmitting}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-white/5 hover:text-slate-200 disabled:opacity-40"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 hover:bg-white/5 hover:text-slate-200 disabled:opacity-40"
                         aria-label="식별 검토 닫기"
                     >
                         <X size={17} aria-hidden="true" />
@@ -421,7 +421,7 @@ export function RosterIdentityResolver({
                                 <label htmlFor="bulk-discord-ids" className="text-xs font-medium text-slate-300">
                                     Discord ID 한 번에 붙여넣기
                                 </label>
-                                <p className="mt-1 text-xs text-slate-500">
+                                <p className="mt-1 text-xs text-slate-400">
                                     `별명 123456789012345678` 형식 또는 미해결 인원 순서대로 한 줄씩 입력하세요.
                                 </p>
                             </div>
@@ -529,7 +529,7 @@ export function RosterIdentityResolver({
                 </div>
 
                 <footer className="flex shrink-0 flex-col gap-3 border-t border-slate-800 px-4 py-3 sm:flex-row sm:items-center sm:justify-between md:px-6">
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-400">
                         {isLocalOnly
                             ? '이 명단과 팀 결과는 현재 브라우저에만 30분 동안 저장됩니다.'
                             : '개인 운영 메모와 관리자 특이사항은 자동 갱신하지 않습니다.'}

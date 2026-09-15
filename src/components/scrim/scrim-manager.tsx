@@ -416,7 +416,7 @@ export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManag
                                                 }`}
                                             >
                                                 <span className="font-medium">{formatScrimLabel(scrim)}</span>
-                                                <span className="mt-1 block text-xs text-slate-500">
+                                                <span className="mt-1 block text-xs text-slate-400">
                                                     {scrim.startTime} · 투표 {scrim.votes.length}명 · 만족도 {scrim.satisfactionResponses.length}건
                                                 </span>
                                             </button>
@@ -427,7 +427,7 @@ export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManag
                                     연결되면 내전 기록이 표시됩니다.
                                 </p>
                             ) : (
-                                <div className="flex flex-col items-center py-6 text-center text-sm text-slate-500">
+                                <div className="flex flex-col items-center py-6 text-center text-sm text-slate-400">
                                     <DouMascot variant="empty" size={72} className="mb-3 opacity-80" decorative />
                                     <p>등록된 내전이 없습니다.</p>
                                 </div>
@@ -476,7 +476,7 @@ export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManag
                                                 className={`min-h-10 flex-1 whitespace-nowrap border-b-2 px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-400/70 ${
                                                     isActive
                                                         ? 'border-cyan-400 bg-cyan-400/[0.035] text-white'
-                                                        : 'border-transparent text-slate-500 hover:bg-white/[0.025] hover:text-slate-300'
+                                                        : 'border-transparent text-slate-400 hover:bg-white/[0.025] hover:text-slate-300'
                                                 }`}
                                             >
                                                 <Icon size={15} className="mr-1.5 inline" />{tab.label}
@@ -516,7 +516,7 @@ export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManag
                             )}
                         </section>
                     ) : (
-                        <section className="card flex min-h-64 items-center justify-center text-sm text-slate-500">
+                        <section className="card flex min-h-64 items-center justify-center text-sm text-slate-400">
                             내전을 등록하면 상세 정보가 표시됩니다.
                         </section>
                     )}

@@ -97,7 +97,7 @@ export function UserSheetConflictResolver({
                                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 px-3.5 py-2.5">
                                     <h3 id={`user-sheet-conflict-${conflict.id}`} className="text-xs font-medium text-slate-200">
                                         {conflict.rowLabel}
-                                        <span className="ml-2 text-slate-500">· {conflict.fieldLabel}</span>
+                                        <span className="ml-2 text-slate-400">· {conflict.fieldLabel}</span>
                                     </h3>
                                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
                                         selected
@@ -109,8 +109,8 @@ export function UserSheetConflictResolver({
                                 </div>
                                 <div className="grid md:grid-cols-3">
                                     <div className="border-b border-slate-800 p-3 md:border-b-0 md:border-r">
-                                        <p className="text-[11px] font-medium tracking-wide text-slate-500">수정 전</p>
-                                        <p className="mt-2 whitespace-pre-wrap break-words text-xs leading-relaxed text-slate-500">
+                                        <p className="text-[11px] font-medium tracking-wide text-slate-400">수정 전</p>
+                                        <p className="mt-2 whitespace-pre-wrap break-words text-xs leading-relaxed text-slate-400">
                                             {displayValue(conflict.baseValue)}
                                         </p>
                                     </div>
@@ -159,7 +159,7 @@ export function UserSheetConflictResolver({
 
             <footer className="shrink-0 border-t border-slate-800 bg-slate-900/80 px-4 py-3 md:px-6">
                 <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
-                    <p className="text-[11px] text-slate-500" role="status" aria-live="polite">
+                    <p className="text-[11px] text-slate-400" role="status" aria-live="polite">
                         {unresolvedCount > 0
                             ? `${unresolvedCount}개 항목의 값을 선택해 주세요.`
                             : '병합할 값 선택을 완료했습니다.'}

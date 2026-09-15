@@ -181,7 +181,7 @@ const PlayerRankSummary = ({ player, assignedRole }: PlayerRankSummaryProps) => 
                                 ? 'border-transparent text-amber-400'
                                 : rank.isAvoided
                                     ? 'border-transparent text-rose-400'
-                                    : 'border-transparent text-slate-500'
+                                    : 'border-transparent text-slate-400'
                     }`}
                 >
                     {getCompactRoleIcon(role)}

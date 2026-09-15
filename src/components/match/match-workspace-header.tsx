@@ -38,7 +38,7 @@ export function MatchWorkspaceHeader({
                         {rosterStatus}
                     </span>
                     {waitlistCount > 0 && (
-                        <span className="text-xs tabular-nums text-slate-500">대기 {waitlistCount}명</span>
+                        <span className="text-xs tabular-nums text-slate-400">대기 {waitlistCount}명</span>
                     )}
                 </div>
                 <p className="mt-1.5 text-sm text-slate-400">
