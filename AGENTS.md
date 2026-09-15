@@ -84,10 +84,10 @@ PlayerName#1234 다3! 플2 골1         # ! = preferred
 
 - **Components:** Functional + hooks only, no class components
 - **Application:** Put workflows that coordinate multiple states/effects under `src/application/<feature>/`; application code must not import presentation components
-- **State:** useState/useEffect and focused hooks; expiring browser storage for session UI state, Redis for shared state, no Redux
+- **State:** TanStack Query for remote server state; useState/useEffect and focused hooks for local UI state; expiring browser storage for session UI state, Redis for shared state, no Redux
 - **Naming:** PascalCase components, camelCase functions, UPPER_SNAKE constants
 - **Styling:** Dense dark `OWKR Match Control` console; prefer dividers and surface depth over nested cards. Cyan is for primary/active/live state, blue/red for teams, emerald for success, amber for warnings
-- **Page navigation:** Full admin pages use `src/components/layout/page-header.tsx` with breadcrumbs; reserve standalone back buttons for modal/step/detail flows
+- **Page navigation:** Full admin pages use `src/components/layout/page-header.tsx` without redundant breadcrumbs; reserve standalone back buttons for modal/step/detail flows
 - **Imports:** Frontend domain consumers use `#domain/balance`, `#domain/player`, `#domain/scrim`, or `#domain/scrim/rules`; Vercel Functions use the domain public API through explicit relative `.js` paths because deployment cannot safely bundle the TypeScript import aliases
 - **Layer aliases:** Use `@application/*` and `@presentation/*` when a cross-layer frontend import is clearer than a long relative path; keep short same-feature relative imports
 - **TypeScript:** Strict mode, explicit types, interfaces for data models
