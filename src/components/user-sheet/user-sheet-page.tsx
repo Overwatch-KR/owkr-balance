@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-    AlertCircle,
     BookOpen,
     FileSpreadsheet,
     List,
@@ -14,6 +13,7 @@ import {
     type UserSheetEntry,
     type UserSheetSnapshot,
 } from '../../utils/user-sheet';
+import { DataLoadError } from '../common/data-load-error';
 import { DouMascot } from '../common/dou-mascot';
 import { PageHeader } from '../layout/page-header';
 import { UserSheetBrowser } from './user-sheet-browser';
@@ -196,25 +196,15 @@ export function UserSheetPage({
                 </div>
 
                 {error ? (
-                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200" role="alert">
-                        <span className="inline-flex items-center gap-2">
-                            <AlertCircle size={15} aria-hidden="true" />
-                            {error}
-                        </span>
-                        <button
-                            type="button"
-                            onClick={onRetry}
-                            disabled={isLoading}
-                            className="btn-ghost min-h-9 text-xs disabled:opacity-50"
-                        >
-                            {isLoading
-                                ? <Loader2 size={13} className="animate-spin" aria-hidden="true" />
-                                : <RefreshCcw size={13} aria-hidden="true" />}
-                            다시 불러오기
-                        </button>
-                    </div>
+                    <DataLoadError
+                        isRetrying={isLoading}
+                        message={error}
+                        onRetry={onRetry}
+                        title="유저 시트를 불러오지 못했습니다"
+                    />
                 ) : null}
 
+                {error && entries.length === 0 && mode !== 'GUIDE' ? null : (
                 <section className="card flex min-h-[22rem] flex-col overflow-hidden p-0 sm:h-[calc(100dvh-12rem)] sm:min-h-[32rem]">
                     {mode === 'GUIDE' ? (
                         <UserSheetGuide
@@ -283,6 +273,7 @@ export function UserSheetPage({
                         />
                     )}
                 </section>
+                )}
             </div>
 
             {isTourOpen ? (

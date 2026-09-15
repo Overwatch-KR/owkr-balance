@@ -24,6 +24,7 @@ import { formatScrimLabel } from '../../utils/scrim';
 import { getErrorMessage, requestJson } from '../../utils/api';
 import { useToast } from '../../hooks/use-toast';
 import { AppToast } from '../app-toast';
+import { DataLoadError } from '../common/data-load-error';
 import { DouMascot } from '../common/dou-mascot';
 import { Skeleton } from '../common/skeleton';
 import { PageHeader } from '../layout/page-header';
@@ -50,6 +51,11 @@ interface ScrimsResponse {
     scrims: ScrimRecord[];
 }
 
+interface ScrimCache {
+    scrims: ScrimRecord[];
+    userId: string;
+}
+
 type DetailTab = 'operations' | 'ban' | 'satisfaction' | 'review';
 type HeroPickerMode = 'final' | 'used' | null;
 
@@ -59,6 +65,12 @@ const DETAIL_TABS: Array<{ id: DetailTab; label: string; icon: typeof Link2 }> =
     { id: 'satisfaction', label: '만족도 결과', icon: Star },
     { id: 'review', label: '내전 후기', icon: NotebookPen },
 ];
+
+let scrimCache: ScrimCache | null = null;
+
+const getCachedScrims = (userId: string): ScrimRecord[] | null => (
+    scrimCache?.userId === userId ? scrimCache.scrims : null
+);
 
 const toRosterSnapshot = (players: Player[]) => players.slice(0, 10).map(player => ({
     id: player.discordUserId ?? player.userSheetEntryId ?? String(player.id),
@@ -99,11 +111,16 @@ const ScrimDetailSkeleton = () => (
  * @description 전용 페이지에서 내전 기록과 공개 링크, 밴, 만족도 결과 및 운영 후기를 탭으로 관리한다.
  */
 export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManagerProps) {
-    const [scrims, setScrims] = useState<ScrimRecord[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [hasInitialCache] = useState(() => getCachedScrims(userId) !== null);
+    const [scrims, setScrims] = useState<ScrimRecord[]>(() => getCachedScrims(userId) ?? []);
+    const [isLoading, setIsLoading] = useState(!hasInitialCache);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [loadError, setLoadError] = useState('');
     const [date, setDate] = useState(() => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(new Date()));
     const [startTime, setStartTime] = useState('21:00');
-    const [selectedId, setSelectedId] = useState('');
+    const [selectedId, setSelectedId] = useState(
+        () => getCachedScrims(userId)?.[0]?.id ?? '',
+    );
     const [activeTab, setActiveTab] = useState<DetailTab>('operations');
     const [heroPickerMode, setHeroPickerMode] = useState<HeroPickerMode>(null);
     const [isRandomModalOpen, setIsRandomModalOpen] = useState(false);
@@ -111,9 +128,23 @@ export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManag
     const [pendingActionKey, setPendingActionKey] = useState('');
     const { dismissToast, showToast, toast } = useToast();
 
-    const load = useCallback(async () => {
+    const updateScrims = useCallback((
+        update: (current: ScrimRecord[]) => ScrimRecord[],
+    ) => {
+        setScrims(current => {
+            const next = update(current);
+            scrimCache = { scrims: next, userId };
+            return next;
+        });
+    }, [userId]);
+
+    const load = useCallback(async (mode: 'initial' | 'refresh') => {
+        if (mode === 'initial') setIsLoading(true);
+        else setIsRefreshing(true);
+        setLoadError('');
         try {
             const result = await requestJson<ScrimsResponse>('/api/scrims', { credentials: 'same-origin' });
+            scrimCache = { scrims: result.scrims, userId };
             setScrims(result.scrims);
             setSelectedId(current => (
                 result.scrims.some(scrim => scrim.id === current)
@@ -121,16 +152,20 @@ export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManag
                     : result.scrims[0]?.id ?? ''
             ));
         } catch (error) {
-            showToast('error', getErrorMessage(error, '내전 기록을 불러오지 못했습니다.'));
+            setLoadError(getErrorMessage(error, '내전 기록을 불러오지 못했습니다.'));
         } finally {
-            setIsLoading(false);
+            if (mode === 'initial') setIsLoading(false);
+            else setIsRefreshing(false);
         }
-    }, [showToast]);
+    }, [userId]);
 
     useEffect(() => {
-        const timer = window.setTimeout(() => void load(), 0);
+        const timer = window.setTimeout(
+            () => void load(hasInitialCache ? 'refresh' : 'initial'),
+            0,
+        );
         return () => window.clearTimeout(timer);
-    }, [load]);
+    }, [hasInitialCache, load]);
 
     const selected = useMemo(
         () => scrims.find(scrim => scrim.id === selectedId) ?? null,
@@ -216,10 +251,10 @@ export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManag
                 ),
             });
             if (action === 'create') {
-                setScrims(current => [...current, result.scrim]);
+                updateScrims(current => [...current, result.scrim]);
                 setSelectedId(result.scrim.id);
             } else {
-                setScrims(current => current.map(scrim => (
+                updateScrims(current => current.map(scrim => (
                     scrim.id === result.scrim.id ? result.scrim : scrim
                 )));
             }
@@ -244,7 +279,7 @@ export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManag
         } finally {
             setPendingActionKey('');
         }
-    }, [csrfToken, pendingActionKey, selected, showToast]);
+    }, [csrfToken, pendingActionKey, selected, showToast, updateScrims]);
 
     const resolveTieRandom = useCallback(async (): Promise<string[]> => {
         if (!selectedScrimId) throw new Error('내전 정보를 찾을 수 없습니다.');
@@ -257,13 +292,13 @@ export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManag
             },
             body: JSON.stringify({ id: selectedScrimId, action: 'resolveTieRandom' }),
         });
-        setScrims(current => current.map(scrim => (
+        updateScrims(current => current.map(scrim => (
             scrim.id === result.scrim.id ? result.scrim : scrim
         )));
         const heroIds = result.scrim.finalBanDecision?.heroIds ?? [];
         if (heroIds.length !== 2) throw new Error('랜덤 추첨 결과를 확인하지 못했습니다.');
         return heroIds;
-    }, [csrfToken, selectedScrimId]);
+    }, [csrfToken, selectedScrimId, updateScrims]);
 
     const deleteSelected = async () => {
         if (!selected || !window.confirm(`${formatScrimLabel(selected)} 기록을 삭제할까요?`)) return;
@@ -277,7 +312,9 @@ export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManag
                 },
                 body: JSON.stringify({ id: selected.id, action: 'delete' }),
             });
-            await load();
+            const remainingScrims = scrims.filter(scrim => scrim.id !== selected.id);
+            updateScrims(() => remainingScrims);
+            setSelectedId(remainingScrims[0]?.id ?? '');
             showToast('success', '내전 기록을 삭제했습니다.');
         } catch (error) {
             showToast('error', getErrorMessage(error, '삭제하지 못했습니다.'));
@@ -318,6 +355,15 @@ export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManag
                         </button>
                     )}
                 />
+
+                {loadError ? (
+                    <DataLoadError
+                        isRetrying={isLoading || isRefreshing}
+                        message={loadError}
+                        onRetry={() => void load(scrims.length === 0 ? 'initial' : 'refresh')}
+                        title="내전 기록을 불러오지 못했습니다"
+                    />
+                ) : null}
 
                 <section className="card">
                     <div className="flex flex-wrap items-end justify-between gap-2">
@@ -376,6 +422,10 @@ export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManag
                                             </button>
                                         ))}
                                 </div>
+                            ) : loadError ? (
+                                <p className="py-6 text-center text-sm text-slate-400">
+                                    연결되면 내전 기록이 표시됩니다.
+                                </p>
                             ) : (
                                 <div className="flex flex-col items-center py-6 text-center text-sm text-slate-500">
                                     <DouMascot variant="empty" size={72} className="mb-3 opacity-80" decorative />

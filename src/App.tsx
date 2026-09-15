@@ -725,6 +725,7 @@ const AuthenticatedApp = (props: AuthenticatedAppProps) => {
                 <EventParticipantsPage
                     csrfToken={props.csrfToken}
                     onClose={() => navigate('/')}
+                    userId={props.user.id}
                 />
                 <AnimatePresence>{isPageNavigating && <PageLoadingBar />}</AnimatePresence>
             </MotionConfig>
