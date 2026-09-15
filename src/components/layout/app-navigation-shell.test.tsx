@@ -113,6 +113,27 @@ describe('AppNavigationShell', () => {
                     isGuideOpen: false,
                     isLiveConnected: true,
                     isLivePublishing: false,
+                    liveCollaborators: [
+                        {
+                            userId: 'discord-admin-1',
+                            displayName: '관리자 A',
+                            avatarUrl: 'https://cdn.discordapp.com/avatars/1/avatar.webp',
+                            lastSeenAt: 1_000,
+                        },
+                        {
+                            userId: 'discord-admin-2',
+                            displayName: '관리자 B',
+                            lastSeenAt: 1_000,
+                        },
+                    ],
+                    liveRecentChange: {
+                        actor: {
+                            userId: 'discord-admin-2',
+                            displayName: '관리자 B',
+                        },
+                        kind: 'TEAMS',
+                        updatedAt: 1_000,
+                    },
                     liveSessionCode: 'LIVE234567',
                     liveSyncError: '',
                     userSheetHasError: false,
@@ -122,7 +143,9 @@ describe('AppNavigationShell', () => {
         );
 
         expect(markup).toContain('aria-live="polite"');
-        expect(markup).toContain('실시간 공유 중');
+        expect(markup).toContain('2명 함께 편집 중');
+        expect(markup).toContain('관리자 B · 팀 배정 수정');
+        expect(markup).toContain('현재 공동 작업자 2명');
         expect(markup).toContain('LIVE234567');
         expect(markup).toContain('대진표 보기');
     });

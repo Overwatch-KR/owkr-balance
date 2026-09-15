@@ -15,13 +15,36 @@ export interface MatchLiveParticipant {
     position: MatchSharePosition | null;
 }
 
+export type MatchLiveChangeKind = 'ROSTER' | 'TEAMS' | 'ROSTER_AND_TEAMS';
+
+/**
+ * @description 현재 공동 작업 세션을 보고 있는 Discord 관리자 프로필.
+ */
+export interface MatchLiveCollaborator {
+    avatarUrl?: string;
+    displayName: string;
+    lastSeenAt: number;
+    userId: string;
+}
+
+/**
+ * @description 가장 최근에 명단 또는 팀 배정을 바꾼 관리자와 변경 종류.
+ */
+export interface MatchLiveRecentChange {
+    actor: Omit<MatchLiveCollaborator, 'lastSeenAt'>;
+    kind: MatchLiveChangeKind;
+    updatedAt: number;
+}
+
 /**
  * @description 실시간 공동 작업 세션의 클라이언트 공개 스냅샷.
  */
 export interface MatchLiveSessionSnapshot {
     code: string;
+    collaborators: MatchLiveCollaborator[];
     revision: number;
     participants: MatchLiveParticipant[];
+    recentChange: MatchLiveRecentChange | null;
     updatedAt: number;
 }
 

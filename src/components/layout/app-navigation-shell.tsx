@@ -16,12 +16,15 @@ import {
     FileSpreadsheet,
     LogOut,
     MoreHorizontal,
-    Radio,
     Swords,
     UserRound,
     Users,
     X,
 } from 'lucide-react';
+import type {
+    MatchLiveCollaborator,
+    MatchLiveRecentChange,
+} from '#domain/balance';
 import { useAuth } from '../../hooks/use-auth';
 
 export const APP_PATH_CHANGE_EVENT = 'owkr:navigation:path-change';
@@ -35,6 +38,8 @@ export interface AppNavigationStateDetail {
     isGuideOpen: boolean;
     isLiveConnected: boolean;
     isLivePublishing: boolean;
+    liveCollaborators: MatchLiveCollaborator[];
+    liveRecentChange: MatchLiveRecentChange | null;
     liveSessionCode?: string;
     liveSyncError: string;
     userSheetHasError: boolean;
@@ -74,6 +79,17 @@ interface NavigationLinkProps extends Omit<NavigationButtonProps, 'ariaControls'
 }
 
 const normalizePathname = () => window.location.pathname.replace(/\/+$/, '') || '/';
+
+const LIVE_CHANGE_LABELS = {
+    ROSTER: '명단 수정',
+    TEAMS: '팀 배정 수정',
+    ROSTER_AND_TEAMS: '명단·팀 배정 수정',
+} as const;
+
+const formatLiveChangeTime = (timestamp: number): string => new Intl.DateTimeFormat('ko-KR', {
+    hour: 'numeric',
+    minute: '2-digit',
+}).format(timestamp);
 
 const UserProfileAvatar = ({
     avatarUrl,
@@ -122,7 +138,12 @@ export const LiveSessionStatusBar = ({
         ? '실시간 공유 연결 확인 필요'
         : state.isLivePublishing
             ? '실시간 변경 저장 중…'
-            : '실시간 공유 중';
+            : state.liveCollaborators.length > 1
+                ? `${state.liveCollaborators.length}명 함께 편집 중`
+                : '실시간 공유 중';
+    const visibleCollaborators = state.liveCollaborators.slice(0, 3);
+    const hiddenCollaboratorCount = state.liveCollaborators.length - visibleCollaborators.length;
+    const recentChange = state.liveRecentChange;
 
     return (
         <div
@@ -134,22 +155,53 @@ export const LiveSessionStatusBar = ({
             role="status"
             aria-live="polite"
         >
-            <div className="mx-auto flex min-h-11 max-w-[1600px] items-center justify-between gap-3 px-4 md:px-8">
-                <div className="flex min-w-0 items-center gap-2.5">
-                    <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
-                        hasError ? 'bg-amber-500/15 text-amber-300' : 'bg-emerald-500/15 text-emerald-300'
-                    }`}>
-                        <Radio size={13} aria-hidden="true" />
+            <div className="mx-auto flex min-h-12 max-w-[1600px] items-center justify-between gap-3 px-4 md:px-8">
+                <div className="flex min-w-0 items-center gap-3">
+                    <span className={`inline-flex h-6 shrink-0 items-center gap-1.5 rounded px-2 font-mono text-[10px] font-bold tracking-[0.14em] ${
+                        hasError
+                            ? 'bg-amber-500/15 text-amber-200 ring-1 ring-inset ring-amber-400/25'
+                            : 'bg-cyan-400/10 text-cyan-200 ring-1 ring-inset ring-cyan-400/25'
+                    }`} translate="no">
+                        <span className={`h-1.5 w-1.5 rounded-full ${hasError ? 'bg-amber-300' : 'bg-emerald-400'}`} aria-hidden="true" />
+                        LIVE
                     </span>
-                    <span className={`truncate text-xs font-medium sm:text-sm ${
-                        hasError ? 'text-amber-200' : 'text-emerald-200'
-                    }`}>
-                        {statusLabel}
-                    </span>
+                    {visibleCollaborators.length > 0 && (
+                        <div
+                            role="group"
+                            className="flex shrink-0 -space-x-1.5"
+                            aria-label={`현재 공동 작업자 ${state.liveCollaborators.length}명`}
+                        >
+                            {visibleCollaborators.map(collaborator => (
+                                <UserProfileAvatar
+                                    key={collaborator.userId}
+                                    avatarUrl={collaborator.avatarUrl}
+                                    className="h-6 w-6 border-2 border-slate-950 text-[9px]"
+                                    userName={collaborator.displayName}
+                                />
+                            ))}
+                            {hiddenCollaboratorCount > 0 && (
+                                <span className="relative flex h-6 w-6 items-center justify-center rounded-full border-2 border-slate-950 bg-slate-800 text-[9px] font-semibold text-slate-300">
+                                    +{hiddenCollaboratorCount}
+                                </span>
+                            )}
+                        </div>
+                    )}
+                    <div className="min-w-0">
+                        <span className={`block truncate text-xs font-semibold sm:text-sm ${
+                            hasError ? 'text-amber-200' : 'text-slate-100'
+                        }`}>
+                            {statusLabel}
+                        </span>
+                        {recentChange && !hasError && (
+                            <span className="hidden truncate text-[11px] text-slate-400 md:block">
+                                {recentChange.actor.displayName} · {LIVE_CHANGE_LABELS[recentChange.kind]} · {formatLiveChangeTime(recentChange.updatedAt)}
+                            </span>
+                        )}
+                    </div>
                     {state.liveSessionCode && (
                         <code
                             translate="no"
-                            className="hidden rounded bg-white/[0.06] px-2 py-1 font-mono text-xs tracking-[0.08em] text-slate-300 sm:inline"
+                            className="hidden rounded border border-slate-800 bg-white/[0.04] px-2 py-1 font-mono text-[10px] tracking-[0.08em] text-slate-400 xl:inline"
                         >
                             {state.liveSessionCode}
                         </code>
@@ -317,6 +369,8 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
         isGuideOpen: false,
         isLiveConnected: false,
         isLivePublishing: false,
+        liveCollaborators: [],
+        liveRecentChange: null,
         liveSyncError: '',
         userSheetHasError: false,
     });

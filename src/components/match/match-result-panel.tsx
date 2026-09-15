@@ -1,8 +1,10 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Loader2, RefreshCcw, Shuffle, StarOff } from 'lucide-react';
+import type { MatchLiveRecentChange } from '#domain/balance';
 import type { MatchResultData, Role, SwapSource } from '../../types';
 import type { UserSheetEntry } from '../../utils/user-sheet';
 import { DouMascot } from '../common/dou-mascot';
+import { MatchCollaborationActivity } from './match-collaboration-activity';
 import MatchResult from './result';
 
 interface MatchResultPanelProps {
@@ -11,6 +13,7 @@ interface MatchResultPanelProps {
     isBalancing: boolean;
     isReady: boolean;
     isResultStale: boolean;
+    liveRecentChange: MatchLiveRecentChange | null;
     onCancelSwap: () => void;
     onClearResult: () => void;
     onIgnorePreferencesChange: (ignore: boolean) => void;
@@ -34,6 +37,7 @@ export function MatchResultPanel({
     isBalancing,
     isReady,
     isResultStale,
+    liveRecentChange,
     onCancelSwap,
     onClearResult,
     onIgnorePreferencesChange,
@@ -50,7 +54,12 @@ export function MatchResultPanel({
     return (
         <section className="grid min-w-0 content-start gap-6" aria-labelledby="match-result-title">
             <div className="flex min-h-11 flex-wrap items-center justify-between gap-3">
-                <h2 id="match-result-title" className="text-lg font-semibold text-white">팀 배정</h2>
+                <div className="flex min-w-0 flex-wrap items-center gap-2.5">
+                    <h2 id="match-result-title" className="text-lg font-semibold text-white">팀 배정</h2>
+                    {result && liveRecentChange && (
+                        <MatchCollaborationActivity recentChange={liveRecentChange} />
+                    )}
+                </div>
                 <div className="flex flex-wrap justify-end gap-2">
                     <button
                         id="matching-preference-option"

@@ -25,7 +25,10 @@ export type {
 } from './balance.js';
 
 export type {
+    MatchLiveChangeKind,
+    MatchLiveCollaborator,
     MatchLiveParticipant,
+    MatchLiveRecentChange,
     MatchLiveSessionSnapshot,
 } from './match-live-share.js';
 

@@ -4,7 +4,10 @@ import {
     normalizeMatchLiveParticipants,
     normalizeMatchShareCode,
     recalculateMatchResult,
+    type MatchLiveChangeKind,
+    type MatchLiveCollaborator,
     type MatchLiveParticipant,
+    type MatchLiveRecentChange,
     type MatchLiveSessionSnapshot,
     type MatchResultData,
     type MatchSharePosition,
@@ -31,6 +34,65 @@ export interface LoadedMatchLiveSession {
 }
 
 const MATCH_LIVE_API = '/api/match-shares?mode=live';
+const MATCH_LIVE_CHANGE_KINDS = new Set<MatchLiveChangeKind>([
+    'ROSTER',
+    'TEAMS',
+    'ROSTER_AND_TEAMS',
+]);
+
+const normalizeCollaboratorIdentity = (
+    value: unknown,
+): Omit<MatchLiveCollaborator, 'lastSeenAt'> | null => {
+    if (!value || typeof value !== 'object') return null;
+    const source = value as Partial<MatchLiveCollaborator>;
+    const userId = typeof source.userId === 'string' ? source.userId.trim() : '';
+    const displayName = typeof source.displayName === 'string' ? source.displayName.trim() : '';
+    const avatarUrl = typeof source.avatarUrl === 'string' ? source.avatarUrl.trim() : '';
+    if (!userId || !displayName || userId.length > 100 || displayName.length > 80) return null;
+    return {
+        userId,
+        displayName,
+        ...(avatarUrl && avatarUrl.length <= 500 ? { avatarUrl } : {}),
+    };
+};
+
+const normalizeCollaborators = (value: unknown): MatchLiveCollaborator[] => {
+    if (value === undefined) return [];
+    if (!Array.isArray(value) || value.length > 12) return [];
+    return value.flatMap(raw => {
+        const identity = normalizeCollaboratorIdentity(raw);
+        const lastSeenAt = raw && typeof raw === 'object'
+            ? (raw as Partial<MatchLiveCollaborator>).lastSeenAt
+            : undefined;
+        return identity
+            && typeof lastSeenAt === 'number'
+            && Number.isSafeInteger(lastSeenAt)
+            && lastSeenAt >= 0
+            ? [{ ...identity, lastSeenAt }]
+            : [];
+    });
+};
+
+const normalizeRecentChange = (value: unknown): MatchLiveRecentChange | null => {
+    if (!value || typeof value !== 'object') return null;
+    const source = value as Partial<MatchLiveRecentChange>;
+    const actor = normalizeCollaboratorIdentity(source.actor);
+    if (
+        !actor
+        || typeof source.kind !== 'string'
+        || !MATCH_LIVE_CHANGE_KINDS.has(source.kind as MatchLiveChangeKind)
+        || typeof source.updatedAt !== 'number'
+        || !Number.isSafeInteger(source.updatedAt)
+        || source.updatedAt < 0
+    ) {
+        return null;
+    }
+    return {
+        actor,
+        kind: source.kind as MatchLiveChangeKind,
+        updatedAt: source.updatedAt,
+    };
+};
 
 /**
  * @description 유저 시트의 현재 BattleTag·역할 티어를 공동 작업 Player 모델로 변환한다.
@@ -71,6 +133,8 @@ export const normalizeMatchLiveSessionSnapshot = (
     const source = value as Partial<MatchLiveSessionSnapshot>;
     const code = typeof source.code === 'string' ? normalizeMatchShareCode(source.code) : '';
     const participants = normalizeMatchLiveParticipants(source.participants);
+    const collaborators = normalizeCollaborators(source.collaborators);
+    const recentChange = normalizeRecentChange(source.recentChange);
     if (
         code.length !== 10
         || !participants
@@ -85,8 +149,10 @@ export const normalizeMatchLiveSessionSnapshot = (
     }
     return {
         code,
+        collaborators,
         revision: source.revision,
         participants,
+        recentChange,
         updatedAt: source.updatedAt,
     };
 };

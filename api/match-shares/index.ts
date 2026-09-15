@@ -8,6 +8,7 @@ import {
     getMatchLiveSession,
     MATCH_LIVE_TTL_SECONDS,
     updateMatchLiveSession,
+    type MatchLiveActor,
 } from '../_lib/match-live-store.js';
 import {
     createMatchShare,
@@ -23,6 +24,12 @@ const queryValue = (value: string | string[] | undefined): string => (
 const normalizeCode = (value: unknown): string => normalizeMatchShareCode(
     typeof value === 'string' ? value : '',
 );
+
+const getMatchLiveActor = (user: NonNullable<ReturnType<typeof getSessionUser>>): MatchLiveActor => ({
+    userId: user.id,
+    displayName: (user.globalName ?? user.username).trim().slice(0, 80),
+    ...(user.avatarUrl ? { avatarUrl: user.avatarUrl } : {}),
+});
 
 /**
  * @description 관리자끼리 스냅샷 공유와 revision 기반 실시간 공동 편집을 하나의 함수에서 처리한다.
@@ -50,7 +57,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     return res.status(400).json({ error: '공동 작업 코드 10자리를 확인해 주세요.' });
                 }
 
-                const session = await getMatchLiveSession(redis, code);
+                const session = await getMatchLiveSession(redis, code, getMatchLiveActor(user));
                 return session
                     ? res.status(200).json({ code, ...session })
                     : res.status(404).json({ error: '공동 작업 코드를 찾지 못했거나 만료되었습니다.' });
@@ -61,7 +68,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     return res.status(403).json({ error: '공동 작업 요청을 확인할 수 없습니다.' });
                 }
                 const body = req.body as { participants?: unknown } | undefined;
-                const created = await createMatchLiveSession(redis, body?.participants);
+                const created = await createMatchLiveSession(
+                    redis,
+                    body?.participants,
+                    getMatchLiveActor(user),
+                );
                 return created
                     ? res.status(201).json({
                         code: created.code,
@@ -90,6 +101,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     code,
                     body?.revision,
                     body?.participants,
+                    getMatchLiveActor(user),
                 );
                 if (result.status === 'NOT_FOUND') {
                     return res.status(404).json({ error: '공동 작업 코드를 찾지 못했거나 만료되었습니다.' });

@@ -41,6 +41,14 @@ interface UseMatchLiveShareOptions {
 }
 
 const getParticipantSignature = (participants: unknown): string => JSON.stringify(participants);
+const getCollaborationSignature = (session: MatchLiveSessionSnapshot): string => JSON.stringify({
+    collaborators: session.collaborators.map(({ avatarUrl, displayName, userId }) => ({
+        avatarUrl,
+        displayName,
+        userId,
+    })),
+    recentChange: session.recentChange,
+});
 const getSessionStorageKey = (userId: string): string => (
     `${MATCH_LIVE_SESSION_KEY_PREFIX}${userId}`
 );
@@ -252,6 +260,15 @@ export const useMatchLiveShare = ({
                 const remote = await fetchMatchLiveSession(session.code);
                 if (disposed) return;
                 setSyncError('');
+                if (getCollaborationSignature(remote) !== getCollaborationSignature(session)) {
+                    setSession(current => current?.code === remote.code
+                        ? {
+                            ...current,
+                            collaborators: remote.collaborators,
+                            recentChange: remote.recentChange,
+                        }
+                        : current);
+                }
                 if (
                     remote.revision <= revisionRef.current
                     || localSignatureRef.current !== lastSyncedSignatureRef.current
