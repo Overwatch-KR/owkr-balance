@@ -85,7 +85,7 @@ export function ScrimBanTab({
                                 style={{ width: `${participationRate}%` }}
                             />
                         </div>
-                        <p className="mt-1 text-right text-xs text-slate-500">
+                        <p className="mt-1 text-right text-xs text-slate-400">
                             {Math.round(participationRate)}% 참여
                         </p>
                     </div>
@@ -94,13 +94,13 @@ export function ScrimBanTab({
                 {heroDemandData.length > 0 ? (
                     <div className="mt-5">
                         <h3 className="mb-1 text-sm font-semibold text-white">영웅별 밴 수요</h3>
-                        <p className="mb-4 text-xs text-slate-500">막대에 마우스를 올리면 정확한 득표 수를 확인할 수 있습니다.</p>
+                        <p className="mb-4 text-xs text-slate-400">막대에 마우스를 올리면 정확한 득표 수를 확인할 수 있습니다.</p>
                         <Suspense fallback={<ChartSkeleton />}>
                             <HeroDemandChart data={heroDemandData} />
                         </Suspense>
                     </div>
                 ) : (
-                    <div className="mt-5 rounded-xl border border-dashed border-slate-700 py-8 text-center text-sm text-slate-500">
+                    <div className="mt-5 rounded-xl border border-dashed border-slate-700 py-8 text-center text-sm text-slate-400">
                         아직 제출된 투표가 없습니다.
                     </div>
                 )}
@@ -170,7 +170,7 @@ export function ScrimBanTab({
                 ) : null}
 
                 {decision?.excludedHeroIds.length ? (
-                    <p className="mt-4 text-xs text-slate-500">
+                    <p className="mt-4 text-xs text-slate-400">
                         역할군 중복 제외: {decision.excludedHeroIds.map(heroId => heroById.get(heroId)?.name ?? heroId).join(', ')}
                     </p>
                 ) : null}
@@ -202,7 +202,7 @@ export function ScrimBanTab({
                         ))}
                     </div>
                 ) : (
-                    <p className="mt-4 text-sm text-slate-500">아직 기록된 사용 밴이 없습니다.</p>
+                    <p className="mt-4 text-sm text-slate-400">아직 기록된 사용 밴이 없습니다.</p>
                 )}
             </div>
         </section>
@@ -231,7 +231,7 @@ export function ScrimSatisfactionTab({
                 <h2 className="text-lg font-semibold text-white">만족도 결과</h2>
                 <div className="mt-4 grid grid-cols-2 gap-3">
                     <div className="rounded-2xl border border-slate-800 bg-slate-950/50 p-4">
-                        <p className="text-xs text-slate-500">총 응답</p>
+                        <p className="text-xs text-slate-400">총 응답</p>
                         <strong className="mt-1 block text-2xl text-white">
                             {scrim.satisfactionResponses.length}
                             <span className="ml-1 text-sm font-medium text-slate-400">건</span>
@@ -257,7 +257,7 @@ export function ScrimSatisfactionTab({
                         </Suspense>
                     </div>
                 ) : (
-                    <p className="mt-6 rounded-xl border border-dashed border-slate-700 py-8 text-center text-sm text-slate-500">
+                    <p className="mt-6 rounded-xl border border-dashed border-slate-700 py-8 text-center text-sm text-slate-400">
                         아직 제출된 만족도 응답이 없습니다.
                     </p>
                 )}

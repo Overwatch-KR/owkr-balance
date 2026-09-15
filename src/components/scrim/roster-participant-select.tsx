@@ -110,7 +110,7 @@ export function RosterParticipantSelect({
                 } disabled:cursor-not-allowed disabled:opacity-55`}
             >
                 <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
-                    selectedParticipant ? 'bg-cyan-400/10 text-cyan-200' : 'bg-slate-800 text-slate-500'
+                    selectedParticipant ? 'bg-cyan-400/10 text-cyan-200' : 'bg-slate-800 text-slate-400'
                 }`}>
                     <UserRound size={18} />
                 </span>
@@ -125,7 +125,7 @@ export function RosterParticipantSelect({
                                 : '로스터에서 내 이름 선택'}
                     </span>
                     {selectedParticipant?.discordName && selectedParticipant.discordName !== selectedParticipant.name ? (
-                        <span className="mt-0.5 block truncate text-xs text-slate-500">
+                        <span className="mt-0.5 block truncate text-xs text-slate-400">
                             {selectedParticipant.name}
                         </span>
                     ) : null}
@@ -133,7 +133,7 @@ export function RosterParticipantSelect({
                 <ChevronDown
                     size={18}
                     aria-hidden="true"
-                    className={`shrink-0 text-slate-500 transition-transform ${isOpen ? 'rotate-180 text-cyan-300' : ''}`}
+                    className={`shrink-0 text-slate-400 transition-transform ${isOpen ? 'rotate-180 text-cyan-300' : ''}`}
                 />
             </button>
 
@@ -183,7 +183,7 @@ export function RosterParticipantSelect({
                                                 {getParticipantLabel(participant)}
                                             </span>
                                             {participant.discordName && participant.discordName !== participant.name ? (
-                                                <span className="mt-0.5 block truncate text-xs text-slate-500">
+                                                <span className="mt-0.5 block truncate text-xs text-slate-400">
                                                     {participant.name}
                                                 </span>
                                             ) : null}

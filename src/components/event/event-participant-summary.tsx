@@ -4,7 +4,7 @@ import {
     EVENT_PARTICIPATION_START_DATE,
 } from '../../../domains/scrim/shared/rules';
 import type { ScrimRosterParticipant } from '../../../domains/scrim/shared/public';
-import { Skeleton } from '../common/skeleton';
+import { DataLoadingState } from '../common/data-loading-state';
 import { EventParticipantIdentity } from './event-participant-identity';
 
 interface EventParticipantSummaryProps {
@@ -47,7 +47,9 @@ export function EventParticipantSummary({
                     </p>
                 </div>
                 {isLoading ? (
-                    <Skeleton className="h-8 w-20 rounded-full" />
+                    <span className="rounded-full border border-slate-800 px-3 py-1.5 text-sm text-slate-400">
+                        확인 중
+                    </span>
                 ) : (
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-sm font-semibold text-cyan-100">
                         <Users size={15} aria-hidden="true" />
@@ -57,11 +59,7 @@ export function EventParticipantSummary({
             </div>
 
             {isLoading ? (
-                <div className="mt-5 grid gap-2" role="status" aria-label="이벤트 참여 후보를 불러오는 중">
-                    {[0, 1, 2, 3].map(index => (
-                        <Skeleton key={index} className="h-12 rounded-xl" />
-                    ))}
-                </div>
+                <DataLoadingState className="mt-5" label="이벤트 참여자를 불러오는 중…" />
             ) : candidates.length > 0 ? (
                 <ul
                     className="mt-5 grid gap-2"
@@ -102,7 +100,7 @@ export function EventParticipantSummary({
                     })}
                 </ul>
             ) : (
-                <p className="mt-5 rounded-xl bg-slate-900 px-4 py-5 text-center text-sm text-slate-500">
+                <p className="mt-5 rounded-xl bg-slate-900 px-4 py-5 text-center text-sm text-slate-400">
                     {isEditing
                         ? '등록 후보가 없습니다. 유저 시트에서 참여자를 추가해 주세요.'
                         : '저장된 이벤트 참여자가 없습니다.'}

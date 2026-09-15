@@ -67,7 +67,7 @@ export function ParticipantUserSheetPicker({
                             유저 시트에서 참가자 추가
                         </h3>
                     </div>
-                    <p className="mt-1 text-sm text-slate-500">
+                    <p className="mt-1 text-sm text-slate-400">
                         저장된 Discord ID와 최신 BattleTag·역할 티어를 그대로 참가 명단에 사용합니다.
                     </p>
                 </div>
@@ -87,7 +87,7 @@ export function ParticipantUserSheetPicker({
             <div className="relative mt-5">
                 <Search
                     size={16}
-                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
                     aria-hidden="true"
                 />
                 <label htmlFor="participant-user-sheet-search" className="sr-only">유저 시트 검색</label>
@@ -126,7 +126,7 @@ export function ParticipantUserSheetPicker({
                                         <strong className="truncate text-sm font-semibold text-white">
                                             {entry.discordName || entry.battleTag}
                                         </strong>
-                                        <span className="truncate font-mono text-xs text-slate-500">{entry.battleTag}</span>
+                                        <span className="truncate font-mono text-xs text-slate-400">{entry.battleTag}</span>
                                     </div>
                                     <div className="mt-1.5 flex flex-wrap gap-1.5 text-[11px] text-slate-400">
                                         <span className="rounded-md bg-slate-900 px-2 py-1">탱 {entry.tank || '-'}</span>
@@ -148,12 +148,12 @@ export function ParticipantUserSheetPicker({
                     })}
                 </ul>
             ) : normalizedQuery ? (
-                <p className="mt-5 text-sm text-slate-500">검색 결과가 없습니다.</p>
+                <p className="mt-5 text-sm text-slate-400">검색 결과가 없습니다.</p>
             ) : (
                 <div className="mt-5 rounded-xl border border-dashed border-slate-800 px-4 py-8 text-center">
-                    <Search size={22} className="mx-auto text-slate-600" aria-hidden="true" />
+                    <Search size={22} className="mx-auto text-slate-500" aria-hidden="true" />
                     <p className="mt-2 text-sm text-slate-400">검색어를 입력해 참가자를 찾으세요.</p>
-                    <p className="mt-1 text-xs text-slate-500">유저 시트에 {entries.length}명 저장됨</p>
+                    <p className="mt-1 text-xs text-slate-400">유저 시트에 {entries.length}명 저장됨</p>
                 </div>
             )}
         </section>

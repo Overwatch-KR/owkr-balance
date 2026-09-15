@@ -108,7 +108,7 @@ export function DiscordSheetImport({ onImport }: DiscordSheetImportProps) {
                                 </span>
                             )}
                         </span>
-                        <span className="mt-0.5 block truncate text-xs text-slate-500">
+                        <span className="mt-0.5 block truncate text-xs text-slate-400">
                             {result
                                 ? `신규 ${result.addedCount}명 · 업데이트 ${result.updatedCount}명`
                                 : '채팅 명단을 붙여넣어 여러 유저를 한 번에 추가하거나 업데이트하세요.'}
@@ -172,7 +172,7 @@ export function DiscordSheetImport({ onImport }: DiscordSheetImportProps) {
                             {index < IMPORT_STEPS.length - 1 && (
                                 <ArrowRight
                                     size={12}
-                                    className="ml-auto hidden shrink-0 text-slate-600 sm:block"
+                                    className="ml-auto hidden shrink-0 text-slate-500 sm:block"
                                     aria-hidden="true"
                                 />
                             )}
@@ -188,7 +188,7 @@ export function DiscordSheetImport({ onImport }: DiscordSheetImportProps) {
                         >
                             명단 텍스트
                         </label>
-                        <span className="text-[11px] tabular-nums text-slate-500" aria-live="polite">
+                        <span className="text-[11px] tabular-nums text-slate-400" aria-live="polite">
                             {lineCount > 0 ? `${lineCount}줄 감지` : '붙여넣기 대기'}
                         </span>
                     </div>
@@ -204,20 +204,20 @@ export function DiscordSheetImport({ onImport }: DiscordSheetImportProps) {
                                 setResult(null);
                             }}
                             onKeyDown={handleTextareaKeyDown}
-                            className="custom-scrollbar min-h-32 w-full resize-y bg-transparent px-4 py-3 font-mono text-xs leading-relaxed text-slate-100 outline-none placeholder:text-slate-500"
+                            className="custom-scrollbar min-h-32 w-full resize-y bg-transparent px-4 py-3 font-mono text-xs leading-relaxed text-slate-100 outline-none placeholder:text-slate-400"
                             placeholder={'상민역할 아이콘, 다이아 — 오늘 오후 3:02\nPlayer#1234 다3!/플2?/마5\n재봉역할 아이콘, 플래티넘 — 오늘 오후 3:03\nOther#5678 플1/다4/골2\n…'}
                             spellCheck={false}
                             aria-describedby="discord-sheet-import-help discord-sheet-import-status"
                         />
                         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-800/80 px-3 py-2">
-                            <p id="discord-sheet-import-help" className="text-[10px] leading-relaxed text-slate-500">
+                            <p id="discord-sheet-import-help" className="text-[10px] leading-relaxed text-slate-400">
                                 이름·시간 줄까지 그대로 붙여넣으세요. 중복 배틀태그는 기존 특이사항을 유지합니다.
                             </p>
                             <button
                                 type="button"
                                 onClick={clearText}
                                 disabled={!text && !result && !error}
-                                className="inline-flex min-h-8 touch-manipulation items-center gap-1.5 rounded-md px-2 text-[11px] font-medium text-slate-500 transition-colors hover:bg-white/5 hover:text-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/70 disabled:cursor-default disabled:opacity-30"
+                                className="inline-flex min-h-8 touch-manipulation items-center gap-1.5 rounded-md px-2 text-[11px] font-medium text-slate-400 transition-colors hover:bg-white/5 hover:text-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/70 disabled:cursor-default disabled:opacity-30"
                             >
                                 <Trash2 size={12} aria-hidden="true" />
                                 입력 지우기
@@ -267,7 +267,7 @@ export function DiscordSheetImport({ onImport }: DiscordSheetImportProps) {
                                 </div>
                             </div>
                             <p className="mt-2 flex items-start gap-1.5 text-[11px] leading-relaxed text-slate-400">
-                                <Info size={12} className="mt-0.5 shrink-0 text-slate-500" aria-hidden="true" />
+                                <Info size={12} className="mt-0.5 shrink-0 text-slate-400" aria-hidden="true" />
                                 아직 저장 전입니다. 아래 표를 확인한 뒤 상단의 ‘시트 저장’을 눌러 주세요.
                             </p>
                         </div>
@@ -275,7 +275,7 @@ export function DiscordSheetImport({ onImport }: DiscordSheetImportProps) {
                 </div>
 
                 <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="inline-flex items-start gap-1.5 text-[11px] leading-relaxed text-slate-500">
+                    <p className="inline-flex items-start gap-1.5 text-[11px] leading-relaxed text-slate-400">
                         <Info size={12} className="mt-0.5 shrink-0" aria-hidden="true" />
                         선호·비선호 기호(!, ?, ★)는 반영할 때 자동으로 제거합니다.
                     </p>

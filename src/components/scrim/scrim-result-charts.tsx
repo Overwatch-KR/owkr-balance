@@ -140,7 +140,7 @@ export function SatisfactionCharts({
         <div className="grid gap-4 lg:grid-cols-2">
             <section className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
                 <h3 className="text-sm font-semibold text-white">별점 분포</h3>
-                <p className="mt-1 text-xs text-slate-500">1점부터 5점까지 익명 응답 수입니다.</p>
+                <p className="mt-1 text-xs text-slate-400">1점부터 5점까지 익명 응답 수입니다.</p>
                 <div className="mt-4 h-64" role="img" aria-label="만족도 별점별 응답 수 그래프">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart
@@ -180,7 +180,7 @@ export function SatisfactionCharts({
 
             <section className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
                 <h3 className="text-sm font-semibold text-white">아쉬운 점</h3>
-                <p className="mt-1 text-xs text-slate-500">3점 미만 응답에서 선택된 항목입니다.</p>
+                <p className="mt-1 text-xs text-slate-400">3점 미만 응답에서 선택된 항목입니다.</p>
                 {disappointmentData.length > 0 ? (
                     <div className="mt-4 h-64" role="img" aria-label="아쉬운 점 항목별 선택 횟수 그래프">
                         <ResponsiveContainer width="100%" height="100%">
@@ -222,7 +222,7 @@ export function SatisfactionCharts({
                         </ResponsiveContainer>
                     </div>
                 ) : (
-                    <div className="mt-4 flex h-64 items-center justify-center rounded-xl border border-dashed border-slate-800 px-5 text-center text-sm text-slate-500">
+                    <div className="mt-4 flex h-64 items-center justify-center rounded-xl border border-dashed border-slate-800 px-5 text-center text-sm text-slate-400">
                         선택된 아쉬운 점이 없습니다.
                     </div>
                 )}

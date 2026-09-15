@@ -68,7 +68,7 @@ export function UserSheetBrowser({
             <aside className={`${showMobileDetail ? 'hidden' : 'flex'} w-full shrink-0 flex-col border-r border-slate-800 sm:flex sm:w-80 lg:w-96`}>
                 <div id="user-sheet-browse-tools" className="grid gap-2 border-b border-slate-800 p-3">
                     <label id="user-sheet-search" className="relative">
-                        <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" aria-hidden="true" />
+                        <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" aria-hidden="true" />
                         <span className="sr-only">유저 검색</span>
                         <input
                             name="user-sheet-search"
@@ -84,7 +84,7 @@ export function UserSheetBrowser({
                             <button
                                 type="button"
                                 onClick={() => onQueryChange('')}
-                                className="btn-ghost absolute right-1.5 top-1/2 min-h-7 h-7 w-7 -translate-y-1/2 rounded-md p-0 text-slate-600 focus-visible:ring-cyan-400/70"
+                                className="btn-ghost absolute right-1.5 top-1/2 min-h-7 h-7 w-7 -translate-y-1/2 rounded-md p-0 text-slate-500 focus-visible:ring-cyan-400/70"
                                 aria-label="검색어 지우기"
                             >
                                 <X size={13} aria-hidden="true" />
@@ -92,7 +92,7 @@ export function UserSheetBrowser({
                         )}
                     </label>
                     <div id="user-sheet-actions" className="flex items-center justify-between gap-2">
-                        <p className="px-1 text-xs text-slate-500">
+                        <p className="px-1 text-xs text-slate-400">
                             {query.trim() ? `${filteredEntries.length}명 검색됨` : `총 ${entries.length}명 저장됨`}
                         </p>
                         <button
@@ -107,7 +107,7 @@ export function UserSheetBrowser({
                 </div>
                 <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto">
                     {filteredEntries.length === 0 ? (
-                        <div className="flex flex-col items-center px-3 py-8 text-center text-xs leading-relaxed text-slate-500">
+                        <div className="flex flex-col items-center px-3 py-8 text-center text-xs leading-relaxed text-slate-400">
                             <DouMascot variant={entries.length === 0 ? 'empty' : 'search'} size={64} className="mb-3 opacity-80" decorative />
                             <p>{entries.length === 0 ? '저장된 유저가 없습니다. 전체 편집에서 먼저 추가해 주세요.' : '검색 결과가 없습니다.'}</p>
                         </div>
@@ -134,13 +134,13 @@ export function UserSheetBrowser({
                                         <span className="shrink-0 rounded bg-cyan-500/15 px-1.5 py-0.5 text-[10px] text-cyan-300">참가 중</span>
                                     )}
                                 </span>
-                                <span className="mt-1 block truncate font-mono text-[11px] text-slate-500">{entry.battleTag}</span>
+                                <span className="mt-1 block truncate font-mono text-[11px] text-slate-400">{entry.battleTag}</span>
                                 <span className={`mt-0.5 block truncate font-mono text-[10px] ${
                                     entry.discordUserId ? 'text-cyan-300/55' : 'text-rose-300/75'
                                 }`}>
                                     Discord ID · {entry.discordUserId || '입력 필요'}
                                 </span>
-                                <span className="mt-2 flex min-w-0 items-center gap-1.5 text-[10px] text-slate-500">
+                                <span className="mt-2 flex min-w-0 items-center gap-1.5 text-[10px] text-slate-400">
                                     <span className="rounded bg-slate-800/80 px-1.5 py-0.5">탱 {entry.tank || '-'}</span>
                                     <span className="rounded bg-slate-800/80 px-1.5 py-0.5">딜 {entry.dps || '-'}</span>
                                     <span className="rounded bg-slate-800/80 px-1.5 py-0.5">힐 {entry.support || '-'}</span>
@@ -180,7 +180,7 @@ export function UserSheetBrowser({
                     <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
                         <DouMascot variant="search" size={96} className="mb-3 opacity-80" decorative />
                         <p className="text-sm font-medium text-slate-400">조회할 유저를 선택해 주세요</p>
-                        <p className="mt-1 text-xs text-slate-500">유저를 선택하면 상세 정보에서 바로 수정할 수 있습니다.</p>
+                        <p className="mt-1 text-xs text-slate-400">유저를 선택하면 상세 정보에서 바로 수정할 수 있습니다.</p>
                     </div>
                 )}
             </div>

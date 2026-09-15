@@ -161,7 +161,7 @@ export function ScrimDateTimePicker({
                 >
                     <CalendarDays size={18} className="shrink-0 text-cyan-300" aria-hidden="true" />
                     <span className="flex-1 text-sm font-medium text-white">{formatDateLabel(date)}</span>
-                    <ChevronRight size={16} className={`text-slate-500 transition-transform ${openPanel === 'date' ? 'rotate-90' : ''}`} />
+                    <ChevronRight size={16} className={`text-slate-400 transition-transform ${openPanel === 'date' ? 'rotate-90' : ''}`} />
                 </button>
 
                 {openPanel === 'date' && (
@@ -179,7 +179,7 @@ export function ScrimDateTimePicker({
                                 <ChevronRight size={18} />
                             </button>
                         </div>
-                        <div className="mt-2 grid grid-cols-7 text-center text-xs font-medium text-slate-500">
+                        <div className="mt-2 grid grid-cols-7 text-center text-xs font-medium text-slate-400">
                             {WEEKDAYS.map((weekday, index) => (
                                 <span key={weekday} className={index === 0 ? 'text-rose-400/80' : index === 6 ? 'text-blue-400/80' : ''}>{weekday}</span>
                             ))}
@@ -202,7 +202,7 @@ export function ScrimDateTimePicker({
                                                 ? 'bg-cyan-400 font-bold text-slate-950 shadow-lg shadow-cyan-400/20'
                                                 : day.isCurrentMonth
                                                     ? 'text-slate-200 hover:bg-white/8'
-                                                    : 'text-slate-600 hover:bg-white/5'
+                                                    : 'text-slate-500 hover:bg-white/5'
                                         }`}
                                     >
                                         {day.day}
@@ -242,7 +242,7 @@ export function ScrimDateTimePicker({
                 >
                     <Clock3 size={18} className="shrink-0 text-cyan-300" aria-hidden="true" />
                     <span className="flex-1 text-sm font-medium text-white">{formatTimeLabel(time)}</span>
-                    <ChevronRight size={16} className={`text-slate-500 transition-transform ${openPanel === 'time' ? 'rotate-90' : ''}`} />
+                    <ChevronRight size={16} className={`text-slate-400 transition-transform ${openPanel === 'time' ? 'rotate-90' : ''}`} />
                 </button>
 
                 {openPanel === 'time' && (

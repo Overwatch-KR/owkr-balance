@@ -114,7 +114,7 @@ const PlayerList = ({
                         className={`inline-flex h-8 w-8 touch-manipulation items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${
                             notePlayerId === player.id
                                 ? 'text-cyan-300 hover:bg-cyan-500/10'
-                                : 'text-slate-600 hover:bg-cyan-500/10 hover:text-cyan-300'
+                                : 'text-slate-500 hover:bg-cyan-500/10 hover:text-cyan-300'
                         }`}
                         aria-label={`${player.discordName ?? player.name} 개인 운영 메모`}
                         aria-expanded={notePlayerId === player.id}
@@ -125,7 +125,7 @@ const PlayerList = ({
                     <button
                         type="button"
                         onClick={() => onEditPlayer(player)}
-                        className="btn-ghost h-8 min-h-8 w-8 rounded-md p-0 text-slate-600 hover:bg-cyan-500/10 hover:text-cyan-300 focus-visible:ring-cyan-400/70"
+                        className="btn-ghost h-8 min-h-8 w-8 rounded-md p-0 text-slate-500 hover:bg-cyan-500/10 hover:text-cyan-300 focus-visible:ring-cyan-400/70"
                         aria-label={`${player.discordName ?? player.name} 수정`}
                         title={`${player.discordName ?? player.name} 수정`}
                     >
@@ -137,7 +137,7 @@ const PlayerList = ({
                             setNotePlayerId(current => current === player.id ? null : current);
                             onRemovePlayer(player.id);
                         }}
-                        className="btn-ghost h-8 min-h-8 w-8 rounded-md p-0 text-slate-600 hover:bg-rose-500/10 hover:text-rose-400 focus-visible:ring-rose-400/70"
+                        className="btn-ghost h-8 min-h-8 w-8 rounded-md p-0 text-slate-500 hover:bg-rose-500/10 hover:text-rose-400 focus-visible:ring-rose-400/70"
                         aria-label={`${player.discordName ?? player.name} 삭제`}
                         title={`${player.discordName ?? player.name} 삭제`}
                     >
@@ -166,14 +166,14 @@ const PlayerList = ({
                     <h2 id="player-management-title" className="truncate text-sm font-semibold text-white">
                         현재 명단
                     </h2>
-                    <span className="shrink-0 text-xs tabular-nums text-slate-500">총 {totalCount}명</span>
+                    <span className="shrink-0 text-xs tabular-nums text-slate-400">총 {totalCount}명</span>
                 </div>
 
                 {totalCount > 0 && (
                     <button
                         type="button"
                         onClick={onClearAll}
-                        className="inline-flex min-h-8 shrink-0 touch-manipulation items-center gap-1 rounded-md px-2 text-xs text-slate-500 transition-colors hover:bg-rose-500/10 hover:text-rose-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/70"
+                        className="inline-flex min-h-8 shrink-0 touch-manipulation items-center gap-1 rounded-md px-2 text-xs text-slate-400 transition-colors hover:bg-rose-500/10 hover:text-rose-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/70"
                     >
                         <Trash2 size={12} aria-hidden="true" />
                         전체 삭제
@@ -263,8 +263,8 @@ const PlayerList = ({
                             {participantCount === 0 && (
                                 <li className="flex animate-fade-in flex-col items-center justify-center py-10 text-center">
                                     <DouMascot variant="empty" size={64} className="mb-3 opacity-80" decorative />
-                                    <p className="text-sm text-slate-500">아직 추가된 플레이어가 없습니다</p>
-                                    <p className="mt-1 text-xs text-slate-500">채팅을 붙여넣거나 직접 입력해 주세요</p>
+                                    <p className="text-sm text-slate-400">아직 추가된 플레이어가 없습니다</p>
+                                    <p className="mt-1 text-xs text-slate-400">채팅을 붙여넣거나 직접 입력해 주세요</p>
                                 </li>
                             )}
                         </ul>
@@ -277,14 +277,14 @@ const PlayerList = ({
                         tabIndex={0}
                         className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
                     >
-                        <p className="border-b border-slate-800/70 px-3 py-2 text-xs text-slate-500">참가자를 삭제하면 대기열의 첫 번째 플레이어가 자동으로 참가합니다</p>
+                        <p className="border-b border-slate-800/70 px-3 py-2 text-xs text-slate-400">참가자를 삭제하면 대기열의 첫 번째 플레이어가 자동으로 참가합니다</p>
                         <ul aria-label="대기열 목록">
                             {waitlist.map((player) => renderPlayerItem(player, true))}
 
                             {waitlistCount === 0 && (
                                 <li className="flex animate-fade-in flex-col items-center justify-center py-10 text-center">
                                     <DouMascot variant="empty" size={64} className="mb-3 opacity-80" decorative />
-                                    <p className="text-sm text-slate-500">대기 중인 참가자가 없습니다</p>
+                                    <p className="text-sm text-slate-400">대기 중인 참가자가 없습니다</p>
                                 </li>
                             )}
                         </ul>

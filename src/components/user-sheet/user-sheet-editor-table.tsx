@@ -82,13 +82,13 @@ export function UserSheetEditorTable({
                 </caption>
                 <thead className="sticky top-0 z-20 bg-slate-900">
                     <tr>
-                        <th className="sticky left-0 z-30 w-12 border-b border-r border-slate-700 bg-slate-900 px-2 py-2.5 text-center font-medium text-slate-500">#</th>
+                        <th className="sticky left-0 z-30 w-12 border-b border-r border-slate-700 bg-slate-900 px-2 py-2.5 text-center font-medium text-slate-400">#</th>
                         {COLUMNS.map(column => (
                             <th key={column.field} className={`${column.width} border-b border-r border-slate-700 px-2.5 py-2.5 font-medium text-slate-400`}>
                                 {column.label}
                             </th>
                         ))}
-                        <th className="sticky right-0 z-30 w-64 min-w-64 whitespace-nowrap border-b border-slate-700 bg-slate-900 px-3 py-2.5 font-medium text-slate-500">
+                        <th className="sticky right-0 z-30 w-64 min-w-64 whitespace-nowrap border-b border-slate-700 bg-slate-900 px-3 py-2.5 font-medium text-slate-400">
                             저장 상태
                         </th>
                     </tr>
@@ -96,7 +96,7 @@ export function UserSheetEditorTable({
                 <tbody>
                     {rows.length === 0 && (
                         <tr>
-                            <td colSpan={COLUMNS.length + 2} className="px-4 py-12 text-center text-sm text-slate-500">
+                            <td colSpan={COLUMNS.length + 2} className="px-4 py-12 text-center text-sm text-slate-400">
                                 {emptyMessage}
                             </td>
                         </tr>
@@ -115,7 +115,7 @@ export function UserSheetEditorTable({
                                     error ? 'bg-rose-500/[0.045]' : ''
                                 }`}
                             >
-                                <td className="sticky left-0 z-10 border-b border-r border-slate-800 bg-slate-900/95 px-2 py-1 text-center tabular-nums text-slate-500 group-hover:text-slate-300">
+                                <td className="sticky left-0 z-10 border-b border-r border-slate-800 bg-slate-900/95 px-2 py-1 text-center tabular-nums text-slate-400 group-hover:text-slate-300">
                                     {rowIndex + 1}
                                 </td>
                                 {COLUMNS.map((column, columnIndex) => (
@@ -193,7 +193,7 @@ export function UserSheetEditorTable({
                                         <button
                                             type="button"
                                             onClick={() => onRemoveRow(row.id)}
-                                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-rose-500/10 hover:text-rose-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/70"
+                                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-rose-500/10 hover:text-rose-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/70"
                                             aria-label={`${rowIndex + 1}행 삭제`}
                                             title={`${rowIndex + 1}행 삭제`}
                                         >

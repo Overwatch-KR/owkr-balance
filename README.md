@@ -314,6 +314,7 @@ domains/
 └── scrim/                # 내전 클라이언트·서버·공유 계약과 규칙
 src/
 ├── application/          # 참가자 편집·가져오기 유스케이스
+├── query-client.ts       # 관리자 서버 상태 캐시와 재검증 기본값
 ├── components/
 │   ├── event/            # 이벤트 참여자 등록·조회·편집
 │   ├── layout/           # 전역 내비게이션·상태 바·페이지 헤더
@@ -327,6 +328,9 @@ src/
 │   └── storage/          # 브라우저 세션·UI 환경설정 저장
 └── workers/              # 팀 밸런싱 Web Worker 진입점
 ```
+
+내전·유저 시트·이벤트 참여자처럼 다시 방문하는 관리자 서버 데이터는 TanStack Query가
+사용자별로 캐시합니다. API 요청과 서비스별 오류 해석은 fetch 기반 `requestJson` 경계를 유지합니다.
 
 세부 책임과 새 파일 배치 기준은 [프로젝트 구조 문서](docs/project-structure.md)를 참고하세요.
 

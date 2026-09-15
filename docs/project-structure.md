@@ -35,6 +35,7 @@ docs/                   운영·구조·도입 기록
 src/
 ├── App.tsx             현재 인증·라우팅·화면 조립을 담당하는 composition root
 ├── main.tsx            공개 경로와 인증 애플리케이션 진입점
+├── query-client.ts     관리자 서버 상태 캐시와 재검증 기본값
 ├── application/
 │   └── roster/         참가자 입력·편집·명단 가져오기 유스케이스
 ├── components/
@@ -62,6 +63,7 @@ src/
 - `components/`는 렌더링, 사용자 입력, 접근성, 페이지 레이아웃을 담당합니다.
 - `application/`은 여러 상태와 도메인 로직을 조합하는 사용자 작업 흐름을 담당합니다. React hook 형태여도 UI 컴포넌트를 import하지 않습니다.
 - `hooks/`는 한 화면이나 브라우저 상태에 가까운 훅을 유지합니다. 기존 경로를 깨지 않기 위한 얇은 re-export도 둘 수 있습니다.
+- 원격 서버 상태는 TanStack Query에서 사용자별 query key로 캐시하고, 컴포넌트의 `useState`로 서버 응답 캐시를 다시 만들지 않습니다.
 - `utils/`는 순수 변환 또는 브라우저/API 어댑터를 담당합니다. 새 기능의 긴 오케스트레이션을 `utils`에 추가하지 않습니다.
 - `domains/`는 React, 브라우저, Vercel 요청 객체에 의존하지 않는 핵심 모델·규칙·계약을 유지합니다.
 
@@ -126,14 +128,13 @@ import { useRosterManagement } from '@application/roster/use-roster-management';
 | `/participate/:token` | 로그인 없는 공개 투표·설문 |
 | `/discord-login-policy` | Discord 로그인 정보 이용 안내 |
 
-관리자 페이지는 `AppNavigationShell` 안에서 History API로 이동하며, 새로고침해도 같은 경로를 복원합니다. 유저 시트를 다시 모달 흐름으로 합치지 않습니다.
+관리자 페이지는 `AppNavigationShell` 안의 한 콘텐츠 레이아웃에서 History API로 즉시 이동하며, 새로고침해도 같은 경로를 복원합니다. 유저 시트를 다시 모달 흐름으로 합치지 않습니다.
 
 ## 페이지 UI 규칙
 
 관리자 전용 전체 페이지의 상단은 `components/layout/page-header.tsx`를 사용합니다.
 
-- 페이지 이동 경로는 breadcrumb로 표현합니다.
-- 이전 페이지로 돌아가는 동작도 breadcrumb 항목에 연결합니다.
+- 고정 사이드바와 모바일 내비게이션이 현재 위치를 표시하므로 관리자 페이지에 breadcrumb를 중복 표시하지 않습니다.
 - 별도의 `뒤로가기` 버튼은 모달, 단계형 입력, 임시 상세 화면처럼 실제 브라우저/작업 단계의 역방향 이동에만 사용합니다.
 - 제목, 설명, 메타 정보, 보조 액션의 위치는 `PageHeader` 슬롯을 기준으로 맞춥니다.
 - 관리자 화면은 조밀한 `OWKR Match Control` 운영 콘솔을 기준으로 하며, 중첩 카드보다 구분선과 표면 깊이를 사용합니다.

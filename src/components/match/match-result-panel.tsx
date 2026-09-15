@@ -112,12 +112,12 @@ export function MatchResultPanel({
                         {isBalancing ? (
                             <div className="flex flex-col items-center gap-4">
                                 <DouMascot variant="loading" size={128} className="animate-pulse" decorative />
-                                <p className="animate-pulse text-slate-500">최적의 조합을 계산 중…</p>
+                                <p className="animate-pulse text-slate-400">최적의 조합을 계산 중…</p>
                             </div>
                         ) : (
                             <div className="flex flex-col items-center gap-3">
                                 <DouMascot variant="empty" size={128} decorative />
-                                <p className="text-center text-slate-500">
+                                <p className="text-center text-slate-400">
                                     {isReady
                                         ? '“팀 자동 배정” 버튼을 눌러주세요'
                                         : `플레이어 ${10 - participantCount}명을 더 추가하면 팀을 짤 수 있습니다`}

@@ -307,7 +307,7 @@ const PlayerForm = ({
                                     isChecking={isPasteValidationPending}
                                     onImport={handlePaste}
                                 />
-                                <p className="text-center text-xs text-slate-500">
+                                <p className="text-center text-xs text-slate-400">
                                     <span className="font-semibold text-amber-400">!</span>는 선호,
                                     {' '}<span className="font-semibold text-rose-400">?</span>는 비선호 포지션입니다
                                 </p>
@@ -390,7 +390,7 @@ const PlayerForm = ({
                                     <TierSelect prefix="s" label="힐러" prefKey="sPref" avoidKey="sAvoid" inputs={inputs} setInputs={setInputs} />
                                 </div>
 
-                                <p className="text-center text-xs text-slate-500">
+                                <p className="text-center text-xs text-slate-400">
                                     정식 티어는 최소 2개 포지션이 필요하며, 나머지는 미배치로 선택할 수 있습니다
                                 </p>
 
@@ -463,7 +463,7 @@ const PlayerForm = ({
                                                 ) : (
                                                     <span className="min-w-0 flex-1 break-words text-sm leading-relaxed text-slate-300">
                                                         <span className="block">{name}</span>
-                                                        <span className="mt-1 block text-xs text-slate-500">
+                                                        <span className="mt-1 block text-xs text-slate-400">
                                                             원문에서 배틀태그와 등급 형식을 확인해 주세요.
                                                         </span>
                                                     </span>
@@ -471,7 +471,7 @@ const PlayerForm = ({
                                                 <button
                                                     type="button"
                                                     onClick={() => handleRemoveFailed(name)}
-                                                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-amber-400/10 hover:text-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/70"
+                                                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-amber-400/10 hover:text-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/70"
                                                     aria-label={`${name} 실패 항목 삭제`}
                                                 >
                                                     <X size={14} aria-hidden="true" />

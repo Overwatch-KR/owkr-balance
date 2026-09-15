@@ -73,7 +73,7 @@ const RankBadge = ({ role, rank, isAssigned = false }: RankBadgeProps) => {
         ? 'font-semibold text-amber-400'
         : rank.isAvoided
             ? 'text-rose-400'
-            : 'text-slate-500';
+            : 'text-slate-400';
     const assignedStyle = isAssigned
         ? isUnranked ? UNRANKED_ASSIGNED_STYLE : ASSIGNED_STYLES[role]
         : null;

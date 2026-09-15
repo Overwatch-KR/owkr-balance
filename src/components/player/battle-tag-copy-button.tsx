@@ -51,7 +51,7 @@ export const BattleTagCopyButton = ({ battleTag, className = '' }: BattleTagCopy
                     ? 'bg-emerald-500/15 text-emerald-400'
                     : status === 'error'
                         ? 'bg-rose-500/15 text-rose-400'
-                        : 'text-slate-500 hover:bg-slate-700/60 hover:text-cyan-300'
+                        : 'text-slate-400 hover:bg-slate-700/60 hover:text-cyan-300'
             } ${className}`}
             aria-label={label}
             title={label}

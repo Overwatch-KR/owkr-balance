@@ -81,7 +81,7 @@ const TierSelect = ({ prefix, label, prefKey, avoidKey, inputs, setInputs }: Tie
                         className={`flex min-h-8 touch-manipulation items-center gap-1 rounded-md border px-2 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/70 ${
                             inputs[prefKey]
                                 ? 'border-amber-500/30 bg-amber-500/20 text-amber-400'
-                                : 'border-slate-700 bg-slate-800 text-slate-500 hover:border-slate-600'
+                                : 'border-slate-700 bg-slate-800 text-slate-400 hover:border-slate-600'
                         }`}
                     >
                         <Star size={10} fill={inputs[prefKey] ? "currentColor" : "none"} aria-hidden="true" />
@@ -95,7 +95,7 @@ const TierSelect = ({ prefix, label, prefKey, avoidKey, inputs, setInputs }: Tie
                         className={`flex min-h-8 touch-manipulation items-center gap-1 rounded-md border px-2 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/70 ${
                             inputs[avoidKey]
                                 ? 'border-rose-500/30 bg-rose-500/20 text-rose-400'
-                                : 'border-slate-700 bg-slate-800 text-slate-500 hover:border-slate-600'
+                                : 'border-slate-700 bg-slate-800 text-slate-400 hover:border-slate-600'
                         }`}
                     >
                         <Ban size={10} aria-hidden="true" />
@@ -153,7 +153,7 @@ const TierSelect = ({ prefix, label, prefKey, avoidKey, inputs, setInputs }: Tie
                                 <option key={tier} value={tier}>{TIER_LABEL_MAP[tier]}</option>
                             ))}
                         </select>
-                        <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" aria-hidden="true" />
+                        <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true" />
                     </div>
                     {isUnranked ? (
                         <div className="w-20 shrink-0" aria-hidden="true" />
@@ -168,7 +168,7 @@ const TierSelect = ({ prefix, label, prefKey, avoidKey, inputs, setInputs }: Tie
                             >
                                 {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n}</option>)}
                             </select>
-                            <ChevronDown size={14} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-500" aria-hidden="true" />
+                            <ChevronDown size={14} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true" />
                         </div>
                     )}
                 </div>

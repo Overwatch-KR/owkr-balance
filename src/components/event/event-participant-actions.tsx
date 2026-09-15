@@ -76,7 +76,7 @@ export function EventParticipantActions({
                         {isSaving ? '저장 중…' : '변경사항 저장'}
                     </button>
                 ) : (
-                    <p className="text-sm text-slate-500" role="status">
+                    <p className="text-sm text-slate-400" role="status">
                         {hasSaved ? '변경사항이 없습니다.' : '참여자를 선택하면 저장할 수 있습니다.'}
                     </p>
                 )}

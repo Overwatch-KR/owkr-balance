@@ -91,7 +91,7 @@ export function EventUserSheetPicker({ onAdd, participantIds }: EventUserSheetPi
                     <div className="relative">
                         <Search
                             size={16}
-                            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+                            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
                             aria-hidden="true"
                         />
                         <input
@@ -140,9 +140,9 @@ export function EventUserSheetPicker({ onAdd, participantIds }: EventUserSheetPi
                             })}
                         </ul>
                     ) : normalizedQuery ? (
-                        <p className="mt-4 text-sm text-slate-500">검색 결과가 없습니다.</p>
+                        <p className="mt-4 text-sm text-slate-400">검색 결과가 없습니다.</p>
                     ) : (
-                        <p className="mt-3 text-xs text-slate-500">관리자 계정은 검색 결과에서 제외됩니다.</p>
+                        <p className="mt-3 text-xs text-slate-400">관리자 계정은 검색 결과에서 제외됩니다.</p>
                     )}
                 </div>
             ) : null}

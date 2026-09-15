@@ -354,7 +354,7 @@ export const NavigationLoadingShell = ({
     <div className="min-h-screen bg-surface" data-navigation-loading="true">
         <aside
             aria-hidden="true"
-            className={`fixed inset-y-0 left-0 z-[70] hidden border-r border-slate-800/90 bg-[#080a0e]/98 lg:flex lg:flex-col ${
+            className={`fixed inset-y-0 left-0 z-[70] hidden border-r border-slate-700/70 bg-[#0a0e14]/98 lg:flex lg:flex-col ${
                 collapsed ? 'w-20' : 'w-52'
             }`}
         >
@@ -600,7 +600,7 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
         <div className="min-h-screen bg-surface">
             <aside
                 aria-label="주요 메뉴"
-                className={`fixed inset-y-0 left-0 z-[70] hidden border-r border-slate-800/90 bg-[#080a0e]/98 backdrop-blur-xl transition-[width] duration-200 lg:flex lg:flex-col ${
+                className={`fixed inset-y-0 left-0 z-[70] hidden border-r border-slate-700/70 bg-[#0a0e14]/98 backdrop-blur-xl transition-[width] duration-200 lg:flex lg:flex-col ${
                     isCollapsed ? 'w-20' : 'w-52'
                 }`}
             >
@@ -639,7 +639,7 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                         type="button"
                         onClick={toggleCollapsed}
                         data-sidebar-toggle="true"
-                        className="absolute -right-3 top-1/2 z-10 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-slate-700/80 bg-slate-950 text-slate-500 shadow-lg transition hover:border-slate-600 hover:bg-slate-900 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+                        className="absolute -right-3 top-1/2 z-10 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-slate-700/80 bg-slate-950 text-slate-400 shadow-lg transition hover:border-slate-600 hover:bg-slate-900 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
                         aria-label={isCollapsed ? '사이드바 펼치기' : '사이드바 접기'}
                         title={isCollapsed ? '사이드바 펼치기' : '사이드바 접기'}
                     >
@@ -690,7 +690,7 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
 
                     <div className="mt-5 border-t border-slate-800/60 pt-4">
                         {!isCollapsed && (
-                            <p className="mb-2 px-3 text-[11px] font-semibold tracking-[0.08em] text-slate-500">
+                            <p className="mb-2 px-3 text-[11px] font-semibold tracking-[0.08em] text-slate-400">
                                 기타
                             </p>
                         )}
@@ -725,7 +725,7 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                                 {!isCollapsed && (
                                     <div className="min-w-0 flex-1">
                                         <p className="truncate text-sm font-semibold text-slate-100">{userName}</p>
-                                        <p className="mt-0.5 truncate text-[11px] text-slate-500">{accountStatus}</p>
+                                        <p className="mt-0.5 truncate text-[11px] text-slate-400">{accountStatus}</p>
                                     </div>
                                 )}
                                 {authMode === 'discord' && (
@@ -735,7 +735,7 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                                         disabled={isLoggingOut}
                                         aria-label="로그아웃"
                                         title="로그아웃"
-                                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-rose-500/10 hover:text-rose-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/70 disabled:cursor-wait disabled:opacity-40"
+                                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-rose-500/10 hover:text-rose-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/70 disabled:cursor-wait disabled:opacity-40"
                                     >
                                         <LogOut size={16} aria-hidden="true" />
                                     </button>
@@ -825,7 +825,7 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                             <button
                                 type="button"
                                 onClick={() => setIsMoreOpen(false)}
-                                className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-white/5 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+                                className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 hover:bg-white/5 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
                                 aria-label="더보기 메뉴 닫기"
                             >
                                 <X size={18} aria-hidden="true" />
@@ -858,7 +858,7 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                             />
                             <div className="min-w-0 flex-1">
                                 <p className="truncate text-sm font-semibold text-white">{userName}</p>
-                                <p className="mt-0.5 text-xs text-slate-500">{accountStatus}</p>
+                                <p className="mt-0.5 text-xs text-slate-400">{accountStatus}</p>
                             </div>
                             {authMode === 'discord' && (
                                 <button

@@ -102,7 +102,7 @@ export function MatchShareControls({
                             결과 전달
                         </h2>
                     </div>
-                    <p className="mt-1 max-w-2xl text-xs leading-relaxed text-slate-500">
+                    <p className="mt-1 max-w-2xl text-xs leading-relaxed text-slate-400">
                         현재 팀 결과를 24시간 동안 읽기 전용으로 전달합니다.
                     </p>
                 </div>
@@ -157,7 +157,7 @@ export function MatchShareControls({
                     autoComplete="off"
                     spellCheck={false}
                     placeholder="읽기 전용 코드 10자리"
-                    className="min-w-0 flex-1 rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 font-mono text-sm uppercase tracking-[0.16em] text-white outline-none transition-colors placeholder:font-sans placeholder:tracking-normal placeholder:text-slate-500 focus:border-cyan-500 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="min-w-0 flex-1 rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 font-mono text-sm uppercase tracking-[0.16em] text-white outline-none transition-colors placeholder:font-sans placeholder:tracking-normal placeholder:text-slate-400 focus:border-cyan-500 disabled:cursor-not-allowed disabled:opacity-50"
                 />
                 <button
                     type="button"

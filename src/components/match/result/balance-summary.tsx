@@ -107,7 +107,7 @@ const BalanceSummary = ({ matchResult }: BalanceSummaryProps) => {
                         밸런스 요약
                     </h3>
                 </div>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-400">
                     역할별 평균 티어 차이를 기준으로 확인하세요.
                 </p>
             </div>
@@ -132,7 +132,7 @@ const BalanceSummary = ({ matchResult }: BalanceSummaryProps) => {
                                     : ''
                         }`}
                     >
-                        <dt className="text-[11px] text-slate-500">{label} 평균 차이</dt>
+                        <dt className="text-[11px] text-slate-400">{label} 평균 차이</dt>
                         <dd
                             className={`mt-1 font-mono text-sm font-semibold tabular-nums ${
                                 leadingTeam === '1팀'
@@ -154,7 +154,7 @@ const BalanceSummary = ({ matchResult }: BalanceSummaryProps) => {
             </dl>
 
             <div id="balance-exceptions" className="mt-2.5 flex flex-wrap items-center gap-2 rounded-md text-[11px]">
-                <span className="inline-flex items-center gap-1 text-slate-500">
+                <span className="inline-flex items-center gap-1 text-slate-400">
                     <ShieldCheck size={12} aria-hidden="true" />
                     배정 예외
                 </span>
@@ -192,7 +192,7 @@ const BalanceSummary = ({ matchResult }: BalanceSummaryProps) => {
                                             <span className="min-w-0 break-words font-medium text-slate-200">
                                                 {playerName}
                                             </span>
-                                            <span className="shrink-0 text-slate-500">
+                                            <span className="shrink-0 text-slate-400">
                                                 {teamLabel} · {ROLE_LABELS[role]}
                                             </span>
                                         </li>

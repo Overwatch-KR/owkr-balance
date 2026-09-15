@@ -1,4 +1,13 @@
-import { useCallback, useEffect, useState } from 'react';
+import {
+    createContext,
+    createElement,
+    type ReactNode,
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useState,
+} from 'react';
 import { getErrorMessage, requestJson } from '../utils/api';
 
 export interface AuthUser {
@@ -19,10 +28,27 @@ interface AuthResponse {
     csrfToken?: string;
 }
 
+interface AuthContextValue {
+    authMode: AuthMode;
+    csrfToken: string;
+    dataMode: DataMode;
+    error: string | null;
+    isLoading: boolean;
+    logout: () => Promise<void>;
+    retry: () => void;
+    user: AuthUser | null;
+}
+
+interface AuthProviderProps {
+    children: ReactNode;
+}
+
+const AuthContext = createContext<AuthContextValue | null>(null);
+
 /**
  * @description 서버 세션을 조회하고 안전한 로그아웃 요청을 제공한다.
  */
-export const useAuth = () => {
+const useAuthState = (): AuthContextValue => {
     const [authMode, setAuthMode] = useState<AuthMode>('discord');
     const [dataMode, setDataMode] = useState<DataMode>('remote');
     const [isLoading, setIsLoading] = useState(true);
@@ -73,5 +99,31 @@ export const useAuth = () => {
         void loadSession();
     }, [loadSession]);
 
-    return { authMode, csrfToken, dataMode, error, isLoading, logout, retry, user };
+    return useMemo(() => ({
+        authMode,
+        csrfToken,
+        dataMode,
+        error,
+        isLoading,
+        logout,
+        retry,
+        user,
+    }), [authMode, csrfToken, dataMode, error, isLoading, logout, retry, user]);
+};
+
+/**
+ * @description 앱 전체가 하나의 인증 요청과 세션 상태를 공유하도록 제공한다.
+ */
+export const AuthProvider = ({ children }: AuthProviderProps) => {
+    const value = useAuthState();
+    return createElement(AuthContext.Provider, { value }, children);
+};
+
+/**
+ * @description 최상위 인증 공급자가 제공하는 현재 관리자 세션을 반환한다.
+ */
+export const useAuth = (): AuthContextValue => {
+    const value = useContext(AuthContext);
+    if (!value) throw new Error('useAuth는 AuthProvider 안에서 사용해야 합니다.');
+    return value;
 };

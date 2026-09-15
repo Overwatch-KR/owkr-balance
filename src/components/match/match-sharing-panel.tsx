@@ -54,7 +54,7 @@ export function MatchSharingPanel({
                     </span>
                     <span className="min-w-0">
                         <span className="block text-sm font-medium text-slate-200">공유</span>
-                        <span className="block truncate text-xs text-slate-500">
+                        <span className="block truncate text-xs text-slate-400">
                             {liveSyncError
                                 ? '실시간 연결을 확인해 주세요'
                                 : isLiveConnected && liveSession
@@ -65,7 +65,7 @@ export function MatchSharingPanel({
                 </span>
                 <ChevronDown
                     size={17}
-                    className="shrink-0 text-slate-500 transition-transform group-open:rotate-180"
+                    className="shrink-0 text-slate-400 transition-transform group-open:rotate-180"
                     aria-hidden="true"
                 />
             </summary>

@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, getErrorMessage } from '../utils/api';
 import {
     fetchUserSheet,
@@ -33,72 +34,31 @@ const readStoredSelection = (): StoredUserSheetSelection => {
 /**
  * @description 공유 유저 시트의 로딩·재검증과 페이지에서 이어 볼 선택 항목을 관리한다.
  */
-export const useUserSheet = (isActive = false) => {
+export const useUserSheet = (cacheScope: string, isActive = false) => {
     const [storedSelection] = useState(readStoredSelection);
-    const [entries, setEntries] = useState<UserSheetEntry[]>([]);
-    const [sheetVersion, setSheetVersion] = useState(0);
-    const [error, setError] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
     const [selectedBattleTag, setSelectedBattleTag] = useState<string | undefined>(
         storedSelection.battleTag,
     );
     const [selectedEntryId, setSelectedEntryId] = useState<string | undefined>(
         storedSelection.entryId,
     );
-    const requestIdRef = useRef(0);
+    const queryClient = useQueryClient();
+    const queryKey = useMemo(() => ['user-sheet', cacheScope] as const, [cacheScope]);
+    const query = useQuery({
+        queryKey,
+        queryFn: fetchUserSheet,
+        refetchInterval: isActive ? USER_SHEET_REFRESH_INTERVAL_MS : false,
+        refetchIntervalInBackground: false,
+        refetchOnWindowFocus: isActive,
+    });
 
-    const load = useCallback(async (showLoading: boolean) => {
-        const requestId = ++requestIdRef.current;
-        if (showLoading) setIsLoading(true);
-        try {
-            const snapshot = await fetchUserSheet();
-            if (requestId !== requestIdRef.current) return;
-            setEntries(snapshot.entries);
-            setSheetVersion(snapshot.sheetVersion);
-            setError(null);
-        } catch (loadError) {
-            if (requestId !== requestIdRef.current) return;
-            setError(getErrorMessage(loadError, '유저 시트를 불러오지 못했습니다.'));
-            if (loadError instanceof ApiError && loadError.status === 401) {
-                window.location.reload();
-            }
-        } finally {
-            if (requestId === requestIdRef.current) {
-                setIsLoading(false);
-            }
+    useEffect(() => {
+        if (query.error instanceof ApiError && query.error.status === 401) {
+            window.location.reload();
         }
-    }, []);
+    }, [query.error]);
 
-    const retry = useCallback(async () => load(true), [load]);
-    const revalidate = useCallback(async () => load(false), [load]);
-
-    useEffect(() => {
-        void retry();
-        return () => {
-            requestIdRef.current += 1;
-        };
-    }, [retry]);
-
-    useEffect(() => {
-        if (!isActive) return;
-
-        const refreshVisibleSheet = () => {
-            if (document.visibilityState === 'visible') void revalidate();
-        };
-        void revalidate();
-        const intervalId = window.setInterval(
-            refreshVisibleSheet,
-            USER_SHEET_REFRESH_INTERVAL_MS,
-        );
-        window.addEventListener('focus', refreshVisibleSheet);
-        document.addEventListener('visibilitychange', refreshVisibleSheet);
-
-        return () => {
-            window.clearInterval(intervalId);
-            window.removeEventListener('focus', refreshVisibleSheet);
-            document.removeEventListener('visibilitychange', refreshVisibleSheet);
-        };
-    }, [isActive, revalidate]);
+    const retry = query.refetch;
 
     const select = useCallback((battleTag?: string, entryId?: string) => {
         const selection = { battleTag, entryId } satisfies StoredUserSheetSelection;
@@ -113,21 +73,23 @@ export const useUserSheet = (isActive = false) => {
     }, []);
 
     const updateSnapshot = useCallback((snapshot: UserSheetSnapshot) => {
-        setEntries(snapshot.entries);
-        setSheetVersion(snapshot.sheetVersion);
-        setError(null);
-    }, []);
+        queryClient.setQueryData(queryKey, snapshot);
+    }, [queryClient, queryKey]);
+
+    const snapshot = query.data;
 
     return {
-        entries,
-        error,
-        isLoading,
-        revalidate,
+        entries: snapshot?.entries ?? [] satisfies UserSheetEntry[],
+        error: query.error
+            ? getErrorMessage(query.error, '유저 시트를 불러오지 못했습니다.')
+            : null,
+        isLoading: query.isPending,
+        isRefreshing: query.isFetching && !query.isPending,
         retry,
         select,
         selectedBattleTag,
         selectedEntryId,
-        sheetVersion,
+        sheetVersion: snapshot?.sheetVersion ?? 0,
         updateSnapshot,
     };
 };

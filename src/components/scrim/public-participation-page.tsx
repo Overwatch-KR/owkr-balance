@@ -185,7 +185,7 @@ export function PublicParticipationPage() {
             ) : <div className="space-y-5">
                 <div className="flex min-h-12 items-center rounded-xl border border-slate-800 bg-slate-900/70 px-4 text-sm text-slate-300">
                     <span className="font-medium text-white">{formatScrimLabel(scrim)}</span>
-                    <span className="mx-2 text-slate-600" aria-hidden="true">·</span>
+                    <span className="mx-2 text-slate-500" aria-hidden="true">·</span>
                     <span>{scrim.startTime}</span>
                 </div>
                 {isVoteLink && voteStatus === 'VOTING_OPEN' && <section className="card"><h2 className="text-lg font-semibold text-white">영웅 밴 투표</h2><p className="mt-1 text-sm text-cyan-200">내전 시작까지 {remainingLabel} 남았습니다. 최대 3명을 선택해 주세요.</p>
@@ -243,7 +243,7 @@ export function PublicParticipationPage() {
                                         className={`flex h-12 w-12 touch-manipulation items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-elevated sm:h-14 sm:w-14 ${
                                             value <= score
                                                 ? 'bg-amber-300 text-slate-950 shadow-lg shadow-amber-300/20'
-                                                : 'bg-slate-900 text-slate-600 hover:bg-slate-800 hover:text-amber-100'
+                                                : 'bg-slate-900 text-slate-500 hover:bg-slate-800 hover:text-amber-100'
                                         }`}
                                     >
                                         <Star size={25} fill="currentColor" aria-hidden="true" />
@@ -280,7 +280,7 @@ export function PublicParticipationPage() {
                                 >
                                     <div className="border-t border-slate-800 pt-6">
                                         <p id="disappointment-label" className="text-center text-sm font-semibold text-white">어떤 점이 아쉬웠나요?</p>
-                                        <p className="mt-1 text-center text-xs text-slate-500">하나 이상 선택해 주세요. 복수 선택할 수 있습니다.</p>
+                                        <p className="mt-1 text-center text-xs text-slate-400">하나 이상 선택해 주세요. 복수 선택할 수 있습니다.</p>
                                         <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3" role="group" aria-labelledby="disappointment-label">
                                             {SATISFACTION_OPTIONS.map(item => {
                                                 const checked = disappointments.includes(item);
@@ -317,19 +317,19 @@ export function PublicParticipationPage() {
                                 >
                                     <span className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-200">
                                         <MessageSquareText size={16} className="text-cyan-300" aria-hidden="true" />
-                                        추가 의견 <span className="font-normal text-slate-500">(선택)</span>
+                                        추가 의견 <span className="font-normal text-slate-400">(선택)</span>
                                     </span>
                                     <div className="rounded-xl border border-slate-700/70 bg-slate-950/70 p-1.5 transition focus-within:border-cyan-400/70 focus-within:ring-2 focus-within:ring-cyan-400/15">
                                         <textarea
                                             name="satisfaction-opinion"
                                             autoComplete="off"
-                                            className="min-h-32 w-full resize-y rounded-lg bg-transparent px-3 py-3 text-sm text-white outline-none placeholder:text-slate-500"
+                                            className="min-h-32 w-full resize-y rounded-lg bg-transparent px-3 py-3 text-sm text-white outline-none placeholder:text-slate-400"
                                             value={otherOpinion}
                                             onChange={event => setOtherOpinion(event.target.value)}
                                             maxLength={1000}
                                             placeholder="별점과 관계없이 자유롭게 의견을 남겨 주세요. 개인을 특정할 수 있는 정보는 적지 말아 주세요…"
                                         />
-                                        <div className="flex justify-end px-2 pb-1 text-xs tabular-nums text-slate-500">
+                                        <div className="flex justify-end px-2 pb-1 text-xs tabular-nums text-slate-400">
                                             {otherOpinion.length}/1000
                                         </div>
                                     </div>
