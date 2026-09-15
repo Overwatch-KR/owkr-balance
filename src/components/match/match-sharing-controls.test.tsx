@@ -7,7 +7,13 @@ import { MatchSharingPanel } from './match-sharing-panel';
 
 const liveSession: MatchLiveSessionSnapshot = {
     code: 'LIVE234567',
+    collaborators: [{
+        userId: 'discord-admin-1',
+        displayName: '관리자 A',
+        lastSeenAt: 1,
+    }],
     participants: [],
+    recentChange: null,
     revision: 7,
     updatedAt: 1,
 };
@@ -116,7 +122,7 @@ describe('match sharing controls', () => {
 
         expect(markup).toContain('<details');
         expect(markup).toContain('<summary');
-        expect(markup).toContain('LIVE234567 · 실시간 연결됨');
+        expect(markup).toContain('LIVE234567 · 1명 연결 · 동기화됨');
         expect(markup).toContain('함께 편집');
         expect(markup).toContain('결과 전달');
     });

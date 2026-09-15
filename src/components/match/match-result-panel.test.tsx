@@ -50,6 +50,14 @@ describe('MatchResultPanel', () => {
                 isBalancing={false}
                 isReady
                 isResultStale={false}
+                liveRecentChange={{
+                    actor: {
+                        userId: 'discord-admin-1',
+                        displayName: '관리자 A',
+                    },
+                    kind: 'TEAMS',
+                    updatedAt: 1_000,
+                }}
                 onCancelSwap={vi.fn()}
                 onClearResult={vi.fn()}
                 onIgnorePreferencesChange={vi.fn()}
@@ -67,5 +75,7 @@ describe('MatchResultPanel', () => {
 
         expect(markup).toContain('data-result-viewport="true"');
         expect(markup).toContain('min-w-0 max-w-full overflow-hidden');
+        expect(markup).toContain('관리자 A');
+        expect(markup).toContain('팀 배정 수정');
     });
 });

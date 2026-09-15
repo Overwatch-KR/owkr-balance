@@ -8,7 +8,9 @@ import type { UserSheetEntry } from './user-sheet';
 
 const session: MatchLiveSessionSnapshot = {
     code: 'ABCDEFGH23',
+    collaborators: [],
     revision: 4,
+    recentChange: null,
     updatedAt: 123,
     participants: [
         ...MATCH_SHARE_POSITIONS.map((position, index) => ({

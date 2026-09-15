@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import type { MatchLiveCollaborator, MatchLiveRecentChange } from '#domain/balance';
 import {
     NAVIGATION_STATE_EVENT,
     OPEN_GUIDE_EVENT,
@@ -10,6 +11,8 @@ interface AppHeaderProps {
     isGuideOpen: boolean;
     isLiveConnected: boolean;
     isLivePublishing: boolean;
+    liveCollaborators: MatchLiveCollaborator[];
+    liveRecentChange: MatchLiveRecentChange | null;
     liveSessionCode?: string;
     liveSyncError: string;
     onOpenGuide: () => void;
@@ -23,6 +26,8 @@ export function AppHeader({
     isGuideOpen,
     isLiveConnected,
     isLivePublishing,
+    liveCollaborators,
+    liveRecentChange,
     liveSessionCode,
     liveSyncError,
     onOpenGuide,
@@ -55,6 +60,8 @@ export function AppHeader({
                 isGuideOpen,
                 isLiveConnected,
                 isLivePublishing,
+                liveCollaborators,
+                liveRecentChange,
                 liveSessionCode,
                 liveSyncError,
                 userSheetHasError,
@@ -64,6 +71,8 @@ export function AppHeader({
         isGuideOpen,
         isLiveConnected,
         isLivePublishing,
+        liveCollaborators,
+        liveRecentChange,
         liveSessionCode,
         liveSyncError,
         userSheetHasError,

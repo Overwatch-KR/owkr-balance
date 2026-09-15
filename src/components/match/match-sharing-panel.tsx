@@ -58,7 +58,7 @@ export function MatchSharingPanel({
                             {liveSyncError
                                 ? '실시간 연결을 확인해 주세요'
                                 : isLiveConnected && liveSession
-                                    ? `${liveSession.code} · ${isLivePublishing ? '저장 중…' : '실시간 연결됨'}`
+                                    ? `${liveSession.code} · ${liveSession.collaborators.length}명 연결 · ${isLivePublishing ? '저장 중…' : '동기화됨'}`
                                     : '함께 편집하거나 결과만 전달할 수 있습니다'}
                         </span>
                     </span>
