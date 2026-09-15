@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { RefreshCw } from 'lucide-react';
 import type { EventParticipationSnapshot } from '#domain/scrim/rules';
 import type { ScrimRosterParticipant } from '#domain/scrim';
@@ -13,20 +14,13 @@ import { EventUserSheetPicker } from './event-user-sheet-picker';
 
 interface EventParticipantsPageProps {
     csrfToken: string;
-    onClose: () => void;
     userId: string;
 }
 
-interface EventParticipantsCache {
-    snapshot: EventParticipationSnapshot;
-    userId: string;
-}
-
-let eventParticipantsCache: EventParticipantsCache | null = null;
-
-const getCachedSnapshot = (userId: string): EventParticipationSnapshot | null => (
-    eventParticipantsCache?.userId === userId ? eventParticipantsCache.snapshot : null
-);
+const EMPTY_EVENT_SNAPSHOT: EventParticipationSnapshot = {
+    candidates: [],
+    participantIds: [],
+};
 
 const hasSameIds = (left: Set<string>, right: Set<string>): boolean => (
     left.size === right.size && [...left].every(id => right.has(id))
@@ -35,55 +29,42 @@ const hasSameIds = (left: Set<string>, right: Set<string>): boolean => (
 /**
  * @description 상단 메뉴에서 이벤트 실제 참여자를 직접 확인하고 저장하는 전용 화면이다.
  */
-export function EventParticipantsPage({ csrfToken, onClose, userId }: EventParticipantsPageProps) {
-    const [initialSnapshot] = useState(() => getCachedSnapshot(userId));
-    const [snapshot, setSnapshot] = useState<EventParticipationSnapshot>(() => initialSnapshot ?? {
-        candidates: [],
-        participantIds: [],
+export function EventParticipantsPage({ csrfToken, userId }: EventParticipantsPageProps) {
+    const queryClient = useQueryClient();
+    const queryKey = useMemo(() => ['event-participants', userId] as const, [userId]);
+    const participantsQuery = useQuery({
+        queryKey,
+        queryFn: () => requestJson<EventParticipationSnapshot>('/api/event-participants', {
+            credentials: 'same-origin',
+        }),
+        refetchOnWindowFocus: false,
     });
+    const cachedSnapshot = participantsQuery.data ?? EMPTY_EVENT_SNAPSHOT;
+    const [snapshot, setSnapshot] = useState<EventParticipationSnapshot>(cachedSnapshot);
     const [draftParticipantIds, setDraftParticipantIds] = useState<Set<string>>(
-        () => new Set(initialSnapshot?.participantIds ?? []),
+        () => new Set(cachedSnapshot.participantIds),
     );
-    const [isInitialLoading, setIsInitialLoading] = useState(initialSnapshot === null);
-    const [isRefreshing, setIsRefreshing] = useState(false);
+    const isInitialLoading = participantsQuery.isPending;
+    const isRefreshing = participantsQuery.isFetching && !participantsQuery.isPending;
     const [isSaving, setIsSaving] = useState(false);
-    const [isEditing, setIsEditing] = useState(
-        () => initialSnapshot !== null && initialSnapshot.updatedAt === undefined,
-    );
-    const [error, setError] = useState('');
+    const [isEditing, setIsEditing] = useState(() => cachedSnapshot.updatedAt === undefined);
+    const error = participantsQuery.error
+        ? getErrorMessage(participantsQuery.error, '이벤트 참여자를 불러오지 못했습니다.')
+        : '';
     const { dismissToast, showToast, toast } = useToast();
 
     const applySnapshot = useCallback((next: EventParticipationSnapshot) => {
-        eventParticipantsCache = { snapshot: next, userId };
+        queryClient.setQueryData(queryKey, next);
         setSnapshot(next);
         setDraftParticipantIds(new Set(next.participantIds));
-    }, [userId]);
-
-    const load = useCallback(async (mode: 'initial' | 'refresh') => {
-        if (mode === 'initial') setIsInitialLoading(true);
-        else setIsRefreshing(true);
-        setError('');
-        try {
-            const result = await requestJson<EventParticipationSnapshot>('/api/event-participants', {
-                credentials: 'same-origin',
-            });
-            applySnapshot(result);
-            setIsEditing(result.updatedAt === undefined);
-        } catch (loadError) {
-            setError(getErrorMessage(loadError, '이벤트 참여자를 불러오지 못했습니다.'));
-        } finally {
-            if (mode === 'initial') setIsInitialLoading(false);
-            else setIsRefreshing(false);
-        }
-    }, [applySnapshot]);
+    }, [queryClient, queryKey]);
 
     useEffect(() => {
-        const timer = window.setTimeout(
-            () => void load(initialSnapshot === null ? 'initial' : 'refresh'),
-            0,
-        );
-        return () => window.clearTimeout(timer);
-    }, [initialSnapshot, load]);
+        if (!participantsQuery.data) return;
+        setSnapshot(participantsQuery.data);
+        setDraftParticipantIds(new Set(participantsQuery.data.participantIds));
+        setIsEditing(participantsQuery.data.updatedAt === undefined);
+    }, [participantsQuery.data, participantsQuery.dataUpdatedAt]);
 
     const savedParticipantIds = useMemo(
         () => new Set(snapshot.participantIds),
@@ -96,7 +77,7 @@ export function EventParticipantsPage({ csrfToken, onClose, userId }: EventParti
             : snapshot.candidates.filter(candidate => savedParticipantIds.has(candidate.id))
     ), [isEditing, savedParticipantIds, snapshot.candidates]);
     const canShowContent = !error
-        || initialSnapshot !== null
+        || participantsQuery.data !== undefined
         || snapshot.candidates.length > 0
         || snapshot.updatedAt !== undefined;
 
@@ -145,13 +126,9 @@ export function EventParticipantsPage({ csrfToken, onClose, userId }: EventParti
     };
 
     return (
-        <main className="min-h-screen bg-surface px-4 py-6 text-slate-200 md:px-8 md:py-8">
-            <div className="mx-auto max-w-4xl">
+        <>
+            <div>
                 <PageHeader
-                    breadcrumbs={[
-                        { label: '대진표', onClick: onClose },
-                        { label: '이벤트 참여자' },
-                    ]}
                     eyebrow="2026 넥슨 이벤트"
                     title="이벤트 참여자"
                     description="팀 결과에서 등록한 실제 참여자를 확인하고 수정합니다."
@@ -160,7 +137,7 @@ export function EventParticipantsPage({ csrfToken, onClose, userId }: EventParti
                             type="button"
                             className="btn-ghost"
                             disabled={isInitialLoading || isRefreshing || isSaving}
-                            onClick={() => void load('refresh')}
+                            onClick={() => void participantsQuery.refetch()}
                         >
                             <RefreshCw
                                 size={16}
@@ -176,7 +153,7 @@ export function EventParticipantsPage({ csrfToken, onClose, userId }: EventParti
                     <DataLoadError
                         isRetrying={isInitialLoading || isRefreshing}
                         message={error}
-                        onRetry={() => void load(snapshot.candidates.length === 0 ? 'initial' : 'refresh')}
+                        onRetry={() => void participantsQuery.refetch()}
                         title="이벤트 참여자를 불러오지 못했습니다"
                     />
                 ) : null}
@@ -218,6 +195,6 @@ export function EventParticipantsPage({ csrfToken, onClose, userId }: EventParti
                 ) : null}
             </div>
             {toast ? <AppToast toast={toast} onDismiss={dismissToast} /> : null}
-        </main>
+        </>
     );
 }

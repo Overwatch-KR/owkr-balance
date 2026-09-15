@@ -1,5 +1,5 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AnimatePresence, MotionConfig } from 'framer-motion';
 import {
     MATCH_LIVE_MAX_PARTICIPANTS,
     swapMatchResultPlayers,
@@ -44,34 +44,26 @@ import { MatchSharingPanel } from './components/match/match-sharing-panel';
 import { MatchWorkspaceHeader } from './components/match/match-workspace-header';
 import { EventParticipantsPage } from './components/event/event-participants-page';
 import { ScrimManager } from './components/scrim/scrim-manager';
+import { UserSheetPage } from './components/user-sheet/user-sheet-page';
 
-const UserSheetPage = lazy(() => import('./components/user-sheet/user-sheet-page').then(module => ({
-    default: module.UserSheetPage,
-})));
 interface MatchAppProps {
     csrfToken: string;
     dataMode: DataMode;
-    isPageNavigating: boolean;
     navigate: (pathname: string) => void;
     pathname: string;
     user: AuthUser;
 }
 
-const PageLoadingBar = () => (
-    <motion.div
-        aria-label="페이지 이동 중"
-        className="fixed inset-x-0 top-0 z-[200] h-1 origin-left bg-gradient-to-r from-cyan-400 via-blue-500 to-violet-500 shadow-lg shadow-cyan-400/40"
-        initial={{ scaleX: 0, opacity: 0 }}
-        animate={{ scaleX: 0.88, opacity: 1 }}
-        exit={{ scaleX: 1, opacity: 0 }}
-        transition={{ duration: 0.26, ease: 'easeOut' }}
-    />
+const ADMIN_PAGE_PATHS = ['/scrims', '/user-sheet', '/event-participants'] as const;
+type AdminPagePath = typeof ADMIN_PAGE_PATHS[number];
+
+const isAdminPagePath = (pathname: string): pathname is AdminPagePath => (
+    ADMIN_PAGE_PATHS.some(path => path === pathname)
 );
 
 const MatchApp = ({
     csrfToken,
     dataMode,
-    isPageNavigating,
     navigate,
     pathname,
     user,
@@ -97,10 +89,11 @@ const MatchApp = ({
     const [errorDetails, setErrorDetails] = useState<ErrorDetails | null>(null);
     const playerEditReturnPathRef = useRef(pathname);
     const isGuideActiveRef = useRef(false);
-    const userSheet = useUserSheet(pathname === '/user-sheet');
+    const userSheet = useUserSheet(user.id, pathname === '/user-sheet');
     const { dismissToast, showToast, toast } = useToast();
     const registeredEventParticipantIdsRef = useRef<Set<string> | null>(null);
     const pendingEventParticipantIdsRef = useRef(new Set<string>());
+
     const showDetailedError = useCallback((message: string, details: ErrorDetails) => {
         showToast('error', message, {
             label: '자세히 보기',
@@ -443,95 +436,6 @@ const MatchApp = ({
         },
     };
 
-    if (pathname === '/scrims') {
-        return (
-            <MotionConfig reducedMotion="user">
-                <AppHeader
-                    isGuideOpen={false}
-                    isLiveConnected={isLiveConnected}
-                    isLivePublishing={isLivePublishing}
-                    liveCollaborators={liveSession?.collaborators ?? []}
-                    liveRecentChange={liveSession?.recentChange ?? null}
-                    liveSessionCode={liveSession?.code}
-                    liveSyncError={liveSyncError}
-                    onOpenGuide={handleToggleGuide}
-                    userSheetHasError={Boolean(userSheet.error)}
-                />
-                <ScrimManager
-                    csrfToken={csrfToken}
-                    players={players}
-                    userId={user.id}
-                    onClose={() => navigate('/')}
-                />
-                <AnimatePresence>{isPageNavigating && <PageLoadingBar />}</AnimatePresence>
-            </MotionConfig>
-        );
-    }
-
-    if (pathname === '/user-sheet') {
-        return (
-            <MotionConfig reducedMotion="user">
-                <AppHeader
-                    isGuideOpen={false}
-                    isLiveConnected={isLiveConnected}
-                    isLivePublishing={isLivePublishing}
-                    liveCollaborators={liveSession?.collaborators ?? []}
-                    liveRecentChange={liveSession?.recentChange ?? null}
-                    liveSessionCode={liveSession?.code}
-                    liveSyncError={liveSyncError}
-                    onOpenGuide={handleToggleGuide}
-                    userSheetHasError={Boolean(userSheet.error)}
-                />
-                <Suspense
-                    fallback={(
-                        <main className="flex min-h-screen items-center justify-center bg-surface text-sm text-slate-400">
-                            유저 시트를 여는 중…
-                        </main>
-                    )}
-                >
-                    <UserSheetPage
-                        key={userSheet.selectedEntryId ?? userSheet.selectedBattleTag ?? 'all-users'}
-                        csrfToken={csrfToken}
-                        entries={userSheet.entries}
-                        error={userSheet.error}
-                        initialBattleTag={userSheet.selectedBattleTag}
-                        initialEntryId={userSheet.selectedEntryId}
-                        isLoading={userSheet.isLoading}
-                        noteCacheScope={user.id}
-                        participantBattleTags={participantBattleTags}
-                        sheetVersion={userSheet.sheetVersion}
-                        onEntriesChange={(snapshot, message) => {
-                            userSheet.updateSnapshot(snapshot);
-                            showToast('success', message);
-                        }}
-                        onRetry={() => void userSheet.retry()}
-                        onSaveError={(message) => {
-                            showDetailedError(message, {
-                                title: '유저 시트를 저장하지 못했습니다',
-                                description: message,
-                                hint: '동시 수정 충돌은 표시되는 병합 화면에서 내 초안과 최신값을 비교해 해결할 수 있습니다. 그 외에는 배틀태그 오류와 중복 행을 확인해 주세요.',
-                            });
-                        }}
-                        onSnapshotChange={userSheet.updateSnapshot}
-                        onClose={() => navigate('/')}
-                    />
-                </Suspense>
-                <AnimatePresence>
-                    {errorDetails && (
-                        <ErrorDetailsModal
-                            details={errorDetails}
-                            onClose={() => setErrorDetails(null)}
-                        />
-                    )}
-                </AnimatePresence>
-                <AnimatePresence>
-                    {toast && <AppToast toast={toast} onDismiss={dismissToast} />}
-                </AnimatePresence>
-                <AnimatePresence>{isPageNavigating && <PageLoadingBar />}</AnimatePresence>
-            </MotionConfig>
-        );
-    }
-
     return (
         <MotionConfig reducedMotion="user">
         <div className="min-h-screen bg-surface text-slate-200 font-sans">
@@ -557,77 +461,114 @@ const MatchApp = ({
             <main
                 id="main-content"
                 tabIndex={-1}
-                className="mx-auto max-w-[1600px] scroll-mt-20 px-4 py-6 focus:outline-none md:px-8 md:py-8"
+                className="mx-auto min-h-screen max-w-[1600px] scroll-mt-20 px-4 py-6 focus:outline-none md:px-8 md:py-8"
             >
-                {pathname === '/participants' ? (
-                    <ParticipantWorkspace
-                        formProps={playerFormProps}
-                        listProps={playerListProps}
-                        participantCount={participants.length}
-                        waitlistCount={waitlist.length}
-                        reviewCount={failedParses.length}
-                        userSheetEntries={userSheet.entries}
-                        userSheetError={userSheet.error}
-                        userSheetIsLoading={userSheet.isLoading}
-                        onAddUserSheetEntry={addUserSheetPlayer}
-                        onRetryUserSheet={() => void userSheet.retry()}
-                        onContinueToMatching={() => navigate('/')}
-                        onClose={() => navigate('/')}
-                    />
-                ) : (
-                    <div className="grid min-w-0 gap-5">
-                        <MatchWorkspaceHeader
+                {!isAdminPagePath(pathname) ? (
+                    pathname === '/participants' ? (
+                        <ParticipantWorkspace
+                            formProps={playerFormProps}
+                            listProps={playerListProps}
                             participantCount={participants.length}
                             waitlistCount={waitlist.length}
-                            onManageParticipants={() => navigate('/participants')}
+                            reviewCount={failedParses.length}
+                            userSheetEntries={userSheet.entries}
+                            userSheetError={userSheet.error}
+                            userSheetIsLoading={userSheet.isLoading}
+                            onAddUserSheetEntry={addUserSheetPlayer}
+                            onRetryUserSheet={() => void userSheet.retry()}
+                            onContinueToMatching={() => navigate('/')}
                         />
+                    ) : (
+                        <div className="grid min-w-0 gap-5">
+                            <MatchWorkspaceHeader
+                                participantCount={participants.length}
+                                waitlistCount={waitlist.length}
+                                onManageParticipants={() => navigate('/participants')}
+                            />
 
-                        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(380px,430px)_minmax(0,1fr)] xl:items-start">
-                            <aside className="order-2 flex min-h-0 min-w-0 flex-col xl:order-1 xl:sticky xl:top-24 xl:h-[calc(100dvh-8rem)]">
-                                <PlayerList {...playerListProps} />
-                            </aside>
+                            <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(380px,430px)_minmax(0,1fr)] xl:items-start">
+                                <aside className="order-2 flex min-h-0 min-w-0 flex-col xl:order-1 xl:sticky xl:top-24 xl:h-[calc(100dvh-8rem)]">
+                                    <PlayerList {...playerListProps} />
+                                </aside>
 
-                            <div className="order-1 grid min-w-0 content-start gap-5 xl:order-2">
-                                <MatchResultPanel
-                                    alternatives={alternatives}
-                                    ignorePreferences={ignorePreferences}
-                                    isBalancing={isBalancing}
-                                    isReady={isReady}
-                                    isResultStale={isResultStale}
-                                    liveRecentChange={liveSession?.recentChange ?? null}
-                                    onCancelSwap={() => setSwapSource(null)}
-                                    onClearResult={handleClearResult}
-                                    onIgnorePreferencesChange={setIgnorePreferences}
-                                    onRunMatching={() => void handleRunMatching({ ignorePreferences })}
-                                    onSelectAlternative={handleSelectAlternative}
-                                    onShowAllRanksChange={handleShowAllRanksChange}
-                                    onSlotClick={handleSlotClick}
-                                    participantCount={participants.length}
-                                    result={result}
-                                    showAllRanks={showAllRanks}
-                                    swapSource={swapSource}
-                                    userSheetByBattleTag={userSheetByBattleTag}
-                                />
-                                <MatchSharingPanel
-                                    canCreateSnapshot={Boolean(result) && !isResultStale}
-                                    canStartLive={canStartLiveSession}
-                                    isLiveConnected={isLiveConnected}
-                                    isLiveConnecting={isLiveConnecting}
-                                    isLivePublishing={isLivePublishing}
-                                    isRemote={dataMode === 'remote'}
-                                    liveSession={liveSession}
-                                    liveSyncError={liveSyncError}
-                                    userId={user.id}
-                                    onCreateSnapshot={handleCreateMatchShare}
-                                    onImportSnapshot={handleImportMatchShare}
-                                    onJoinLive={handleJoinLiveSession}
-                                    onLeaveLive={handleLeaveLiveSession}
-                                    onStartLive={handleStartLiveSession}
-                                />
+                                <div className="order-1 grid min-w-0 content-start gap-5 xl:order-2">
+                                    <MatchResultPanel
+                                        alternatives={alternatives}
+                                        ignorePreferences={ignorePreferences}
+                                        isBalancing={isBalancing}
+                                        isReady={isReady}
+                                        isResultStale={isResultStale}
+                                        liveRecentChange={liveSession?.recentChange ?? null}
+                                        onCancelSwap={() => setSwapSource(null)}
+                                        onClearResult={handleClearResult}
+                                        onIgnorePreferencesChange={setIgnorePreferences}
+                                        onRunMatching={() => void handleRunMatching({ ignorePreferences })}
+                                        onSelectAlternative={handleSelectAlternative}
+                                        onShowAllRanksChange={handleShowAllRanksChange}
+                                        onSlotClick={handleSlotClick}
+                                        participantCount={participants.length}
+                                        result={result}
+                                        showAllRanks={showAllRanks}
+                                        swapSource={swapSource}
+                                        userSheetByBattleTag={userSheetByBattleTag}
+                                    />
+                                    <MatchSharingPanel
+                                        canCreateSnapshot={Boolean(result) && !isResultStale}
+                                        canStartLive={canStartLiveSession}
+                                        isLiveConnected={isLiveConnected}
+                                        isLiveConnecting={isLiveConnecting}
+                                        isLivePublishing={isLivePublishing}
+                                        isRemote={dataMode === 'remote'}
+                                        liveSession={liveSession}
+                                        liveSyncError={liveSyncError}
+                                        userId={user.id}
+                                        onCreateSnapshot={handleCreateMatchShare}
+                                        onImportSnapshot={handleImportMatchShare}
+                                        onJoinLive={handleJoinLiveSession}
+                                        onLeaveLive={handleLeaveLiveSession}
+                                        onStartLive={handleStartLiveSession}
+                                    />
+                                </div>
                             </div>
                         </div>
-                    </div>
-                )}
+                    )
+                ) : null}
+
+                {pathname === '/scrims' ? (
+                    <ScrimManager csrfToken={csrfToken} players={players} userId={user.id} />
+                ) : null}
+
+                {pathname === '/user-sheet' ? (
+                    <UserSheetPage
+                        csrfToken={csrfToken}
+                        entries={userSheet.entries}
+                        error={userSheet.error}
+                        initialBattleTag={userSheet.selectedBattleTag}
+                        initialEntryId={userSheet.selectedEntryId}
+                        isLoading={userSheet.isLoading}
+                        isRefreshing={userSheet.isRefreshing}
+                        noteCacheScope={user.id}
+                        participantBattleTags={participantBattleTags}
+                        sheetVersion={userSheet.sheetVersion}
+                        onEntriesChange={(snapshot, message) => {
+                            userSheet.updateSnapshot(snapshot);
+                            showToast('success', message);
+                        }}
+                        onRetry={() => void userSheet.retry()}
+                        onSaveError={(message) => {
+                            showDetailedError(message, {
+                                title: '유저 시트를 저장하지 못했습니다',
+                                description: message,
+                                hint: '동시 수정 충돌은 표시되는 병합 화면에서 내 초안과 최신값을 비교해 해결할 수 있습니다. 그 외에는 배틀태그 오류와 중복 행을 확인해 주세요.',
+                            });
+                        }}
+                        onSnapshotChange={userSheet.updateSnapshot}
+                    />
+                ) : null}
+
+                {pathname === '/event-participants' ? (
+                    <EventParticipantsPage csrfToken={csrfToken} userId={user.id} />
+                ) : null}
             </main>
             <AnimatePresence>
                 {pendingIdentityImport && (
@@ -683,7 +624,6 @@ const MatchApp = ({
                     <AppToast toast={toast} onDismiss={dismissToast} />
                 )}
             </AnimatePresence>
-            <AnimatePresence>{isPageNavigating && <PageLoadingBar />}</AnimatePresence>
         </div>
         </MotionConfig>
     );
@@ -691,18 +631,16 @@ const MatchApp = ({
 
 type AuthenticatedAppProps = Omit<
     MatchAppProps,
-    'isPageNavigating' | 'navigate' | 'pathname'
+    'navigate' | 'pathname'
 >;
 
 /**
- * @description 경로를 먼저 분기해 이벤트 화면에서 매칭·유저 시트 데이터를 불필요하게 불러오지 않는다.
+ * @description 모든 앱 페이지를 같은 셸 안에서 즉시 전환하고 브라우저 이동 기록과 동기화한다.
  */
 const AuthenticatedApp = (props: AuthenticatedAppProps) => {
     const [pathname, setPathname] = useState(() => (
         window.location.pathname.replace(/\/+$/, '') || '/'
     ));
-    const [isPageNavigating, setIsPageNavigating] = useState(false);
-
     useEffect(() => {
         const syncPathname = () => setPathname(window.location.pathname.replace(/\/+$/, '') || '/');
         window.addEventListener('popstate', syncPathname);
@@ -710,32 +648,16 @@ const AuthenticatedApp = (props: AuthenticatedAppProps) => {
     }, []);
 
     const navigate = useCallback((nextPathname: string) => {
-        if (nextPathname === pathname) return;
-        setIsPageNavigating(true);
-        window.setTimeout(() => {
-            window.history.pushState({}, '', nextPathname);
-            setPathname(nextPathname);
-            window.setTimeout(() => setIsPageNavigating(false), 180);
-        }, 120);
+        const normalizedPathname = nextPathname.replace(/\/+$/, '') || '/';
+        if (normalizedPathname === pathname) return;
+        window.history.pushState({}, '', normalizedPathname);
+        setPathname(normalizedPathname);
+        window.scrollTo({ top: 0, behavior: 'auto' });
     }, [pathname]);
-
-    if (pathname === '/event-participants') {
-        return (
-            <MotionConfig reducedMotion="user">
-                <EventParticipantsPage
-                    csrfToken={props.csrfToken}
-                    onClose={() => navigate('/')}
-                    userId={props.user.id}
-                />
-                <AnimatePresence>{isPageNavigating && <PageLoadingBar />}</AnimatePresence>
-            </MotionConfig>
-        );
-    }
 
     return (
         <MatchApp
             {...props}
-            isPageNavigating={isPageNavigating}
             navigate={navigate}
             pathname={pathname}
         />

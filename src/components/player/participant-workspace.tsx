@@ -27,7 +27,6 @@ interface ParticipantWorkspaceProps {
     onAddUserSheetEntry: (entry: UserSheetEntry) => void;
     onRetryUserSheet: () => void;
     onContinueToMatching: () => void;
-    onClose: () => void;
 }
 
 const INPUT_MODES: Array<{
@@ -101,7 +100,6 @@ export const ParticipantWorkspace = ({
     onAddUserSheetEntry,
     onRetryUserSheet,
     onContinueToMatching,
-    onClose,
 }: ParticipantWorkspaceProps) => {
     const activeMode = formProps.mode;
     const activeCopy = MODE_COPY[activeMode];
@@ -112,10 +110,6 @@ export const ParticipantWorkspace = ({
         <div className="space-y-4">
             <div id="participant-workspace-header">
                 <PageHeader
-                    breadcrumbs={[
-                        { label: '대진표', onClick: onClose },
-                        { label: '참가자' },
-                    ]}
                     title="참가자"
                     description="이번 내전의 참가 명단을 추가하고 확인합니다."
                     meta={(

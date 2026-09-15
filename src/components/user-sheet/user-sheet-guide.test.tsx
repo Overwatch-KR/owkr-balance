@@ -19,16 +19,16 @@ describe('UserSheetGuide', () => {
         expect(markup).toContain('1분마다 자동 확인');
     });
 
-    it('전용 페이지 상단에서 탐색 경로와 가이드·새로고침을 함께 제공한다', () => {
+    it('전용 페이지 상단에서 가이드·새로고침을 간결하게 제공한다', () => {
         const markup = renderToStaticMarkup(
             <UserSheetPage
                 csrfToken="csrf-token"
                 entries={[]}
                 error={null}
                 isLoading={false}
+                isRefreshing={false}
                 noteCacheScope="user-1"
                 participantBattleTags={new Set()}
-                onClose={vi.fn()}
                 onEntriesChange={vi.fn()}
                 onRetry={vi.fn()}
                 onSaveError={vi.fn()}
@@ -44,7 +44,7 @@ describe('UserSheetGuide', () => {
         expect(refreshButtonIndex).toBeGreaterThan(guideButtonIndex);
         expect(markup).toContain('aria-label="유저 시트 사용법"');
         expect(markup).toContain('자주 만나는 플레이어의 BattleTag');
-        expect(markup).toContain('aria-current="page"');
+        expect(markup).not.toContain('aria-label="페이지 경로"');
     });
 });
 

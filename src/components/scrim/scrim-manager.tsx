@@ -6,6 +6,7 @@ import {
     useState,
 } from 'react';
 import { AnimatePresence } from 'framer-motion';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
     BookOpen,
     Link2,
@@ -25,8 +26,8 @@ import { getErrorMessage, requestJson } from '../../utils/api';
 import { useToast } from '../../hooks/use-toast';
 import { AppToast } from '../app-toast';
 import { DataLoadError } from '../common/data-load-error';
+import { DataLoadingState } from '../common/data-loading-state';
 import { DouMascot } from '../common/dou-mascot';
-import { Skeleton } from '../common/skeleton';
 import { PageHeader } from '../layout/page-header';
 import { HeroPickerModal } from './hero-picker-modal';
 import { RandomBanModal } from './random-ban-modal';
@@ -42,18 +43,12 @@ import {
 
 interface ScrimManagerProps {
     csrfToken: string;
-    onClose: () => void;
     players: Player[];
     userId: string;
 }
 
 interface ScrimsResponse {
     scrims: ScrimRecord[];
-}
-
-interface ScrimCache {
-    scrims: ScrimRecord[];
-    userId: string;
 }
 
 type DetailTab = 'operations' | 'ban' | 'satisfaction' | 'review';
@@ -66,11 +61,7 @@ const DETAIL_TABS: Array<{ id: DetailTab; label: string; icon: typeof Link2 }> =
     { id: 'review', label: '내전 후기', icon: NotebookPen },
 ];
 
-let scrimCache: ScrimCache | null = null;
-
-const getCachedScrims = (userId: string): ScrimRecord[] | null => (
-    scrimCache?.userId === userId ? scrimCache.scrims : null
-);
+const EMPTY_SCRIMS: ScrimRecord[] = [];
 
 const toRosterSnapshot = (players: Player[]) => players.slice(0, 10).map(player => ({
     id: player.discordUserId ?? player.userSheetEntryId ?? String(player.id),
@@ -78,49 +69,25 @@ const toRosterSnapshot = (players: Player[]) => players.slice(0, 10).map(player 
     discordName: player.discordName,
 }));
 
-const ScrimRecordsSkeleton = () => (
-    <div className="space-y-2" role="status" aria-label="내전 기록을 불러오는 중">
-        {[0, 1, 2].map(index => (
-            <div key={index} className="rounded-xl bg-slate-900 p-3">
-                <Skeleton className="h-4 w-4/5" />
-                <Skeleton className="mt-2 h-3 w-3/5" />
-            </div>
-        ))}
-    </div>
-);
-
-const ScrimDetailSkeleton = () => (
-    <section className="space-y-5" role="status" aria-label="내전 상세 정보를 불러오는 중">
-        <div className="card">
-            <Skeleton className="h-7 w-2/5" />
-            <Skeleton className="mt-3 h-4 w-1/3" />
-            <div className="mt-6 flex gap-2">
-                <Skeleton className="h-11 w-32" />
-                <Skeleton className="h-11 w-32" />
-                <Skeleton className="h-11 w-32" />
-            </div>
-        </div>
-        <div className="card">
-            <Skeleton className="h-6 w-1/4" />
-            <Skeleton className="mt-4 h-32 w-full" />
-        </div>
-    </section>
-);
-
 /**
  * @description 전용 페이지에서 내전 기록과 공개 링크, 밴, 만족도 결과 및 운영 후기를 탭으로 관리한다.
  */
-export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManagerProps) {
-    const [hasInitialCache] = useState(() => getCachedScrims(userId) !== null);
-    const [scrims, setScrims] = useState<ScrimRecord[]>(() => getCachedScrims(userId) ?? []);
-    const [isLoading, setIsLoading] = useState(!hasInitialCache);
-    const [isRefreshing, setIsRefreshing] = useState(false);
-    const [loadError, setLoadError] = useState('');
+export function ScrimManager({ csrfToken, players, userId }: ScrimManagerProps) {
+    const queryClient = useQueryClient();
+    const queryKey = useMemo(() => ['scrims', userId] as const, [userId]);
+    const scrimsQuery = useQuery({
+        queryKey,
+        queryFn: () => requestJson<ScrimsResponse>('/api/scrims', { credentials: 'same-origin' }),
+    });
+    const scrims = scrimsQuery.data?.scrims ?? EMPTY_SCRIMS;
+    const isLoading = scrimsQuery.isPending;
+    const isRefreshing = scrimsQuery.isFetching && !scrimsQuery.isPending;
+    const loadError = scrimsQuery.error
+        ? getErrorMessage(scrimsQuery.error, '내전 기록을 불러오지 못했습니다.')
+        : '';
     const [date, setDate] = useState(() => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(new Date()));
     const [startTime, setStartTime] = useState('21:00');
-    const [selectedId, setSelectedId] = useState(
-        () => getCachedScrims(userId)?.[0]?.id ?? '',
-    );
+    const [selectedId, setSelectedId] = useState('');
     const [activeTab, setActiveTab] = useState<DetailTab>('operations');
     const [heroPickerMode, setHeroPickerMode] = useState<HeroPickerMode>(null);
     const [isRandomModalOpen, setIsRandomModalOpen] = useState(false);
@@ -131,41 +98,18 @@ export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManag
     const updateScrims = useCallback((
         update: (current: ScrimRecord[]) => ScrimRecord[],
     ) => {
-        setScrims(current => {
-            const next = update(current);
-            scrimCache = { scrims: next, userId };
-            return next;
-        });
-    }, [userId]);
-
-    const load = useCallback(async (mode: 'initial' | 'refresh') => {
-        if (mode === 'initial') setIsLoading(true);
-        else setIsRefreshing(true);
-        setLoadError('');
-        try {
-            const result = await requestJson<ScrimsResponse>('/api/scrims', { credentials: 'same-origin' });
-            scrimCache = { scrims: result.scrims, userId };
-            setScrims(result.scrims);
-            setSelectedId(current => (
-                result.scrims.some(scrim => scrim.id === current)
-                    ? current
-                    : result.scrims[0]?.id ?? ''
-            ));
-        } catch (error) {
-            setLoadError(getErrorMessage(error, '내전 기록을 불러오지 못했습니다.'));
-        } finally {
-            if (mode === 'initial') setIsLoading(false);
-            else setIsRefreshing(false);
-        }
-    }, [userId]);
+        queryClient.setQueryData<ScrimsResponse>(queryKey, current => ({
+            scrims: update(current?.scrims ?? EMPTY_SCRIMS),
+        }));
+    }, [queryClient, queryKey]);
 
     useEffect(() => {
-        const timer = window.setTimeout(
-            () => void load(hasInitialCache ? 'refresh' : 'initial'),
-            0,
-        );
-        return () => window.clearTimeout(timer);
-    }, [hasInitialCache, load]);
+        setSelectedId(current => (
+            scrims.some(scrim => scrim.id === current)
+                ? current
+                : scrims[0]?.id ?? ''
+        ));
+    }, [scrims]);
 
     const selected = useMemo(
         () => scrims.find(scrim => scrim.id === selectedId) ?? null,
@@ -339,13 +283,9 @@ export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManag
     });
 
     return (
-        <main className="min-h-screen bg-surface px-4 py-6 text-slate-200 md:px-8 md:py-8">
-            <div className="mx-auto max-w-6xl">
+        <>
+            <div>
                 <PageHeader
-                    breadcrumbs={[
-                        { label: '대진표', onClick: onClose },
-                        { label: '내전 관리' },
-                    ]}
                     title="내전 관리"
                     description="내전 일정과 참여 링크, 결과 기록을 관리합니다."
                     actions={(
@@ -360,7 +300,7 @@ export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManag
                     <DataLoadError
                         isRetrying={isLoading || isRefreshing}
                         message={loadError}
-                        onRetry={() => void load(scrims.length === 0 ? 'initial' : 'refresh')}
+                        onRetry={() => void scrimsQuery.refetch()}
                         title="내전 기록을 불러오지 못했습니다"
                     />
                 ) : null}
@@ -398,7 +338,7 @@ export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManag
                         <h2 className="font-semibold text-white">내전 기록</h2>
                         <div className="mt-3">
                             {isLoading ? (
-                                <ScrimRecordsSkeleton />
+                                <DataLoadingState label="내전 기록을 불러오는 중…" />
                             ) : scrims.length > 0 ? (
                                 <div className="space-y-2">
                                     {scrims
@@ -436,7 +376,12 @@ export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManag
                     </aside>
 
                     {isLoading ? (
-                        <ScrimDetailSkeleton />
+                        <section className="card min-h-64">
+                            <DataLoadingState
+                                className="min-h-[13rem]"
+                                label="내전 상세 정보를 불러오는 중…"
+                            />
+                        </section>
                     ) : selected ? (
                         <section className="space-y-5">
                             <section className="card">
@@ -566,6 +511,6 @@ export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManag
             </AnimatePresence>
 
             {toast ? <AppToast toast={toast} onDismiss={dismissToast} /> : null}
-        </main>
+        </>
     );
 }

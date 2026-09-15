@@ -14,7 +14,7 @@ import {
     type UserSheetSnapshot,
 } from '../../utils/user-sheet';
 import { DataLoadError } from '../common/data-load-error';
-import { DouMascot } from '../common/dou-mascot';
+import { DataLoadingState } from '../common/data-loading-state';
 import { PageHeader } from '../layout/page-header';
 import { UserSheetBrowser } from './user-sheet-browser';
 import { UserSheetEditor } from './user-sheet-editor';
@@ -33,9 +33,9 @@ interface UserSheetPageProps {
     initialBattleTag?: string;
     initialEntryId?: string;
     isLoading: boolean;
+    isRefreshing: boolean;
     noteCacheScope: string;
     participantBattleTags: Set<string>;
-    onClose: () => void;
     onEntriesChange: (snapshot: UserSheetSnapshot, message: string) => void;
     onRetry: () => void;
     onSaveError: (message: string) => void;
@@ -53,9 +53,9 @@ export function UserSheetPage({
     initialBattleTag,
     initialEntryId,
     isLoading,
+    isRefreshing,
     noteCacheScope,
     participantBattleTags,
-    onClose,
     onEntriesChange,
     onRetry,
     onSaveError,
@@ -125,14 +125,10 @@ export function UserSheetPage({
     const isGuideActive = mode === 'GUIDE' || isTourOpen;
 
     return (
-        <main className="min-h-screen bg-surface px-4 py-6 text-slate-200 md:px-8 md:py-8">
-            <div className="mx-auto max-w-[1600px]">
+        <>
+            <div>
                 <div id="user-sheet-overview">
                     <PageHeader
-                        breadcrumbs={[
-                            { label: '대진표', onClick: onClose },
-                            { label: '유저 시트' },
-                        ]}
                         title="유저 시트"
                         description="자주 만나는 플레이어의 BattleTag, 티어, 메모를 저장합니다."
                         meta={(
@@ -181,13 +177,15 @@ export function UserSheetPage({
                                         id="user-sheet-refresh"
                                         type="button"
                                         onClick={onRetry}
-                                        disabled={isLoading}
+                                        disabled={isLoading || isRefreshing}
                                         className="btn-ghost disabled:cursor-wait disabled:opacity-50"
                                     >
-                                        {isLoading
+                                        {isLoading || isRefreshing
                                             ? <Loader2 size={15} className="animate-spin" aria-hidden="true" />
                                             : <RefreshCcw size={15} aria-hidden="true" />}
-                                        {isLoading ? '불러오는 중' : '새로고침'}
+                                        {isLoading
+                                            ? '불러오는 중'
+                                            : isRefreshing ? '새로고침 중' : '새로고침'}
                                     </button>
                                 ) : null}
                             </div>
@@ -197,7 +195,7 @@ export function UserSheetPage({
 
                 {error ? (
                     <DataLoadError
-                        isRetrying={isLoading}
+                        isRetrying={isLoading || isRefreshing}
                         message={error}
                         onRetry={onRetry}
                         title="유저 시트를 불러오지 못했습니다"
@@ -212,10 +210,10 @@ export function UserSheetPage({
                             onStartTour={startTour}
                         />
                     ) : isLoading && entries.length === 0 ? (
-                        <div className="flex min-h-0 flex-1 flex-col items-center justify-center text-center text-sm text-slate-400" role="status">
-                            <DouMascot variant="loading" size={112} className="animate-pulse" decorative />
-                            <p className="mt-4">유저 시트를 불러오는 중</p>
-                        </div>
+                        <DataLoadingState
+                            className="min-h-0 flex-1"
+                            label="유저 시트를 불러오는 중…"
+                        />
                     ) : mode === 'EDIT' ? (
                         <UserSheetEditor
                             csrfToken={csrfToken}
@@ -285,6 +283,6 @@ export function UserSheetPage({
                     onStepChange={handleTourStepChange}
                 />
             ) : null}
-        </main>
+        </>
     );
 }
