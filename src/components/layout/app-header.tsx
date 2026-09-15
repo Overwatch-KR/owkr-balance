@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { MatchLiveCollaborator, MatchLiveRecentChange } from '#domain/balance';
 import {
     NAVIGATION_STATE_EVENT,
@@ -33,9 +33,24 @@ export function AppHeader({
     onOpenGuide,
     userSheetHasError,
 }: AppHeaderProps) {
+    const isGuideOpenRef = useRef(isGuideOpen);
+    const onOpenGuideRef = useRef(onOpenGuide);
+
+    useEffect(() => {
+        isGuideOpenRef.current = isGuideOpen;
+        onOpenGuideRef.current = onOpenGuide;
+    }, [isGuideOpen, onOpenGuide]);
+
     useEffect(() => {
         const openGuide = () => {
-            if (!isGuideOpen) onOpenGuide();
+            try {
+                if (sessionStorage.getItem(PENDING_NAVIGATION_ACTION_KEY) === 'guide') {
+                    sessionStorage.removeItem(PENDING_NAVIGATION_ACTION_KEY);
+                }
+            } catch {
+                // 저장소를 사용할 수 없는 환경에서도 직접 호출 이벤트는 처리한다.
+            }
+            if (!isGuideOpenRef.current) onOpenGuideRef.current();
         };
         window.addEventListener(OPEN_GUIDE_EVENT, openGuide);
 
@@ -52,7 +67,7 @@ export function AppHeader({
         return () => {
             window.removeEventListener(OPEN_GUIDE_EVENT, openGuide);
         };
-    }, [isGuideOpen, onOpenGuide]);
+    }, []);
 
     useEffect(() => {
         window.dispatchEvent(new CustomEvent<AppNavigationStateDetail>(NAVIGATION_STATE_EVENT, {

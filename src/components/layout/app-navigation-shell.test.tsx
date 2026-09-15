@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
     AppNavigationShell,
     LiveSessionStatusBar,
+    NavigationLoadingShell,
 } from './app-navigation-shell';
 
 vi.mock('../../hooks/use-auth', () => ({
@@ -52,7 +53,21 @@ describe('AppNavigationShell', () => {
         expect(markup).toContain('href="/scrims"');
         expect(markup).toContain('href="/user-sheet"');
         expect(markup).toContain('href="/event-participants"');
+        expect(markup).toContain('src="/favicon.png"');
+        expect(markup).toContain('내전 관리');
         expect(markup.match(/aria-current="page"/g)).toHaveLength(2);
+    });
+
+    it('인증 확인 중에도 실제 화면과 같은 사이드바 폭을 유지한다', () => {
+        const markup = renderToStaticMarkup(
+            <NavigationLoadingShell collapsed={false}>
+                <main>로그인 확인 중</main>
+            </NavigationLoadingShell>,
+        );
+
+        expect(markup).toContain('data-navigation-loading="true"');
+        expect(markup).toContain('lg:pl-52');
+        expect(markup).toContain('src="/favicon.png"');
     });
 
     it('모바일 더보기는 다이얼로그 확장 상태를 전달한다', () => {
