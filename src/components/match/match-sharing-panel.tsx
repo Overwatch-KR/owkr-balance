@@ -40,8 +40,8 @@ export function MatchSharingPanel({
     onStartLive,
 }: MatchSharingPanelProps) {
     return (
-        <details className="group rounded-xl border border-slate-800/80 bg-surface-elevated/35">
-            <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 rounded-xl px-4 text-left transition-colors hover:bg-white/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-400/70 [&::-webkit-details-marker]:hidden">
+        <details className="group border-y border-slate-800/80 bg-surface-elevated/25">
+            <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 px-4 text-left transition-colors hover:bg-white/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-400/70 [&::-webkit-details-marker]:hidden">
                 <span className="flex min-w-0 items-center gap-3">
                     <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
                         isLiveConnected

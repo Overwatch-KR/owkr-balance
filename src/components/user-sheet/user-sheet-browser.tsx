@@ -67,16 +67,6 @@ export function UserSheetBrowser({
         <div className="flex min-h-0 flex-1">
             <aside className={`${showMobileDetail ? 'hidden' : 'flex'} w-full shrink-0 flex-col border-r border-slate-800 sm:flex sm:w-80 lg:w-96`}>
                 <div id="user-sheet-browse-tools" className="grid gap-2 border-b border-slate-800 p-3">
-                    <div id="user-sheet-actions">
-                        <button
-                            type="button"
-                            onClick={onEditAll}
-                            className="btn-primary w-full"
-                        >
-                            <Pencil size={14} aria-hidden="true" />
-                            전체 편집
-                        </button>
-                    </div>
                     <label id="user-sheet-search" className="relative">
                         <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" aria-hidden="true" />
                         <span className="sr-only">유저 검색</span>
@@ -101,11 +91,21 @@ export function UserSheetBrowser({
                             </button>
                         )}
                     </label>
-                    <p className="px-1 text-xs text-slate-500">
-                        {query.trim() ? `${filteredEntries.length}명 검색됨` : `총 ${entries.length}명 저장됨`}
-                    </p>
+                    <div id="user-sheet-actions" className="flex items-center justify-between gap-2">
+                        <p className="px-1 text-xs text-slate-500">
+                            {query.trim() ? `${filteredEntries.length}명 검색됨` : `총 ${entries.length}명 저장됨`}
+                        </p>
+                        <button
+                            type="button"
+                            onClick={onEditAll}
+                            className="btn-ghost min-h-8 border border-slate-700/70 px-2.5 text-xs"
+                        >
+                            <Pencil size={13} aria-hidden="true" />
+                            전체 편집
+                        </button>
+                    </div>
                 </div>
-                <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-2">
+                <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto">
                     {filteredEntries.length === 0 ? (
                         <div className="flex flex-col items-center px-3 py-8 text-center text-xs leading-relaxed text-slate-500">
                             <DouMascot variant={entries.length === 0 ? 'empty' : 'search'} size={64} className="mb-3 opacity-80" decorative />
@@ -120,10 +120,10 @@ export function UserSheetBrowser({
                                 key={entry.id}
                                 type="button"
                                 onClick={() => onSelect(entry.id)}
-                                className={`mb-1 w-full rounded-xl border px-3 py-3 text-left transition-colors ${
+                                className={`w-full border-b border-l-2 px-3 py-3 text-left transition-colors last:border-b-0 ${
                                     selectedEntry?.id === entry.id
-                                        ? 'border-cyan-500/30 bg-cyan-500/[0.08]'
-                                        : 'border-transparent hover:border-slate-800 hover:bg-white/[0.03]'
+                                        ? 'border-b-slate-800 border-l-cyan-400 bg-cyan-500/[0.055]'
+                                        : 'border-b-slate-800 border-l-transparent hover:bg-white/[0.03]'
                                 }`}
                             >
                                 <span className="flex items-center justify-between gap-2">

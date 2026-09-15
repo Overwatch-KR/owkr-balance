@@ -67,10 +67,10 @@ const PlayerList = ({
         return (
         <li
             key={player.id}
-            className={`group animate-fade-in rounded-xl border px-3 py-2.5 transition-colors ${
+            className={`group animate-fade-in border-b px-3 py-3 transition-colors last:border-b-0 ${
                 isWaitlist
-                    ? 'border-amber-500/10 bg-amber-500/[0.035] hover:border-amber-500/20 hover:bg-amber-500/[0.06]'
-                    : 'border-slate-800/60 bg-surface hover:border-slate-700/70 hover:bg-surface-overlay'
+                    ? 'border-amber-500/15 bg-amber-500/[0.025] hover:bg-amber-500/[0.055]'
+                    : 'border-slate-800/70 hover:bg-surface-overlay/70'
             }`}
         >
             <div className="flex min-w-0 items-center gap-2">
@@ -158,9 +158,9 @@ const PlayerList = ({
     };
 
     return (
-        <section id="player-management" className="card flex min-h-[420px] scroll-mt-24 flex-1 flex-col overflow-hidden p-4 xl:min-h-0" aria-labelledby="player-management-title">
+        <section id="player-management" className="card flex min-h-[420px] scroll-mt-24 flex-1 flex-col overflow-hidden p-0 xl:min-h-0" aria-labelledby="player-management-title">
             {/* Header */}
-            <div className="mb-3 flex shrink-0 items-center justify-between gap-3">
+            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-800/80 px-4 py-3.5">
                 <div className="flex min-w-0 items-center gap-2">
                     <Users size={17} className="shrink-0 text-slate-400" aria-hidden="true" />
                     <h2 id="player-management-title" className="truncate text-sm font-semibold text-white">
@@ -182,7 +182,7 @@ const PlayerList = ({
             </div>
 
             {!isReady && participantCount > 0 && (
-                <div className="mb-3 flex shrink-0 items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2">
+                <div className="mx-4 mt-3 flex shrink-0 items-center gap-2 border-l-2 border-amber-400 bg-amber-500/[0.06] px-3 py-2">
                     <AlertCircle size={13} className="shrink-0 text-amber-400" aria-hidden="true" />
                     <span className="text-xs text-amber-300">
                         팀을 짜려면 {10 - participantCount}명 더 필요합니다
@@ -191,7 +191,7 @@ const PlayerList = ({
             )}
 
             <div
-                className="mb-3 grid shrink-0 grid-cols-2 gap-1 rounded-xl bg-surface p-1"
+                className="mx-4 my-3 grid shrink-0 grid-cols-2 gap-1 rounded-md border border-slate-800/80 bg-surface p-1"
                 role="tablist"
                 aria-label="참가자 명단 구분"
                 aria-orientation="horizontal"
@@ -208,7 +208,7 @@ const PlayerList = ({
                     onClick={() => setActiveTab('participants')}
                     className={`flex min-h-10 touch-manipulation items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${
                         activeTab === 'participants'
-                            ? 'bg-slate-700/80 text-white shadow-sm'
+                            ? 'bg-slate-800 text-white'
                             : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
                     }`}
                 >
@@ -231,7 +231,7 @@ const PlayerList = ({
                     onClick={() => setActiveTab('waitlist')}
                     className={`flex min-h-10 touch-manipulation items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/70 ${
                         activeTab === 'waitlist'
-                            ? 'bg-amber-500/15 text-amber-200 shadow-sm'
+                            ? 'bg-amber-500/10 text-amber-200'
                             : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
                     }`}
                 >
@@ -247,7 +247,7 @@ const PlayerList = ({
                 ref={listScrollRef}
                 role="region"
                 aria-label={activeTab === 'participants' ? '참가자 스크롤 목록' : '대기열 스크롤 목록'}
-                className="custom-scrollbar scroll-region min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 max-xl:max-h-[32rem] xl:rounded-lg xl:border xl:border-slate-800/60 xl:bg-surface/20 xl:p-1.5"
+                className="custom-scrollbar scroll-region min-h-0 flex-1 overflow-y-auto overscroll-contain max-xl:max-h-[32rem] xl:bg-surface/20"
             >
                 {activeTab === 'participants' ? (
                     <div
@@ -257,7 +257,7 @@ const PlayerList = ({
                         tabIndex={0}
                         className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60"
                     >
-                        <ul className="space-y-1.5" aria-label="참가자 목록">
+                        <ul aria-label="참가자 목록">
                             {participants.map((player) => renderPlayerItem(player))}
 
                             {participantCount === 0 && (
@@ -277,8 +277,8 @@ const PlayerList = ({
                         tabIndex={0}
                         className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
                     >
-                        <p className="mb-2 px-1 text-xs text-slate-500">참가자를 삭제하면 대기열의 첫 번째 플레이어가 자동으로 참가합니다</p>
-                        <ul className="space-y-1.5" aria-label="대기열 목록">
+                        <p className="border-b border-slate-800/70 px-3 py-2 text-xs text-slate-500">참가자를 삭제하면 대기열의 첫 번째 플레이어가 자동으로 참가합니다</p>
+                        <ul aria-label="대기열 목록">
                             {waitlist.map((player) => renderPlayerItem(player, true))}
 
                             {waitlistCount === 0 && (
