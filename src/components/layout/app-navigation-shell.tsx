@@ -240,12 +240,12 @@ const NavigationButton = ({
         aria-label={label}
         title={collapsed ? label : undefined}
         onClick={onClick}
-        className={`relative flex min-h-11 w-full items-center rounded-xl text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${
+        className={`relative flex min-h-11 w-full items-center rounded-md border-l-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${
             collapsed ? 'justify-center px-2' : 'gap-3 px-3'
         } ${
             active
-                ? 'bg-cyan-400/10 text-cyan-100 ring-1 ring-inset ring-cyan-400/20'
-                : 'text-slate-400 hover:bg-white/5 hover:text-slate-100'
+                ? 'border-cyan-400 bg-slate-900/90 text-cyan-100'
+                : 'border-transparent text-slate-400 hover:bg-white/5 hover:text-slate-100'
         }`}
     >
         <Icon size={18} className="shrink-0" aria-hidden="true" />
@@ -274,12 +274,12 @@ const NavigationLink = ({
         aria-label={label}
         title={collapsed ? label : undefined}
         onClick={onNavigate}
-        className={`relative flex min-h-11 w-full items-center rounded-xl text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${
+        className={`relative flex min-h-11 w-full items-center rounded-md border-l-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${
             collapsed ? 'justify-center px-2' : 'gap-3 px-3'
         } ${
             active
-                ? 'bg-cyan-400/10 text-cyan-100 ring-1 ring-inset ring-cyan-400/20'
-                : 'text-slate-400 hover:bg-white/5 hover:text-slate-100'
+                ? 'border-cyan-400 bg-slate-900/90 text-cyan-100'
+                : 'border-transparent text-slate-400 hover:bg-white/5 hover:text-slate-100'
         }`}
     >
         <Icon size={18} className="shrink-0" aria-hidden="true" />
@@ -541,7 +541,7 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
         <div className="min-h-screen bg-surface">
             <aside
                 aria-label="주요 메뉴"
-                className={`fixed inset-y-0 left-0 z-[70] hidden border-r border-slate-800/70 bg-slate-950/95 backdrop-blur-xl transition-[width] duration-200 lg:flex lg:flex-col ${
+                className={`fixed inset-y-0 left-0 z-[70] hidden border-r border-slate-800/90 bg-[#080a0e]/98 backdrop-blur-xl transition-[width] duration-200 lg:flex lg:flex-col ${
                     isCollapsed ? 'w-20' : 'w-52'
                 }`}
             >
@@ -558,12 +558,15 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                         className="min-w-0 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
                     >
                         {isCollapsed ? (
-                            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-400/10 text-cyan-200 ring-1 ring-inset ring-cyan-400/25">
+                            <span className="flex h-10 w-10 items-center justify-center rounded-md border border-cyan-400/25 bg-cyan-400/[0.06] text-cyan-200">
                                 <Swords size={20} aria-hidden="true" />
                             </span>
                         ) : (
-                            <span className="block bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-lg font-bold tracking-tight text-transparent">
-                                OWKR Balance
+                            <span className="block">
+                                <span className="block text-base font-bold tracking-[0.04em] text-slate-100">OWKR</span>
+                                <span className="mt-0.5 block font-mono text-[9px] font-semibold tracking-[0.18em] text-cyan-300" translate="no">
+                                    MATCH CONTROL
+                                </span>
                             </span>
                         )}
                     </a>
@@ -647,7 +650,7 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                             onClick={requestGuide}
                         />
 
-                        <div className={`rounded-xl border border-slate-800/70 bg-slate-900/70 ${isCollapsed ? 'p-2' : 'p-3'}`}>
+                        <div className={`rounded-lg border border-slate-800/80 bg-slate-900/45 ${isCollapsed ? 'p-2' : 'p-3'}`}>
                             <div className={`flex items-center ${isCollapsed ? 'flex-col gap-2' : 'gap-3'}`}>
                                 <UserProfileAvatar
                                     avatarUrl={user.avatarUrl}
