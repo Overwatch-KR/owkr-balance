@@ -69,7 +69,7 @@ export function MatchLiveControls({
 
     return (
         <section
-            className="rounded-2xl border border-cyan-500/20 bg-cyan-500/[0.04] p-4"
+            className="border-l-2 border-cyan-400/60 bg-cyan-500/[0.035] p-4"
             aria-labelledby="match-live-title"
         >
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -113,7 +113,7 @@ export function MatchLiveControls({
             </div>
 
             {isConnected && session ? (
-                <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.05] px-3 py-3">
+                <div className="mt-4 border-t border-emerald-500/20 bg-emerald-500/[0.035] px-3 py-3">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                         <div className="min-w-0">
                             <div className="flex items-center gap-2 text-xs text-slate-400">
@@ -160,7 +160,7 @@ export function MatchLiveControls({
                             autoComplete="off"
                             spellCheck={false}
                             placeholder="실시간 공유 코드 10자리"
-                            className="min-w-0 w-full rounded-lg border border-slate-700 bg-slate-950/60 py-2 pl-9 pr-3 font-mono text-sm uppercase tracking-[0.16em] text-white outline-none transition-colors placeholder:font-sans placeholder:tracking-normal placeholder:text-slate-500 focus:border-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="min-w-0 w-full rounded-md border border-slate-700 bg-slate-950/60 py-2 pl-9 pr-3 font-mono text-sm uppercase tracking-[0.16em] text-white outline-none transition-colors placeholder:font-sans placeholder:tracking-normal placeholder:text-slate-500 focus:border-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
                         />
                     </div>
                     <button

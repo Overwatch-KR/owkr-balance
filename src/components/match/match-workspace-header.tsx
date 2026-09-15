@@ -22,14 +22,17 @@ export function MatchWorkspaceHeader({
             : `${remainingCount}명 더 필요`;
 
     return (
-        <header className="flex flex-col gap-4 border-b border-slate-800/80 pb-5 sm:flex-row sm:items-end sm:justify-between">
+        <header className="flex flex-col gap-3 border-b border-slate-800/90 pb-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0">
+                <p className="mb-1.5 font-mono text-[10px] font-semibold tracking-[0.18em] text-cyan-300" translate="no">
+                    MATCH CONTROL
+                </p>
                 <div className="flex flex-wrap items-center gap-2.5">
-                    <h1 className="text-pretty text-2xl font-semibold tracking-tight text-white">대진표</h1>
-                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium tabular-nums ${
+                    <h1 className="text-pretty text-[28px] font-semibold tracking-tight text-white">대진표</h1>
+                    <span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-semibold tabular-nums ${
                         participantCount === 10
-                            ? 'bg-emerald-500/10 text-emerald-300'
-                            : 'bg-slate-800/80 text-slate-300'
+                            ? 'border-emerald-500/20 bg-emerald-500/[0.07] text-emerald-300'
+                            : 'border-slate-700/70 bg-slate-900/80 text-slate-300'
                     }`}>
                         <Users size={13} aria-hidden="true" />
                         {rosterStatus}
@@ -38,7 +41,7 @@ export function MatchWorkspaceHeader({
                         <span className="text-xs tabular-nums text-slate-500">대기 {waitlistCount}명</span>
                     )}
                 </div>
-                <p className="mt-2 text-sm text-slate-400">
+                <p className="mt-1.5 text-sm text-slate-400">
                     {participantCount === 10
                         ? '자동 배정 후 선수를 눌러 자리를 바꿀 수 있습니다.'
                         : '현재 명단을 채우면 바로 팀을 나눌 수 있습니다.'}

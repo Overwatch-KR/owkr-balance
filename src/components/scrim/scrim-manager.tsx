@@ -325,7 +325,7 @@ export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManag
                             <h2 className="font-semibold text-white">내전 등록</h2>
                             <p className="mt-1 text-sm text-slate-400">진행 일시는 한국 시간(Asia/Seoul)으로 저장됩니다.</p>
                         </div>
-                        <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1 text-xs font-medium text-cyan-200">
+                        <span className="rounded-sm border-l-2 border-cyan-400 bg-cyan-400/[0.06] px-2.5 py-1 text-xs font-medium text-cyan-200">
                             로스터 {Math.min(players.length, 10)}명
                         </span>
                     </div>
@@ -363,10 +363,10 @@ export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManag
                                                 key={scrim.id}
                                                 type="button"
                                                 onClick={() => selectScrim(scrim)}
-                                                className={`w-full rounded-xl p-3 text-left text-sm ${
+                                                className={`w-full border-b border-l-2 p-3 text-left text-sm transition-colors last:border-b-0 ${
                                                     selected?.id === scrim.id
-                                                        ? 'bg-cyan-400/15 text-cyan-100 ring-1 ring-cyan-400/30'
-                                                        : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
+                                                        ? 'border-b-slate-800 border-l-cyan-400 bg-cyan-400/[0.055] text-cyan-100'
+                                                        : 'border-b-slate-800 border-l-transparent text-slate-300 hover:bg-slate-900'
                                                 }`}
                                             >
                                                 <span className="font-medium">{formatScrimLabel(scrim)}</span>
@@ -404,7 +404,7 @@ export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManag
                                     ) : null}
                                 </div>
                                 <div
-                                    className="mt-5 flex overflow-x-auto rounded-xl border border-slate-800 bg-slate-950/50 p-1"
+                                    className="mt-5 flex overflow-x-auto border-b border-slate-800 bg-slate-950/30"
                                     role="tablist"
                                     aria-label="내전 상세"
                                     aria-orientation="horizontal"
@@ -423,10 +423,10 @@ export function ScrimManager({ csrfToken, players, userId, onClose }: ScrimManag
                                                 aria-controls={`scrim-panel-${tab.id}`}
                                                 tabIndex={isActive ? 0 : -1}
                                                 onClick={() => setActiveTab(tab.id)}
-                                                className={`min-h-10 flex-1 whitespace-nowrap rounded-lg px-3 text-sm font-medium transition ${
+                                                className={`min-h-10 flex-1 whitespace-nowrap border-b-2 px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-400/70 ${
                                                     isActive
-                                                        ? 'bg-slate-800 text-white shadow'
-                                                        : 'text-slate-500 hover:text-slate-300'
+                                                        ? 'border-cyan-400 bg-cyan-400/[0.035] text-white'
+                                                        : 'border-transparent text-slate-500 hover:bg-white/[0.025] hover:text-slate-300'
                                                 }`}
                                             >
                                                 <Icon size={15} className="mr-1.5 inline" />{tab.label}

@@ -104,10 +104,10 @@ const MatchResult = ({
             <div
                 id="swap-guide"
                 data-exclude-export
-                className={`flex min-h-11 flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 text-xs ${
+                className={`flex min-h-11 flex-wrap items-center justify-between gap-2 border-l-2 px-3 py-2 text-xs ${
                     selectedSwapPlayer
-                        ? 'border-cyan-500/30 bg-cyan-500/10 text-cyan-100'
-                        : 'border-slate-800/70 bg-surface-elevated/50 text-slate-400'
+                        ? 'border-cyan-400 bg-cyan-500/[0.08] text-cyan-100'
+                        : 'border-slate-700 bg-surface-elevated/35 text-slate-400'
                 }`}
                 role="status"
                 aria-live="polite"

@@ -119,15 +119,15 @@ export const ParticipantWorkspace = ({
                 description="이번 내전의 참가 명단을 추가하고 확인합니다."
                 meta={(
                     <>
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-cyan-500/10 px-3 py-1.5 text-xs font-semibold text-cyan-200">
+                        <span className="inline-flex items-center gap-1.5 rounded-sm border-l-2 border-cyan-400 bg-cyan-500/[0.06] px-2.5 py-1 text-xs font-semibold text-cyan-200">
                             <Users size={13} aria-hidden="true" />
                             참가 {participantCount}/10
                         </span>
-                        <span className="rounded-full bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-300">
+                        <span className="rounded-sm border-l-2 border-slate-600 bg-slate-900 px-2.5 py-1 text-xs font-medium text-slate-300">
                             대기 {waitlistCount}명
                         </span>
                         {reviewCount > 0 && (
-                            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-300">
+                            <span className="inline-flex items-center gap-1.5 rounded-sm border-l-2 border-amber-400 bg-amber-500/[0.06] px-2.5 py-1 text-xs font-medium text-amber-300">
                                 <AlertCircle size={13} aria-hidden="true" />
                                 보완 {reviewCount}명
                             </span>
@@ -138,7 +138,9 @@ export const ParticipantWorkspace = ({
 
             <div
                 id="participant-next-step"
-                className="flex min-h-10 flex-wrap items-center justify-between gap-3 px-1"
+                className={`flex min-h-10 flex-wrap items-center justify-between gap-3 border-l-2 px-3 py-1 ${
+                    isReady ? 'border-emerald-400 bg-emerald-500/[0.035]' : 'border-slate-700'
+                }`}
             >
                 <p className={`text-sm ${isReady ? 'text-emerald-300' : 'text-slate-400'}`}>
                     <span className="font-medium">
@@ -164,7 +166,7 @@ export const ParticipantWorkspace = ({
 
             <div className="grid min-w-0 gap-5 xl:grid-cols-[190px_minmax(420px,1fr)_minmax(320px,390px)] xl:items-start">
                 <nav
-                    className="grid grid-cols-4 gap-1 rounded-xl border border-slate-800/80 bg-surface-elevated/45 p-1.5 xl:sticky xl:top-24 xl:grid-cols-1 xl:p-2"
+                    className="grid grid-cols-4 gap-1 rounded-lg border border-slate-800/80 bg-surface-elevated/45 p-1 xl:sticky xl:top-24 xl:grid-cols-1 xl:p-1.5"
                     aria-label="참가자 입력 방식"
                 >
                     {INPUT_MODES.map(({ mode, id, label, description, icon: Icon }) => {
@@ -176,9 +178,9 @@ export const ParticipantWorkspace = ({
                                 type="button"
                                 aria-pressed={isActive}
                                 onClick={() => formProps.onModeChange(mode)}
-                                className={`group flex min-h-11 min-w-0 flex-col items-center justify-center gap-1 rounded-lg px-1.5 py-2 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 xl:min-h-14 xl:flex-row xl:justify-start xl:gap-3 xl:px-3 xl:text-left ${
+                                className={`group relative flex min-h-11 min-w-0 flex-col items-center justify-center gap-1 rounded-md px-1.5 py-2 text-center transition-colors after:absolute focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 xl:min-h-14 xl:flex-row xl:justify-start xl:gap-3 xl:px-3 xl:text-left ${
                                     isActive
-                                        ? 'bg-blue-500/15 text-cyan-100 ring-1 ring-inset ring-cyan-400/20'
+                                        ? 'bg-slate-900 text-cyan-100 after:inset-x-2 after:bottom-0 after:h-0.5 after:bg-cyan-400 xl:after:inset-y-2 xl:after:left-0 xl:after:right-auto xl:after:h-auto xl:after:w-0.5'
                                         : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
                                 }`}
                             >

@@ -91,7 +91,7 @@ export function MatchShareControls({
 
     return (
         <section
-            className="rounded-2xl border border-slate-800 bg-surface-elevated/70 p-4"
+            className="border-l-2 border-slate-700 bg-slate-950/25 p-4"
             aria-labelledby="match-share-title"
         >
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -123,7 +123,7 @@ export function MatchShareControls({
             </div>
 
             {createdCode && (
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-cyan-500/20 bg-cyan-500/5 px-3 py-2">
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-cyan-500/20 bg-cyan-500/[0.035] px-3 py-2">
                     <span className="text-xs text-slate-400">
                         읽기 전용 코드 <strong className="ml-1 font-mono tracking-[0.12em] text-cyan-200">{createdCode}</strong>
                     </span>
@@ -157,7 +157,7 @@ export function MatchShareControls({
                     autoComplete="off"
                     spellCheck={false}
                     placeholder="읽기 전용 코드 10자리"
-                    className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 font-mono text-sm uppercase tracking-[0.16em] text-white outline-none transition-colors placeholder:font-sans placeholder:tracking-normal placeholder:text-slate-500 focus:border-cyan-500 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="min-w-0 flex-1 rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 font-mono text-sm uppercase tracking-[0.16em] text-white outline-none transition-colors placeholder:font-sans placeholder:tracking-normal placeholder:text-slate-500 focus:border-cyan-500 disabled:cursor-not-allowed disabled:opacity-50"
                 />
                 <button
                     type="button"

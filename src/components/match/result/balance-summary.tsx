@@ -97,7 +97,7 @@ const BalanceSummary = ({ matchResult }: BalanceSummaryProps) => {
         <section
             id="balance-summary"
             data-exclude-export
-            className="rounded-xl border border-slate-800/80 bg-surface-elevated/70 p-3.5"
+            className="border-y border-slate-800/90 bg-surface-elevated/35 py-3.5"
             aria-labelledby="balance-summary-title"
         >
             <div className="flex flex-wrap items-start justify-between gap-2">
@@ -112,8 +112,8 @@ const BalanceSummary = ({ matchResult }: BalanceSummaryProps) => {
                 </p>
             </div>
 
-            <dl className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <div className="rounded-lg border border-cyan-500/15 bg-cyan-500/[0.06] px-3 py-2">
+            <dl className="mt-3 grid grid-cols-2 overflow-hidden rounded-lg border border-slate-800/90 bg-surface sm:grid-cols-4">
+                <div className="border-b border-r border-slate-800/80 bg-cyan-500/[0.045] px-3 py-2.5 sm:border-b-0">
                     <dt className="text-[11px] text-cyan-200/70">팀 평균 차이</dt>
                     <dd className="mt-1 text-sm font-semibold text-cyan-100">
                         {totalLeadingTeam
@@ -121,9 +121,18 @@ const BalanceSummary = ({ matchResult }: BalanceSummaryProps) => {
                             : '거의 동일'}
                     </dd>
                 </div>
-                {roleDifferences.map(({ role, label, leadingTeam, difference }) => (
-                    <div key={role} className="rounded-lg bg-surface px-3 py-2">
-                            <dt className="text-[11px] text-slate-500">{label} 평균 차이</dt>
+                {roleDifferences.map(({ role, label, leadingTeam, difference }, index) => (
+                    <div
+                        key={role}
+                        className={`border-slate-800/80 px-3 py-2.5 sm:border-r sm:last:border-r-0 ${
+                            index === 0
+                                ? 'border-b sm:border-b-0'
+                                : index === 1
+                                    ? 'border-r'
+                                    : ''
+                        }`}
+                    >
+                        <dt className="text-[11px] text-slate-500">{label} 평균 차이</dt>
                         <dd
                             className={`mt-1 font-mono text-sm font-semibold tabular-nums ${
                                 leadingTeam === '1팀'

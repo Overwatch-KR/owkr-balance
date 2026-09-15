@@ -52,7 +52,7 @@ export function MatchResultPanel({
     userSheetByBattleTag,
 }: MatchResultPanelProps) {
     return (
-        <section className="grid min-w-0 content-start gap-6" aria-labelledby="match-result-title">
+        <section className="grid min-w-0 content-start gap-4" aria-labelledby="match-result-title">
             <div className="flex min-h-11 flex-wrap items-center justify-between gap-3">
                 <div className="flex min-w-0 flex-wrap items-center gap-2.5">
                     <h2 id="match-result-title" className="text-lg font-semibold text-white">팀 배정</h2>
@@ -107,7 +107,7 @@ export function MatchResultPanel({
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="flex min-h-[320px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-800 px-6 sm:min-h-[420px]"
+                        className="flex min-h-[300px] flex-col items-center justify-center rounded-xl border border-slate-800/80 bg-surface-elevated/35 px-6 sm:min-h-[360px]"
                     >
                         {isBalancing ? (
                             <div className="flex flex-col items-center gap-4">

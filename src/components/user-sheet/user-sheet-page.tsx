@@ -136,7 +136,7 @@ export function UserSheetPage({
                         title="유저 시트"
                         description="자주 만나는 플레이어의 BattleTag, 티어, 메모를 저장합니다."
                         meta={(
-                            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300">
+                            <span className="inline-flex items-center gap-1.5 rounded-sm border-l-2 border-emerald-400 bg-emerald-500/[0.06] px-2.5 py-1 text-xs font-semibold text-emerald-300">
                                 <FileSpreadsheet size={13} aria-hidden="true" />
                                 저장된 유저 {entries.length}명
                             </span>

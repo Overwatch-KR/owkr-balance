@@ -11,13 +11,13 @@ export default {
             },
             colors: {
                 surface: {
-                    DEFAULT: '#0d0e12',
-                    elevated: '#14161c',
-                    overlay: '#1a1d25',
+                    DEFAULT: '#090b0f',
+                    elevated: '#101319',
+                    overlay: '#171b23',
                 },
                 accent: {
-                    DEFAULT: '#3b82f6',
-                    hover: '#60a5fa',
+                    DEFAULT: '#0284c7',
+                    hover: '#0ea5e9',
                 },
                 danger: {
                     DEFAULT: '#ef4444',

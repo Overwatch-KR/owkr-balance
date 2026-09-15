@@ -32,7 +32,7 @@ function LinkControlCard({
     const isDeactivating = pendingActionKey === `deactivateLink:${kind}`;
 
     return (
-        <section className="rounded-xl border border-slate-800 bg-slate-950/50 p-4">
+        <section className="border-l-2 border-slate-700 bg-slate-950/35 p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                     <h3 className="font-semibold text-white">{title}</h3>
@@ -44,10 +44,10 @@ function LinkControlCard({
                                 : '비활성화된 내전 링크'}
                     </p>
                 </div>
-                <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                <span className={`rounded-sm border px-2 py-1 text-xs font-medium ${
                     link?.active
-                        ? 'bg-emerald-400/10 text-emerald-200'
-                        : 'bg-slate-800 text-slate-400'
+                        ? 'border-emerald-400/20 bg-emerald-400/[0.07] text-emerald-200'
+                        : 'border-slate-700 bg-slate-900 text-slate-400'
                 }`}>
                     {link?.active ? '활성' : '비활성'}
                 </span>
