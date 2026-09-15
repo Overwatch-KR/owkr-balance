@@ -42,7 +42,7 @@ src/
 │   ├── common/         여러 기능에서 재사용하는 표현 컴포넌트
 │   ├── event/          이벤트 참여자 등록·조회·편집
 │   ├── layout/         전역 헤더와 페이지 공통 헤더
-│   ├── match/          팀 결과, 교체, 대안 조합, 이미지 복사
+│   ├── match/          팀 결과, 교체, 대안 조합, 공동 편집, 결과 전달
 │   ├── player/         참가자 입력·검토·목록
 │   ├── roles/          역할 아이콘
 │   ├── scrim/          내전 생성·링크·밴·설문·후기
@@ -72,6 +72,7 @@ api/
 ├── _lib/               인증, Redis, 저장소 구현과 공통 HTTP 처리
 ├── auth/               Discord OAuth 세션
 ├── event-participants/ 이벤트 참여자 저장 API
+├── match-shares/       실시간 공동 편집과 읽기 전용 결과 공유 API
 ├── notes/              개인 운영 메모 API
 ├── public/             로그인 없이 사용하는 참여 API
 ├── scrims/             내전 운영 API
@@ -91,7 +92,9 @@ domains/scrim/
 └── tests/              도메인 계약 검증
 ```
 
-`domains` 내부 구현은 `domain.json`의 `publicApi`에 선언한 진입점으로만 외부에 공개합니다. 애플리케이션과 API에서 도메인을 사용할 때는 긴 상대 경로 대신 `package.json#imports`에 선언한 `#domain/balance`, `#domain/player`, `#domain/scrim`, `#domain/scrim/rules`를 사용합니다. `balance`는 `player`의 공개 모델에만 의존하며, 내전 도메인은 계약·모델용 공개 API와 가벼운 규칙 진입점을 분리합니다.
+`domains` 내부 구현은 `domain.json`의 `publicApi`에 선언한 진입점으로만 외부에 공개합니다. 프런트엔드에서 도메인을 사용할 때는 긴 상대 경로 대신 `package.json#imports`에 선언한 `#domain/balance`, `#domain/player`, `#domain/scrim`, `#domain/scrim/rules`를 사용합니다. `balance`는 `player`의 공개 모델에만 의존하며, 내전 도메인은 계약·모델용 공개 API와 가벼운 규칙 진입점을 분리합니다.
+
+Vercel Functions는 배포 산출물에서 TypeScript `#domain/*` 별칭을 안전하게 추적하지 못할 수 있으므로 예외적으로 `domains/*/shared/public.js` 같은 명시적인 상대 `.js` 경로를 사용합니다. ESLint가 `api/`의 `#domain/*` import와 `src/` 역방향 의존을 차단합니다.
 
 ## import 규칙
 
@@ -101,12 +104,29 @@ import { normalizeMatchShareCode } from '#domain/balance';
 import { useRosterManagement } from '@application/roster/use-roster-management';
 ```
 
-- `../../domains/.../shared/public`처럼 디렉터리 깊이에 결합되는 cross-layer 상대 경로를 새로 만들지 않습니다.
-- 도메인 외부에서는 `#domain/*` 공개 진입점을 사용합니다.
+- 프런트엔드에서 `../../domains/.../shared/public`처럼 디렉터리 깊이에 결합되는 cross-layer 상대 경로를 새로 만들지 않습니다.
+- 프런트엔드 도메인 외부에서는 `#domain/*` 공개 진입점을 사용합니다.
 - 프런트엔드 계층 간 명시적인 import가 필요하면 `@application/*`, `@presentation/*` alias를 사용합니다.
 - 같은 기능 폴더 내부의 짧은 상대 import는 그대로 사용합니다. 모든 import를 alias로 바꾸는 것이 목표는 아닙니다.
 - `application/`은 `components/` 또는 `@presentation/*`를 import하지 않습니다. ESLint가 이 역방향 의존을 차단합니다.
 - `api/`는 `src/`를 import하지 않습니다. 공통 로직은 도메인 공개 API로 이동합니다.
+- `api/`가 도메인을 사용할 때는 공개 진입점의 상대 `.js` 경로만 사용합니다.
+
+## 페이지와 라우팅
+
+`main.tsx`가 공개 경로와 인증 애플리케이션을 먼저 분리하고, `App.tsx`가 관리자 페이지 전환을 조립합니다.
+
+| 경로 | 화면 |
+| --- | --- |
+| `/` | 대진표와 팀 결과 |
+| `/participants` | 참가자 입력·대기열·참여 대조 |
+| `/user-sheet` | 유저 시트 검색·상세·전체 편집 |
+| `/scrims` | 내전 등록·공개 링크·결과·후기 |
+| `/event-participants` | 이벤트 참여 명단 |
+| `/participate/:token` | 로그인 없는 공개 투표·설문 |
+| `/discord-login-policy` | Discord 로그인 정보 이용 안내 |
+
+관리자 페이지는 `AppNavigationShell` 안에서 History API로 이동하며, 새로고침해도 같은 경로를 복원합니다. 유저 시트를 다시 모달 흐름으로 합치지 않습니다.
 
 ## 페이지 UI 규칙
 
@@ -116,6 +136,17 @@ import { useRosterManagement } from '@application/roster/use-roster-management';
 - 이전 페이지로 돌아가는 동작도 breadcrumb 항목에 연결합니다.
 - 별도의 `뒤로가기` 버튼은 모달, 단계형 입력, 임시 상세 화면처럼 실제 브라우저/작업 단계의 역방향 이동에만 사용합니다.
 - 제목, 설명, 메타 정보, 보조 액션의 위치는 `PageHeader` 슬롯을 기준으로 맞춥니다.
+- 관리자 화면은 조밀한 `OWKR Match Control` 운영 콘솔을 기준으로 하며, 중첩 카드보다 구분선과 표면 깊이를 사용합니다.
+- cyan은 주요 동작·현재 위치·실시간 연결, blue/red는 두 팀, emerald는 성공, amber는 경고에 사용합니다.
+
+## 실시간 공동 작업 경계
+
+- 클라이언트는 `use-match-live-share.ts`에서 로컬 변경을 180ms 지연 저장하고 revision 충돌을 처리합니다.
+- 조회는 활동 중 500ms, 30초간 변경이 없으면 1.5초 간격의 적응형 폴링을 사용하며 탭 복귀 시 즉시 확인합니다.
+- Redis에는 Discord ID와 선택적 팀 위치, revision, 공동 작업자 프로필과 최근 변경 메타데이터를 24시간 저장합니다.
+- 참가자와 대기열을 합친 실시간 명단은 최대 50명이며, 공동 작업자는 최근 15초 안에 확인된 관리자만 활성 상태로 표시합니다.
+- 화면 복원 시 현재 유저 시트의 BattleTag와 티어를 다시 결합합니다. 공유 데이터에 티어나 개인 운영 메모를 복제하지 않습니다.
+- 읽기 전용 결과 전달과 실시간 공동 편집은 같은 API 진입점을 사용하지만 별도의 저장 계약과 사용자 흐름을 유지합니다.
 
 ## 배치 기준
 
