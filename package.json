@@ -11,7 +11,8 @@
     "#domain/scrim/rules": "./domains/scrim/shared/rules.ts"
   },
   "scripts": {
-    "dev": "vite",
+    "dev": "pnpm dev:local-only",
+    "dev:frontend": "vite",
     "dev:full": "dotenv -e .env.local -- vercel dev",
     "dev:local": "dotenv -e .env.local -v NODE_ENV=development -v OWKR_LOCAL_AUTH_BYPASS=true -- vercel dev --local",
     "dev:local-only": "dotenv -e .env.example -v NODE_ENV=development -v OWKR_LOCAL_AUTH_BYPASS=true -v OWKR_LOCAL_DATA_ONLY=true -- vercel dev --local",

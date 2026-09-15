@@ -5,6 +5,7 @@ import type { ScrimRosterParticipant } from '#domain/scrim';
 import { useToast } from '../../hooks/use-toast';
 import { getErrorMessage, requestJson } from '../../utils/api';
 import { AppToast } from '../app-toast';
+import { DataLoadError } from '../common/data-load-error';
 import { PageHeader } from '../layout/page-header';
 import { EventParticipantActions } from './event-participant-actions';
 import { EventParticipantSummary } from './event-participant-summary';
@@ -13,7 +14,19 @@ import { EventUserSheetPicker } from './event-user-sheet-picker';
 interface EventParticipantsPageProps {
     csrfToken: string;
     onClose: () => void;
+    userId: string;
 }
+
+interface EventParticipantsCache {
+    snapshot: EventParticipationSnapshot;
+    userId: string;
+}
+
+let eventParticipantsCache: EventParticipantsCache | null = null;
+
+const getCachedSnapshot = (userId: string): EventParticipationSnapshot | null => (
+    eventParticipantsCache?.userId === userId ? eventParticipantsCache.snapshot : null
+);
 
 const hasSameIds = (left: Set<string>, right: Set<string>): boolean => (
     left.size === right.size && [...left].every(id => right.has(id))
@@ -22,23 +35,29 @@ const hasSameIds = (left: Set<string>, right: Set<string>): boolean => (
 /**
  * @description 상단 메뉴에서 이벤트 실제 참여자를 직접 확인하고 저장하는 전용 화면이다.
  */
-export function EventParticipantsPage({ csrfToken, onClose }: EventParticipantsPageProps) {
-    const [snapshot, setSnapshot] = useState<EventParticipationSnapshot>({
+export function EventParticipantsPage({ csrfToken, onClose, userId }: EventParticipantsPageProps) {
+    const [initialSnapshot] = useState(() => getCachedSnapshot(userId));
+    const [snapshot, setSnapshot] = useState<EventParticipationSnapshot>(() => initialSnapshot ?? {
         candidates: [],
         participantIds: [],
     });
-    const [draftParticipantIds, setDraftParticipantIds] = useState<Set<string>>(new Set());
-    const [isInitialLoading, setIsInitialLoading] = useState(true);
+    const [draftParticipantIds, setDraftParticipantIds] = useState<Set<string>>(
+        () => new Set(initialSnapshot?.participantIds ?? []),
+    );
+    const [isInitialLoading, setIsInitialLoading] = useState(initialSnapshot === null);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    const [isEditing, setIsEditing] = useState(false);
+    const [isEditing, setIsEditing] = useState(
+        () => initialSnapshot !== null && initialSnapshot.updatedAt === undefined,
+    );
     const [error, setError] = useState('');
     const { dismissToast, showToast, toast } = useToast();
 
     const applySnapshot = useCallback((next: EventParticipationSnapshot) => {
+        eventParticipantsCache = { snapshot: next, userId };
         setSnapshot(next);
         setDraftParticipantIds(new Set(next.participantIds));
-    }, []);
+    }, [userId]);
 
     const load = useCallback(async (mode: 'initial' | 'refresh') => {
         if (mode === 'initial') setIsInitialLoading(true);
@@ -59,9 +78,12 @@ export function EventParticipantsPage({ csrfToken, onClose }: EventParticipantsP
     }, [applySnapshot]);
 
     useEffect(() => {
-        const timer = window.setTimeout(() => void load('initial'), 0);
+        const timer = window.setTimeout(
+            () => void load(initialSnapshot === null ? 'initial' : 'refresh'),
+            0,
+        );
         return () => window.clearTimeout(timer);
-    }, [load]);
+    }, [initialSnapshot, load]);
 
     const savedParticipantIds = useMemo(
         () => new Set(snapshot.participantIds),
@@ -73,6 +95,10 @@ export function EventParticipantsPage({ csrfToken, onClose }: EventParticipantsP
             ? snapshot.candidates
             : snapshot.candidates.filter(candidate => savedParticipantIds.has(candidate.id))
     ), [isEditing, savedParticipantIds, snapshot.candidates]);
+    const canShowContent = !error
+        || initialSnapshot !== null
+        || snapshot.candidates.length > 0
+        || snapshot.updatedAt !== undefined;
 
     const toggleParticipant = (participantId: string) => {
         setDraftParticipantIds(current => {
@@ -147,51 +173,49 @@ export function EventParticipantsPage({ csrfToken, onClose }: EventParticipantsP
                 />
 
                 {error ? (
-                    <section className="card border border-rose-400/20" role="alert">
-                        <h2 className="font-semibold text-rose-200">참여자 명단을 불러오지 못했습니다</h2>
-                        <p className="mt-2 text-sm text-slate-400">{error}</p>
-                        <button type="button" className="btn-ghost mt-4" onClick={() => void load('refresh')}>
-                            다시 시도
-                        </button>
-                    </section>
-                ) : (
-                    <>
-                        {!isInitialLoading && (
-                            snapshot.candidates.length > 0 || snapshot.updatedAt !== undefined
-                        ) ? (
-                            <EventParticipantActions
-                                hasSaved={snapshot.updatedAt !== undefined}
-                                isDirty={isDirty}
-                                isEditing={isEditing}
-                                isSaving={isSaving}
-                                participantCount={draftParticipantIds.size}
-                                onSelectAll={() => setDraftParticipantIds(new Set(
-                                    snapshot.candidates.map(candidate => candidate.id),
-                                ))}
-                                onClear={() => setDraftParticipantIds(new Set())}
-                                onEdit={() => setIsEditing(true)}
-                                onCancel={() => {
-                                    setDraftParticipantIds(new Set(snapshot.participantIds));
-                                    setIsEditing(false);
-                                }}
-                                onSave={() => void save()}
-                            />
-                        ) : null}
-                        {!isInitialLoading && isEditing ? (
-                            <EventUserSheetPicker
-                                participantIds={draftParticipantIds}
-                                onAdd={addUserSheetParticipant}
-                            />
-                        ) : null}
-                        <EventParticipantSummary
-                            candidates={displayedCandidates}
-                            isEditing={isEditing}
-                            isLoading={isInitialLoading}
-                            participantIds={draftParticipantIds}
-                            onToggle={toggleParticipant}
-                        />
-                    </>
-                )}
+                    <DataLoadError
+                        isRetrying={isInitialLoading || isRefreshing}
+                        message={error}
+                        onRetry={() => void load(snapshot.candidates.length === 0 ? 'initial' : 'refresh')}
+                        title="이벤트 참여자를 불러오지 못했습니다"
+                    />
+                ) : null}
+                {canShowContent && !isInitialLoading && (
+                    snapshot.candidates.length > 0 || snapshot.updatedAt !== undefined
+                ) ? (
+                    <EventParticipantActions
+                        hasSaved={snapshot.updatedAt !== undefined}
+                        isDirty={isDirty}
+                        isEditing={isEditing}
+                        isSaving={isSaving}
+                        participantCount={draftParticipantIds.size}
+                        onSelectAll={() => setDraftParticipantIds(new Set(
+                            snapshot.candidates.map(candidate => candidate.id),
+                        ))}
+                        onClear={() => setDraftParticipantIds(new Set())}
+                        onEdit={() => setIsEditing(true)}
+                        onCancel={() => {
+                            setDraftParticipantIds(new Set(snapshot.participantIds));
+                            setIsEditing(false);
+                        }}
+                        onSave={() => void save()}
+                    />
+                ) : null}
+                {canShowContent && !isInitialLoading && isEditing ? (
+                    <EventUserSheetPicker
+                        participantIds={draftParticipantIds}
+                        onAdd={addUserSheetParticipant}
+                    />
+                ) : null}
+                {canShowContent ? (
+                    <EventParticipantSummary
+                        candidates={displayedCandidates}
+                        isEditing={isEditing}
+                        isLoading={isInitialLoading}
+                        participantIds={draftParticipantIds}
+                        onToggle={toggleParticipant}
+                    />
+                ) : null}
             </div>
             {toast ? <AppToast toast={toast} onDismiss={dismissToast} /> : null}
         </main>

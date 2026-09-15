@@ -25,6 +25,7 @@ src/
 │   ├── player/list/     # Player list display
 │   ├── match/result/    # Team cards + swap UI
 │   ├── scrim/           # Scrim operations, surveys, and reviews
+│   ├── user-sheet/      # Dedicated shared user sheet page and editors
 │   └── roles/icon/      # Role icons
 ├── hooks/               # View/browser hooks and compatibility re-exports
 ├── types/               # Compatibility exports for domain types
@@ -45,7 +46,10 @@ The frontend uses a pragmatic layered architecture: `components` (presentation) 
 ## Commands
 
 ```bash
-pnpm dev      # Start Vite frontend development server
+pnpm dev              # Start safe local-only app with local auth and no remote Redis
+pnpm dev:frontend     # Start the Vite frontend without Functions
+pnpm dev:local        # Start local auth against configured Redis (writes real data)
+pnpm dev:full         # Start Discord OAuth and Functions from .env.local
 pnpm build    # Production build to dist/
 pnpm lint     # ESLint check
 pnpm preview  # Preview production build
@@ -56,14 +60,18 @@ pnpm check    # Typecheck, lint, test, boundaries, and build
 
 ### Scoring Formula
 ```typescript
-score = (tierIndex * 600) + ((6 - division) * 100)
-// Tiers: BRONZE(0) → CHAMPION(7), Divisions: 1-5
+base = [0, 500, 1100, 1800, 2600, 3600, 4800, 6200, 7800][tierIndex]
+nextBase = next tier base, or base + 500 for Champion
+score = base + round(((nextBase - base) / 5) * (5 - division))
+// Divisions: 1-5; tiers: BRONZE → SILVER → GOLD → PLATINUM → EMERALD → DIAMOND → MASTER → GRANDMASTER → CHAMPION
 ```
 
 ### Role System
 - Roles: `TANK`, `DPS`, `SUPPORT`
 - Use `!` suffix for preferred role (e.g., `다이아3!`)
-- Algorithm prioritizes preferred-role violations, avoided roles, unranked roles, then score balance
+- Use `?` suffix for one avoided role and `미배치`/`UNRANKED` for at most one unranked role
+- Algorithm prioritizes preferred-role violations (unless ignored), tank safety, avoided roles, unranked roles, then score balance
+- Shared roster identity uses user-sheet UUID and Discord user ID before a unique BattleTag fallback
 
 ### Player Input Formats
 ```
@@ -76,11 +84,11 @@ PlayerName#1234 다3! 플2 골1         # ! = preferred
 
 - **Components:** Functional + hooks only, no class components
 - **Application:** Put workflows that coordinate multiple states/effects under `src/application/<feature>/`; application code must not import presentation components
-- **State:** useState/useEffect, localStorage persistence, no Redux
+- **State:** useState/useEffect and focused hooks; expiring browser storage for session UI state, Redis for shared state, no Redux
 - **Naming:** PascalCase components, camelCase functions, UPPER_SNAKE constants
-- **Styling:** Tailwind dark theme (`#0b0c10` bg), blue/cyan gradients for CTAs
+- **Styling:** Dense dark `OWKR Match Control` console; prefer dividers and surface depth over nested cards. Cyan is for primary/active/live state, blue/red for teams, emerald for success, amber for warnings
 - **Page navigation:** Full admin pages use `src/components/layout/page-header.tsx` with breadcrumbs; reserve standalone back buttons for modal/step/detail flows
-- **Imports:** External domain consumers use `#domain/balance`, `#domain/player`, `#domain/scrim`, or `#domain/scrim/rules`; avoid deep `../../domains/**/shared/**` imports
+- **Imports:** Frontend domain consumers use `#domain/balance`, `#domain/player`, `#domain/scrim`, or `#domain/scrim/rules`; Vercel Functions use the domain public API through explicit relative `.js` paths because deployment cannot safely bundle the TypeScript import aliases
 - **Layer aliases:** Use `@application/*` and `@presentation/*` when a cross-layer frontend import is clearer than a long relative path; keep short same-feature relative imports
 - **TypeScript:** Strict mode, explicit types, interfaces for data models
 - **JSDoc:** Flow-focused, concise, and every JSDoc block must include an `@description` tag; avoid exhaustive narration
@@ -117,4 +125,5 @@ PlayerName#1234 다3! 플2 골1         # ! = preferred
 - Tests use Vitest
 - Korean UI throughout
 - Deployed on Vercel with Vite static assets and Vercel Functions
-- localStorage keys: `owkr_players`, `owkr_result`
+- Browser match state is scoped by admin ID and expires after 30 minutes; remembered live/share codes expire after 24 hours
+- Live collaboration uses revision-based adaptive polling: 500 ms while active, 1.5 s while idle, and immediate refresh on focus/visibility return

@@ -110,31 +110,33 @@ export const ParticipantWorkspace = ({
 
     return (
         <div className="space-y-4">
-            <PageHeader
-                breadcrumbs={[
-                    { label: '대진표', onClick: onClose },
-                    { label: '참가자' },
-                ]}
-                title="참가자"
-                description="이번 내전의 참가 명단을 추가하고 확인합니다."
-                meta={(
-                    <>
-                        <span className="inline-flex items-center gap-1.5 rounded-sm border-l-2 border-cyan-400 bg-cyan-500/[0.06] px-2.5 py-1 text-xs font-semibold text-cyan-200">
-                            <Users size={13} aria-hidden="true" />
-                            참가 {participantCount}/10
-                        </span>
-                        <span className="rounded-sm border-l-2 border-slate-600 bg-slate-900 px-2.5 py-1 text-xs font-medium text-slate-300">
-                            대기 {waitlistCount}명
-                        </span>
-                        {reviewCount > 0 && (
-                            <span className="inline-flex items-center gap-1.5 rounded-sm border-l-2 border-amber-400 bg-amber-500/[0.06] px-2.5 py-1 text-xs font-medium text-amber-300">
-                                <AlertCircle size={13} aria-hidden="true" />
-                                보완 {reviewCount}명
+            <div id="participant-workspace-header">
+                <PageHeader
+                    breadcrumbs={[
+                        { label: '대진표', onClick: onClose },
+                        { label: '참가자' },
+                    ]}
+                    title="참가자"
+                    description="이번 내전의 참가 명단을 추가하고 확인합니다."
+                    meta={(
+                        <>
+                            <span className="inline-flex items-center gap-1.5 rounded-sm border-l-2 border-cyan-400 bg-cyan-500/[0.06] px-2.5 py-1 text-xs font-semibold text-cyan-200">
+                                <Users size={13} aria-hidden="true" />
+                                참가 {participantCount}/10
                             </span>
-                        )}
-                    </>
-                )}
-            />
+                            <span className="rounded-sm border-l-2 border-slate-600 bg-slate-900 px-2.5 py-1 text-xs font-medium text-slate-300">
+                                대기 {waitlistCount}명
+                            </span>
+                            {reviewCount > 0 && (
+                                <span className="inline-flex items-center gap-1.5 rounded-sm border-l-2 border-amber-400 bg-amber-500/[0.06] px-2.5 py-1 text-xs font-medium text-amber-300">
+                                    <AlertCircle size={13} aria-hidden="true" />
+                                    보완 {reviewCount}명
+                                </span>
+                            )}
+                        </>
+                    )}
+                />
+            </div>
 
             <div
                 id="participant-next-step"

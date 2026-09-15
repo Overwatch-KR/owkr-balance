@@ -1,87 +1,37 @@
 # CLAUDE.md - OWKR Match
 
-## Project Overview
+`AGENTS.md` is the canonical repository instruction document. Read and follow it before changing code. This file only records the minimum current context needed to avoid using the repository's former GitHub Pages architecture.
 
-OWKR Match is a web-based Overwatch 2 team balancing tool for managing competitive scrimmages. It parses player data, runs an optimization algorithm to balance teams by rank, and supports manual adjustments. The UI is in Korean.
+## Current architecture
 
-## Tech Stack
+- React 19, TypeScript 5.9, Rolldown Vite and Tailwind CSS 3.4
+- Vercel deployment: Vite static frontend plus Node.js Vercel Functions
+- Discord OAuth for administrator access and Redis for shared server state
+- `src/components` presentation → `src/application` workflows → `domains/*` public APIs
+- Team balancing runs through the browser Web Worker in `src/workers`
+- Full admin pages: `/`, `/participants`, `/user-sheet`, `/scrims`, `/event-participants`
+- Public participation: `/participate/:token`; Discord policy: `/discord-login-policy`
 
-- **Frontend:** React 19, TypeScript 5.9, Vite (Rolldown), Tailwind CSS 3.4
-- **Hosting:** GitHub Pages (static site)
-- **Animation:** Framer Motion
-- **Build:** Vite, ESLint 9, PostCSS
-
-## Project Structure
-
-```
-src/
-├── components/          # React components by feature
-│   ├── player/form/    # Player input + bulk paste
-│   ├── player/list/    # Player list display
-│   ├── match/result/   # Team cards + swap UI
-│   └── roles/icon/     # Role icons
-├── hooks/
-│   └── use-balance.ts  # Balance worker state
-├── types/              # TypeScript interfaces
-├── constants/          # Tier definitions, scoring
-└── utils/
-    ├── balance/        # Core balancing algorithm
-    └── parser/         # Discord chat log parsing
-
-.github/workflows/       # GitHub Pages deployment
-```
+Do not restore the old `src/utils/balance` domain, GitHub Pages deployment assumptions, modal user sheet, microphone balancing option, or BattleTag-only identity model.
 
 ## Commands
 
 ```bash
-pnpm dev      # Start dev server (localhost:5173)
-pnpm build    # Production build to dist/
-pnpm lint     # ESLint check
-pnpm preview  # Preview production build
-pnpm check    # Typecheck, lint, test, and build
+pnpm dev              # Local auth, local-only data, Vercel Functions
+pnpm dev:frontend     # Vite frontend only
+pnpm dev:local        # Local auth with configured Redis; may write real data
+pnpm dev:full         # Discord OAuth with .env.local
+pnpm check            # Typecheck, lint, tests, boundaries, production build
 ```
 
-## Key Concepts
+## Current product rules
 
-### Scoring Formula
-```typescript
-score = (tierIndex * 600) + ((6 - division) * 100)
-// Tiers: BRONZE(0) → CHAMPION(7), Divisions: 1-5
-```
+- A roster has 10 participants; additional players enter the waitlist.
+- Roles are `TANK`, `DPS`, and `SUPPORT`; use `!` for preferred and `?` for one avoided role.
+- At least two roles need a ranked tier; the remaining role may be `UNRANKED`.
+- User identity prefers the user-sheet row UUID and Discord user ID, with a unique BattleTag only as fallback.
+- Live collaboration and read-only result sharing use 10-character codes that expire after 24 hours.
+- Live collaboration uses revision checks and adaptive polling: 500 ms while active, 1.5 s while idle, immediate refresh when the tab becomes active.
+- Shared user notes are visible to all admins; personal operation notes are scoped to the signed-in admin.
 
-### Role System
-- Roles: `TANK`, `DPS`, `SUPPORT`
-- Use `!` suffix for preferred role (e.g., `다이아3!`)
-- Algorithm prioritizes preferred-role violations, avoided roles, unranked roles, then score balance
-
-### Player Input Formats
-```
-PlayerName#1234 탱커 다이아3 딜러 플레4 힐러 마스터5
-PlayerName#1234 다3 플2 골1          # Abbreviations
-PlayerName#1234 다3! 플2 골1         # ! = preferred
-```
-
-## Patterns & Conventions
-
-- **Components:** Functional + hooks only, no class components
-- **State:** useState/useEffect, localStorage persistence, no Redux
-- **Naming:** PascalCase components, camelCase functions, UPPER_SNAKE constants
-- **Styling:** Tailwind dark theme (`#0b0c10` bg), blue/cyan gradients for CTAs
-- **TypeScript:** Strict mode, explicit types, interfaces for data models
-- **JSDoc:** Flow-focused, concise, and every JSDoc block must include an `@description` tag; avoid exhaustive narration
-- **CSS:** Keep style files free of comments
-
-## Important Files
-
-- `src/utils/balance/index.ts` - Core balancing algorithm (most complex logic)
-- `src/hooks/use-balance.ts` - Balance Web Worker lifecycle
-- `src/utils/parser/index.ts` - Player input parsing
-- `src/App.tsx` - Main component orchestrating state
-- `src/constants/index.ts` - Tier definitions, scoring formula
-
-## Notes
-
-- Tests use Vitest
-- Korean UI throughout
-- Deployed on GitHub Pages through GitHub Actions
-- localStorage keys: `owkr_players`, `owkr_result`
+For file placement, styling, imports, changelog policy and commit conventions, follow `AGENTS.md` and `docs/project-structure.md`.

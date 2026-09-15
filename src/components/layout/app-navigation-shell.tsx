@@ -347,6 +347,61 @@ const MobileNavigationLink = ({
     </a>
 );
 
+export const NavigationLoadingShell = ({
+    children,
+    collapsed,
+}: AppNavigationShellProps & { collapsed: boolean }) => (
+    <div className="min-h-screen bg-surface" data-navigation-loading="true">
+        <aside
+            aria-hidden="true"
+            className={`fixed inset-y-0 left-0 z-[70] hidden border-r border-slate-800/90 bg-[#080a0e]/98 lg:flex lg:flex-col ${
+                collapsed ? 'w-20' : 'w-52'
+            }`}
+        >
+            <div className={`flex h-20 items-center border-b border-slate-800/60 ${collapsed ? 'justify-center px-2' : 'px-4'}`}>
+                <div className={`flex items-center ${collapsed ? '' : 'gap-3'}`}>
+                    <img
+                        src="/favicon.png"
+                        alt=""
+                        width={40}
+                        height={40}
+                        className="h-10 w-10 shrink-0 rounded-lg"
+                    />
+                    {!collapsed ? (
+                        <div>
+                            <span className="block text-base font-bold tracking-[0.04em] text-slate-100">OWKR</span>
+                            <span className="mt-0.5 block font-mono text-[9px] font-semibold tracking-[0.18em] text-cyan-300">
+                                MATCH CONTROL
+                            </span>
+                        </div>
+                    ) : null}
+                </div>
+            </div>
+            <div className="space-y-3 px-3 py-5">
+                {[0, 1, 2, 3].map(item => (
+                    <div
+                        key={item}
+                        className={`h-10 animate-pulse rounded-lg bg-slate-800/45 ${collapsed ? 'mx-auto w-10' : 'w-full'}`}
+                    />
+                ))}
+            </div>
+        </aside>
+        <div className={`min-h-screen pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0 ${
+            collapsed ? 'lg:pl-20' : 'lg:pl-52'
+        }`}>
+            {children}
+        </div>
+        <div
+            aria-hidden="true"
+            className="fixed inset-x-0 bottom-0 z-[70] flex min-h-16 items-center justify-around border-t border-slate-800/80 bg-slate-950/95 pb-[env(safe-area-inset-bottom)] lg:hidden"
+        >
+            {[0, 1, 2, 3, 4].map(item => (
+                <span key={item} className="h-8 w-8 animate-pulse rounded-lg bg-slate-800/50" />
+            ))}
+        </div>
+    </div>
+);
+
 /**
  * @description 인증된 관리자 화면을 데스크톱 사이드바와 모바일 바텀 내비게이션으로 감싼다.
  */
@@ -498,15 +553,16 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
 
     const requestGuide = () => {
         setIsMoreOpen(false);
-        if (isWorkspacePath) {
-            window.dispatchEvent(new Event(OPEN_GUIDE_EVENT));
-            return;
-        }
-
         try {
             sessionStorage.setItem(PENDING_NAVIGATION_ACTION_KEY, 'guide');
         } catch {
             // 저장소를 사용할 수 없어도 대진표 이동은 유지한다.
+        }
+        if (isWorkspacePath) {
+            window.setTimeout(() => {
+                window.dispatchEvent(new Event(OPEN_GUIDE_EVENT));
+            }, 0);
+            return;
         }
         navigate('/');
     };
@@ -535,7 +591,10 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
         }
     };
 
-    if (isLoading || !user) return <>{children}</>;
+    if (isLoading) {
+        return <NavigationLoadingShell collapsed={isCollapsed}>{children}</NavigationLoadingShell>;
+    }
+    if (!user) return <>{children}</>;
 
     return (
         <div className="min-h-screen bg-surface">
@@ -557,18 +616,24 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                         data-sidebar-logo={isCollapsed ? 'compact' : 'full'}
                         className="min-w-0 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
                     >
-                        {isCollapsed ? (
-                            <span className="flex h-10 w-10 items-center justify-center rounded-md border border-cyan-400/25 bg-cyan-400/[0.06] text-cyan-200">
-                                <Swords size={20} aria-hidden="true" />
-                            </span>
-                        ) : (
-                            <span className="block">
-                                <span className="block text-base font-bold tracking-[0.04em] text-slate-100">OWKR</span>
-                                <span className="mt-0.5 block font-mono text-[9px] font-semibold tracking-[0.18em] text-cyan-300" translate="no">
-                                    MATCH CONTROL
+                        <span className={`flex items-center ${isCollapsed ? '' : 'gap-3'}`}>
+                            <img
+                                src="/favicon.png"
+                                alt=""
+                                width={40}
+                                height={40}
+                                aria-hidden="true"
+                                className="h-10 w-10 shrink-0 rounded-lg"
+                            />
+                            {!isCollapsed ? (
+                                <span className="min-w-0">
+                                    <span className="block text-base font-bold tracking-[0.04em] text-slate-100">OWKR</span>
+                                    <span className="mt-0.5 block font-mono text-[9px] font-semibold tracking-[0.18em] text-cyan-300" translate="no">
+                                        MATCH CONTROL
+                                    </span>
                                 </span>
-                            </span>
-                        )}
+                            ) : null}
+                        </span>
                     </a>
                     <button
                         type="button"
@@ -609,7 +674,7 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                             collapsed={isCollapsed}
                             href="/scrims"
                             icon={CalendarDays}
-                            label="내전"
+                            label="내전 관리"
                             onNavigate={event => handleNavigationLink(event, '/scrims')}
                         />
                         <NavigationLink
@@ -713,7 +778,7 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                     active={isRouteActive('/scrims')}
                     href="/scrims"
                     icon={CalendarDays}
-                    label="내전"
+                    label="내전 관리"
                     onNavigate={event => handleNavigationLink(event, '/scrims')}
                 />
                 <MobileNavigationLink

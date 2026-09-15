@@ -1,4 +1,4 @@
-# Boundra 도입 인수 메모
+# Boundra 도입 및 운영 메모
 
 ## 적용 범위
 
@@ -93,6 +93,14 @@ boundra check-boundaries --root . --format json
 - Boundra는 앱 내부의 `api → src` 의존성을 구분하지 않습니다. 서버의 프런트엔드 역방향 import는 ESLint `no-restricted-imports`로 별도 차단합니다.
 - 영웅 정의, 내전 시간 규칙, 이벤트 참여 집계는 `domains/scrim/shared`로 이동하고 가벼운 `shared/rules.ts` 공개 진입점으로 분리했습니다. 계약·스키마는 `shared/public.ts`에서 제공합니다.
 - 공개 참여 조회·투표·만족도 3개 계약만 runtime 검증을 사용합니다. 관리자 내전 API, 이벤트 참여자, 유저 시트, 인증과 메모 API는 아직 수동 검증입니다.
+
+## 2026-09-15 현재 상태
+
+- Boundra 0.2.2로 파일 237개와 `balance`, `player`, `scrim` 3개 도메인을 검사하며 위반 0건입니다.
+- `pnpm check`에 타입 검사, ESLint, Vitest, `boundra check-boundaries`, production build가 모두 포함됩니다.
+- 프런트엔드는 `#domain/*` 공개 별칭을 사용하지만 Vercel Functions는 배포 번들 호환성을 위해 도메인 공개 API의 상대 `.js` 경로를 사용합니다.
+- `api → src`와 `api → #domain/*`는 ESLint로, `application → presentation`과 도메인 간 공개 경계는 ESLint와 Boundra로 함께 보호합니다.
+- 실시간 대진표 공유 모델과 참가자 Discord ID 계약은 `balance`와 `player`의 공개 API에 유지하고, Redis 구현은 `api/_lib`에 둡니다.
 
 ## 확인 명령
 
