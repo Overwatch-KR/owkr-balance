@@ -60,7 +60,7 @@ export function HeroPickerModal({
                 aria-modal="true"
                 aria-labelledby="hero-picker-title"
                 tabIndex={-1}
-                className="mx-auto max-w-5xl overscroll-contain rounded-2xl border border-slate-800 bg-surface-elevated p-4 shadow-2xl shadow-black/40 focus:outline-none md:p-6"
+                className="mx-auto max-w-5xl overscroll-contain rounded-lg border border-slate-800 bg-surface-elevated p-4 shadow-xl shadow-black/30 focus:outline-none md:p-6"
             >
                 <header className="mb-5 flex items-start justify-between gap-4">
                     <div>

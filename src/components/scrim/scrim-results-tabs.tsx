@@ -25,7 +25,7 @@ const heroById = new Map(HEROES.map(hero => [hero.id, hero]));
 const ChartSkeleton = () => (
     <div className="space-y-3" role="status" aria-label="결과 그래프를 불러오는 중">
         <Skeleton className="h-4 w-36" />
-        <Skeleton className="h-64 w-full rounded-2xl" />
+        <Skeleton className="h-64 w-full rounded-lg" />
     </div>
 );
 
@@ -130,7 +130,7 @@ export function ScrimBanTab({
                 {finalHeroes.length > 0 ? (
                     <div className="mt-5 grid grid-cols-2 gap-3">
                         {finalHeroes.map(hero => (
-                            <div key={hero.id} className="flex items-center gap-3 rounded-2xl border border-amber-300/25 bg-amber-300/8 p-3">
+                            <div key={hero.id} className="flex items-center gap-3 rounded-lg border border-amber-300/25 bg-amber-300/8 p-3">
                                 <img
                                     src={`/hero/${hero.role}/${hero.id}.png`}
                                     alt=""
@@ -145,8 +145,8 @@ export function ScrimBanTab({
                 ) : null}
 
                 {hasUnresolvedTie ? (
-                    <div className="mt-5 rounded-2xl border border-violet-400/25 bg-violet-400/8 p-4">
-                        <h3 className="font-semibold text-violet-100">동점 후보가 있습니다</h3>
+                    <div className="mt-5 rounded-lg border border-slate-800 bg-white/[0.025] p-4">
+                        <h3 className="font-semibold text-slate-100">동점 후보가 있습니다</h3>
                         <p className="mt-1 text-sm text-slate-400">
                             {canResolveRandomly
                                 ? '랜덤 추첨을 진행하거나 관리자가 직접 최종 밴을 선택해 주세요.'
@@ -230,14 +230,14 @@ export function ScrimSatisfactionTab({
             <div className="card">
                 <h2 className="text-lg font-semibold text-white">만족도 결과</h2>
                 <div className="mt-4 grid grid-cols-2 gap-3">
-                    <div className="rounded-2xl border border-slate-800 bg-slate-950/50 p-4">
+                    <div className="rounded-lg border border-slate-800 bg-slate-950/50 p-4">
                         <p className="text-xs text-slate-400">총 응답</p>
                         <strong className="mt-1 block text-2xl text-white">
                             {scrim.satisfactionResponses.length}
                             <span className="ml-1 text-sm font-medium text-slate-400">건</span>
                         </strong>
                     </div>
-                    <div className="rounded-2xl border border-amber-300/15 bg-amber-300/5 p-4">
+                    <div className="rounded-lg border border-amber-300/15 bg-amber-300/5 p-4">
                         <p className="text-xs text-amber-100/60">평균 만족도</p>
                         <strong className="mt-1 block text-2xl text-amber-200">
                             {scrim.satisfactionResponses.length > 0

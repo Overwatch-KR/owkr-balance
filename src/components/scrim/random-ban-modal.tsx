@@ -106,9 +106,9 @@ export function RandomBanModal({
                 aria-labelledby="random-ban-title"
                 aria-describedby="random-ban-description"
                 tabIndex={-1}
-                className="w-full max-w-lg overscroll-contain overflow-hidden rounded-3xl border border-violet-400/25 bg-[#111520] p-6 text-center shadow-2xl shadow-violet-950/50 focus:outline-none"
+                className="w-full max-w-lg overscroll-contain overflow-hidden rounded-lg border border-slate-800 bg-surface-elevated p-6 text-center shadow-xl shadow-black/30 focus:outline-none"
             >
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-400/10 text-violet-300">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg border border-slate-800 bg-white/[0.025] text-slate-300">
                     {isRevealed
                         ? <Sparkles size={24} aria-hidden="true" />
                         : <Dices size={24} className="animate-pulse" aria-hidden="true" />}
@@ -133,7 +133,7 @@ export function RandomBanModal({
                                     initial={{ opacity: 0, y: 14, scale: 0.9 }}
                                     animate={{ opacity: 1, y: 0, scale: 1 }}
                                     transition={{ delay: index * 0.18, type: 'spring', stiffness: 220 }}
-                                    className="rounded-2xl border border-amber-300/30 bg-amber-300/10 p-3"
+                                    className="rounded-lg border border-amber-300/30 bg-amber-300/10 p-3"
                                 >
                                     <img
                                         className="mx-auto h-24 w-24 rounded-xl object-cover"
@@ -148,7 +148,7 @@ export function RandomBanModal({
                         })}
                     </div>
                 ) : (
-                    <div className="relative mx-auto mt-7 flex h-44 w-44 items-center justify-center overflow-hidden rounded-3xl border border-violet-300/30 bg-violet-400/10">
+                    <div className="relative mx-auto mt-7 flex h-44 w-44 items-center justify-center overflow-hidden rounded-lg border border-slate-700 bg-white/[0.025]">
                         <AnimatePresence mode="popLayout">
                             {displayHero && (
                                 <motion.div
@@ -160,7 +160,7 @@ export function RandomBanModal({
                                     className="absolute inset-3"
                                 >
                                     <img
-                                        className="h-full w-full rounded-2xl object-cover"
+                                        className="h-full w-full rounded-md object-cover"
                                         src={`/hero/${displayHero.role}/${displayHero.id}.png`}
                                         alt=""
                                         width={152}

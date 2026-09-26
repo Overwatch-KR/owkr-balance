@@ -22,7 +22,7 @@ export function EventParticipantIdentity({ participant }: EventParticipantIdenti
     return (
         <span className="flex min-w-0 flex-1 items-center gap-3">
             <span
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-500/15 text-sm font-bold text-indigo-200 ring-1 ring-inset ring-indigo-400/20"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-slate-700 bg-white/[0.04] text-sm font-bold text-slate-200"
                 aria-hidden="true"
             >
                 {initial}
@@ -37,7 +37,7 @@ export function EventParticipantIdentity({ participant }: EventParticipantIdenti
                     ) : null}
                 </span>
                 <span className="mt-1 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                    <span className={discordUserId ? 'font-mono text-indigo-300' : 'text-amber-300/80'}>
+                    <span className={discordUserId ? 'font-mono text-slate-400' : 'text-amber-300/80'}>
                         Discord ID {discordUserId ?? '미등록'}
                     </span>
                     <span className="min-w-0 truncate text-slate-400">

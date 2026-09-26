@@ -36,7 +36,7 @@ export const GuideResumePrompt = ({
                 initial={{ opacity: 0, scale: 0.97 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.97 }}
-                className="w-full max-w-md overscroll-contain rounded-2xl border border-cyan-400/30 bg-slate-950 p-5 shadow-2xl shadow-black/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70"
+                className="w-full max-w-md overscroll-contain rounded-lg border border-slate-800 bg-surface-elevated p-5 shadow-xl shadow-black/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             >
                 <div className="flex items-start gap-3">
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/15 text-cyan-300">

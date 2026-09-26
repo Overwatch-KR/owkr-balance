@@ -18,23 +18,20 @@ export const PageHeader = ({
     meta,
     title,
 }: PageHeaderProps) => (
-    <header className="mb-5 flex flex-col gap-3 border-b border-slate-800/90 pb-4 lg:flex-row lg:items-end lg:justify-between">
+    <header className="mb-5 flex flex-col gap-3 border-b border-slate-800 pb-5 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0 flex-1">
             {eyebrow && (
-                <p className="mb-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-300/80">
+                <p className="mb-2 text-xs font-medium text-slate-500">
                     {eyebrow}
                 </p>
             )}
-            <div className="flex min-w-0 items-center gap-3">
-                <span className="h-7 w-1 shrink-0 rounded-sm bg-cyan-400" aria-hidden="true" />
-                <h1 className="text-pretty text-2xl font-semibold tracking-tight text-white sm:text-[28px]">{title}</h1>
-            </div>
+            <h1 className="text-pretty text-2xl font-semibold tracking-tight text-white sm:text-[28px]">{title}</h1>
             {description && (
-                <div className="mt-1.5 max-w-3xl pl-4 text-sm leading-relaxed text-slate-400">
+                <div className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-400">
                     {description}
                 </div>
             )}
-            {meta && <div className="mt-3 flex flex-wrap items-center gap-2 pl-4">{meta}</div>}
+            {meta && <div className="mt-3 flex flex-wrap items-center gap-2">{meta}</div>}
         </div>
         {actions && (
             <div className="flex shrink-0 flex-wrap items-center gap-2 lg:justify-end">

@@ -284,18 +284,18 @@ export function UserSheetEntryContent({
                     </div>
 
                     <section
-                        className="mt-4 rounded-xl border border-violet-500/20 bg-violet-500/[0.035] p-4"
+                        className="mt-4 rounded-lg border border-slate-800 bg-white/[0.02] p-4"
                         aria-labelledby="user-sheet-private-note-title"
                     >
                         <div className="flex items-start gap-2">
-                            <NotebookPen size={15} className="mt-0.5 shrink-0 text-violet-300" aria-hidden="true" />
+                            <NotebookPen size={15} className="mt-0.5 shrink-0 text-slate-400" aria-hidden="true" />
                             <div>
                                 <div className="flex items-center gap-2">
-                                    <h3 id="user-sheet-private-note-title" className="text-xs font-medium text-violet-200">
+                                    <h3 id="user-sheet-private-note-title" className="text-xs font-medium text-slate-200">
                                         개인 운영 메모
                                     </h3>
                                     {!isEditing && (
-                                        <span className="rounded bg-violet-500/10 px-1.5 py-0.5 text-[10px] text-violet-300/70">
+                                        <span className="rounded border border-slate-800 bg-white/[0.025] px-1.5 py-0.5 text-[10px] text-slate-500">
                                             나만 보기
                                         </span>
                                     )}

@@ -15,7 +15,7 @@ export const AppToast = ({ onDismiss, toast }: AppToastProps) => (
         initial={{ opacity: 0, x: 16, scale: 0.97 }}
         animate={{ opacity: 1, x: 0, scale: 1 }}
         exit={{ opacity: 0, x: 12, scale: 0.97 }}
-        className={`fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-4 z-[105] flex w-[min(440px,calc(100vw-2rem))] items-center gap-2 rounded-xl border py-3 pl-4 pr-2 text-sm font-medium shadow-2xl backdrop-blur ${
+        className={`fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-4 z-[105] flex w-[min(440px,calc(100vw-2rem))] items-center gap-2 rounded-lg border py-3 pl-4 pr-2 text-sm font-medium shadow-xl shadow-black/30 ${
             toast.type === 'error'
                 ? 'border-rose-500/30 bg-rose-950/90 text-rose-100'
                 : toast.type === 'info'

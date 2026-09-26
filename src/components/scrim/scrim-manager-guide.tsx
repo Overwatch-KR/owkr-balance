@@ -55,7 +55,7 @@ export function ScrimManagerGuide({ onClose }: ScrimManagerGuideProps) {
                 aria-modal="true"
                 aria-labelledby="scrim-manager-guide-title"
                 tabIndex={-1}
-                className="custom-scrollbar max-h-full w-full max-w-2xl overflow-y-auto rounded-2xl border border-cyan-400/30 bg-slate-950 p-5 shadow-2xl shadow-black/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70 sm:p-6"
+                className="custom-scrollbar max-h-full w-full max-w-2xl overflow-y-auto rounded-lg border border-slate-800 bg-surface-elevated p-5 shadow-xl shadow-black/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 sm:p-6"
             >
                 <div className="flex items-start gap-3">
                     <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-cyan-500/15 text-cyan-300">
@@ -83,7 +83,7 @@ export function ScrimManagerGuide({ onClose }: ScrimManagerGuideProps) {
                 <ol className="mt-6 space-y-3">
                     {GUIDE_ITEMS.map(({ description, icon: Icon, title }, index) => (
                         <li key={title} className="flex gap-3 rounded-xl border border-slate-800 bg-slate-900/40 p-4">
-                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-500/10 text-violet-200">
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-800 bg-white/[0.025] text-slate-400">
                                 <Icon size={16} aria-hidden="true" />
                             </span>
                             <div>

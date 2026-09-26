@@ -58,7 +58,7 @@ const LoginScreen = ({ serviceError, onRetry }: LoginScreenProps) => {
                             OWKR 관리자 전용 내전 팀 편성 서비스
                         </p>
 
-                        <div className="mt-6 rounded-lg border border-white/10 bg-slate-950/35 p-2 shadow-2xl shadow-black/30 backdrop-blur-xl">
+                        <div className="mt-6 rounded-lg border border-white/10 bg-black/45 p-2 shadow-xl shadow-black/30 backdrop-blur-lg">
                             <a
                                 href="/api/auth/login"
                                 className="group flex w-full items-center justify-center gap-3 rounded-lg bg-[#5865F2] px-8 py-4 font-bold text-white shadow-lg shadow-[#5865F2]/25 transition-[background-color,box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:bg-[#6672ff] hover:shadow-[#5865F2]/35 active:translate-y-0"

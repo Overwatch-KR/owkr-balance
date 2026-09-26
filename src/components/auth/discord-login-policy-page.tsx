@@ -13,7 +13,7 @@ export function DiscordLoginPolicyPage() {
                     <span className="ml-2">로그인 화면으로 돌아가기</span>
                 </a>
 
-                <div className="mt-5 rounded-xl border border-white/10 bg-slate-950/60 p-6 shadow-2xl shadow-black/30 sm:p-9">
+                <div className="mt-5 rounded-lg border border-white/10 bg-surface-elevated p-6 shadow-xl shadow-black/30 sm:p-9">
                     <header>
                         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">
                             OWKR 관리자 인증

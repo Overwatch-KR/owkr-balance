@@ -144,7 +144,7 @@ export function RosterParticipantSelect({
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -6, scale: 0.98 }}
                         transition={{ duration: 0.16, ease: 'easeOut' }}
-                        className="absolute inset-x-0 top-[calc(100%+0.5rem)] z-40 overflow-hidden rounded-2xl border border-slate-700 bg-[#111520]/98 p-1.5 shadow-2xl shadow-black/50 backdrop-blur-xl"
+                        className="absolute inset-x-0 top-[calc(100%+0.5rem)] z-40 overflow-hidden rounded-lg border border-slate-800 bg-surface-elevated p-1.5 shadow-xl shadow-black/30"
                     >
                         <div
                             id={listboxId}

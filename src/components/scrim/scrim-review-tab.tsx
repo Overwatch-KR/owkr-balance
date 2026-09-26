@@ -32,7 +32,7 @@ export function ScrimReviewTab({ onSave, scrim }: ScrimReviewTabProps) {
     return (
         <section className="card" role="tabpanel" id="scrim-panel-review" aria-labelledby="scrim-tab-review">
             <div className="flex items-start gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-400/10 text-violet-200">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-800 bg-white/[0.025] text-slate-400">
                     <NotebookPen size={19} aria-hidden="true" />
                 </span>
                 <div>
@@ -44,7 +44,7 @@ export function ScrimReviewTab({ onSave, scrim }: ScrimReviewTabProps) {
             </div>
             <label className="mt-5 block">
                 <span className="mb-2 block text-sm font-medium text-slate-200">관리자 기록</span>
-                <div className="rounded-xl border border-slate-700/70 bg-slate-950/70 p-1.5 transition focus-within:border-violet-400/70 focus-within:ring-2 focus-within:ring-violet-400/15">
+                <div className="rounded-lg border border-slate-700 bg-black/30 p-1.5 transition focus-within:border-slate-500 focus-within:ring-2 focus-within:ring-white/10">
                     <textarea
                         className="min-h-64 w-full resize-y rounded-lg bg-transparent px-3 py-3 text-sm leading-relaxed text-white outline-none placeholder:text-slate-400"
                         name="admin-review"

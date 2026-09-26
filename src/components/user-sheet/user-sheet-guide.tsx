@@ -95,13 +95,13 @@ export function UserSheetGuide({ onClose, onStartTour }: UserSheetGuideProps) {
                 </div>
 
                 <div className="mt-4 grid gap-4 lg:grid-cols-[1.25fr_0.75fr]">
-                    <article className="rounded-xl border border-violet-500/20 bg-violet-500/[0.05] p-4">
-                        <h3 className="text-sm font-semibold text-violet-100">표 데이터 붙여넣기</h3>
+                    <article className="rounded-lg border border-slate-800 bg-white/[0.025] p-4">
+                        <h3 className="text-sm font-semibold text-slate-100">표 데이터 붙여넣기</h3>
                         <p className="mt-1.5 text-xs leading-relaxed text-slate-400">
                             Google Sheets에서 아래 순서의 7개 열을 복사해 전체 편집에 붙여넣을 수 있습니다.
                         </p>
                         <div className="mt-3 overflow-x-auto rounded-lg border border-slate-800 bg-slate-950/60 px-3 py-2.5">
-                            <code className="whitespace-nowrap text-[11px] text-violet-200">
+                            <code className="whitespace-nowrap text-[11px] text-slate-300">
                                 디스코드 표시명 · Discord ID · BattleTag · 탱커 · 딜러 · 힐러 · 특이사항
                             </code>
                         </div>
@@ -110,8 +110,8 @@ export function UserSheetGuide({ onClose, onStartTour }: UserSheetGuideProps) {
                         </p>
                     </article>
 
-                    <article className="rounded-xl border border-cyan-500/20 bg-cyan-500/[0.05] p-4">
-                        <span className="inline-flex items-center gap-2 text-sm font-semibold text-cyan-100">
+                    <article className="rounded-lg border border-slate-800 bg-white/[0.025] p-4">
+                        <span className="inline-flex items-center gap-2 text-sm font-semibold text-slate-100">
                             <RefreshCcw size={15} aria-hidden="true" />
                             최신 데이터 확인
                         </span>

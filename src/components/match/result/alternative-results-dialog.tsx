@@ -84,7 +84,7 @@ export function AlternativeResultsDialog({
                 aria-modal="true"
                 aria-labelledby="alternative-results-dialog-title"
                 tabIndex={-1}
-                className="flex h-[calc(100dvh-1rem)] w-full max-w-5xl flex-col overscroll-contain overflow-hidden rounded-2xl border border-slate-700/80 bg-surface-elevated shadow-2xl focus:outline-none md:h-[min(900px,calc(100dvh-2.5rem))]"
+                className="flex h-[calc(100dvh-1rem)] w-full max-w-5xl flex-col overscroll-contain overflow-hidden rounded-lg border border-slate-800 bg-surface-elevated shadow-xl shadow-black/30 focus:outline-none md:h-[min(900px,calc(100dvh-2.5rem))]"
             >
                 <header className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-800 px-4 py-4 md:px-6">
                     <div>

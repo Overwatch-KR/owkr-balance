@@ -11,7 +11,7 @@ interface UpdateAvailableNoticeProps {
 export function UpdateAvailableNotice({ onDismiss, onReload }: UpdateAvailableNoticeProps) {
     return (
         <aside
-            className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-4 z-[190] w-[min(420px,calc(100vw-2rem))] rounded-2xl border border-cyan-400/25 bg-slate-950/95 p-4 shadow-2xl shadow-black/50 backdrop-blur-xl sm:p-5"
+            className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-4 z-[190] w-[min(420px,calc(100vw-2rem))] rounded-lg border border-slate-800 bg-surface-elevated p-4 shadow-xl shadow-black/30 sm:p-5"
             role="status"
             aria-live="polite"
         >

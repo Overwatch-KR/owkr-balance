@@ -244,7 +244,7 @@ const NavigationButton = ({
             collapsed ? 'justify-center px-2' : 'gap-3 px-3'
         } ${
             active
-                ? 'border-cyan-400 bg-slate-900/90 text-cyan-100'
+                ? 'border-white/70 bg-white/[0.06] text-white'
                 : 'border-transparent text-slate-400 hover:bg-white/5 hover:text-slate-100'
         }`}
     >
@@ -278,7 +278,7 @@ const NavigationLink = ({
             collapsed ? 'justify-center px-2' : 'gap-3 px-3'
         } ${
             active
-                ? 'border-cyan-400 bg-slate-900/90 text-cyan-100'
+                ? 'border-white/70 bg-white/[0.06] text-white'
                 : 'border-transparent text-slate-400 hover:bg-white/5 hover:text-slate-100'
         }`}
     >
@@ -312,7 +312,7 @@ const MobileNavigationButton = ({
         aria-haspopup={ariaHasPopup}
         onClick={onClick}
         className={`relative flex min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 py-2 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-400/70 ${
-            active ? 'text-cyan-200' : 'text-slate-400 hover:text-slate-200'
+            active ? 'text-white' : 'text-slate-400 hover:text-slate-200'
         }`}
     >
         <Icon size={19} aria-hidden="true" />
@@ -336,7 +336,7 @@ const MobileNavigationLink = ({
         aria-current={active ? 'page' : undefined}
         onClick={onNavigate}
         className={`relative flex min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 py-2 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-400/70 ${
-            active ? 'text-cyan-200' : 'text-slate-400 hover:text-slate-200'
+            active ? 'text-white' : 'text-slate-400 hover:text-slate-200'
         }`}
     >
         <Icon size={19} aria-hidden="true" />
@@ -354,7 +354,7 @@ export const NavigationLoadingShell = ({
     <div className="min-h-screen bg-surface" data-navigation-loading="true">
         <aside
             aria-hidden="true"
-            className={`fixed inset-y-0 left-0 z-[70] hidden border-r border-slate-700/70 bg-[#0a0e14]/98 lg:flex lg:flex-col ${
+            className={`fixed inset-y-0 left-0 z-[70] hidden border-r border-slate-800 bg-[#0a0a0a]/98 lg:flex lg:flex-col ${
                 collapsed ? 'w-20' : 'w-52'
             }`}
         >
@@ -370,8 +370,8 @@ export const NavigationLoadingShell = ({
                     {!collapsed ? (
                         <div>
                             <span className="block text-base font-bold tracking-[0.04em] text-slate-100">OWKR</span>
-                            <span className="mt-0.5 block font-mono text-[9px] font-semibold tracking-[0.18em] text-cyan-300">
-                                MATCH CONTROL
+                            <span className="mt-0.5 block text-[9px] font-medium tracking-[0.12em] text-slate-500">
+                                MATCH
                             </span>
                         </div>
                     ) : null}
@@ -600,7 +600,7 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
         <div className="min-h-screen bg-surface">
             <aside
                 aria-label="주요 메뉴"
-                className={`fixed inset-y-0 left-0 z-[70] hidden border-r border-slate-700/70 bg-[#0a0e14]/98 backdrop-blur-xl transition-[width] duration-200 lg:flex lg:flex-col ${
+                className={`fixed inset-y-0 left-0 z-[70] hidden border-r border-slate-800 bg-[#0a0a0a]/98 backdrop-blur-xl transition-[width] duration-200 lg:flex lg:flex-col ${
                     isCollapsed ? 'w-20' : 'w-52'
                 }`}
             >
@@ -628,8 +628,8 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                             {!isCollapsed ? (
                                 <span className="min-w-0">
                                     <span className="block text-base font-bold tracking-[0.04em] text-slate-100">OWKR</span>
-                                    <span className="mt-0.5 block font-mono text-[9px] font-semibold tracking-[0.18em] text-cyan-300" translate="no">
-                                        MATCH CONTROL
+                                    <span className="mt-0.5 block text-[9px] font-medium tracking-[0.12em] text-slate-500" translate="no">
+                                        MATCH
                                     </span>
                                 </span>
                             ) : null}
@@ -817,7 +817,7 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="mobile-more-title"
-                        className="absolute inset-x-0 bottom-0 rounded-t-3xl border-t border-slate-700/70 bg-slate-950 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 shadow-2xl"
+                        className="absolute inset-x-0 bottom-0 rounded-t-xl border-t border-slate-800 bg-slate-950 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 shadow-xl shadow-black/30"
                     >
                         <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-700" aria-hidden="true" />
                         <div className="mb-2 flex items-center justify-between">
@@ -850,7 +850,7 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                             />
                         </div>
 
-                        <div className="mt-4 flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900/80 p-3">
+                        <div className="mt-4 flex items-center gap-3 rounded-lg border border-slate-800 bg-white/[0.025] p-3">
                             <UserProfileAvatar
                                 avatarUrl={user.avatarUrl}
                                 className="h-10 w-10 text-base"

@@ -76,7 +76,7 @@ export function RosterIdentityRow({
                             ? <CheckCircle2 size={14} className="shrink-0 text-emerald-300" aria-hidden="true" />
                             : resolvedEntry
                             ? <Link2 size={14} className="shrink-0 text-cyan-300" aria-hidden="true" />
-                            : <UserPlus size={14} className="shrink-0 text-violet-300" aria-hidden="true" />}
+                            : <UserPlus size={14} className="shrink-0 text-slate-400" aria-hidden="true" />}
                         <p className="truncate text-sm font-medium text-slate-100">
                             {draft.player.discordName || draft.player.name}
                         </p>
@@ -187,7 +187,7 @@ export function RosterIdentityRow({
                             <span className="max-w-28 truncate text-cyan-200">{change.after}</span>
                         </span>
                     )) : (
-                        <span className="rounded-md bg-violet-500/[0.08] px-2 py-1 text-[10px] text-violet-200">
+                        <span className="rounded-md border border-slate-800 bg-white/[0.025] px-2 py-1 text-[10px] text-slate-300">
                             ID · 이름 · 배틀태그 · 3개 역할 티어 저장
                         </span>
                     )}

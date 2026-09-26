@@ -430,7 +430,7 @@ export const OnboardingGuide = ({
                     initial={{ opacity: 0, scale: 0.97 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.97 }}
-                    className="relative max-h-[min(70dvh,32rem)] w-full overscroll-contain overflow-y-auto rounded-2xl border border-cyan-400/35 bg-slate-950/95 p-4 shadow-2xl shadow-black/70 backdrop-blur-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70 sm:p-5"
+                    className="relative max-h-[min(70dvh,32rem)] w-full overscroll-contain overflow-y-auto rounded-lg border border-slate-800 bg-surface-elevated p-4 shadow-xl shadow-black/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 sm:p-5"
                 >
                     <div className="flex items-start gap-3">
                         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/15 text-cyan-300">
