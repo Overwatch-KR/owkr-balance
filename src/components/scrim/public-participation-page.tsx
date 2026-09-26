@@ -218,7 +218,7 @@ export function PublicParticipationPage() {
                 {!isVoteLink && satisfactionStatus === 'SATISFACTION_OPEN' ? (
                     <section className="card overflow-hidden">
                         <div className="mx-auto max-w-xl text-center">
-                            <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl border border-amber-300/20 bg-amber-300/10 text-amber-200">
+                            <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-lg border border-amber-300/20 bg-amber-300/10 text-amber-200">
                                 <Star size={22} fill="currentColor" aria-hidden="true" />
                             </div>
                             <h2 className="mt-3 text-pretty text-xl font-bold text-white">오늘 내전, 어떠셨나요?</h2>

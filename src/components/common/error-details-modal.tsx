@@ -41,7 +41,7 @@ export function ErrorDetailsModal({ details, onClose }: ErrorDetailsModalProps) 
                 aria-labelledby="error-details-title"
                 aria-describedby="error-details-description"
                 tabIndex={-1}
-                className="flex max-h-[min(720px,calc(100dvh-2rem))] w-full max-w-xl flex-col overscroll-contain overflow-hidden rounded-2xl border border-rose-500/25 bg-slate-900 shadow-2xl shadow-black/50 focus:outline-none"
+                className="flex max-h-[min(720px,calc(100dvh-2rem))] w-full max-w-xl flex-col overscroll-contain overflow-hidden rounded-lg border border-slate-800 bg-surface-elevated shadow-xl shadow-black/30 focus:outline-none"
             >
                 <header className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-800 px-5 py-4">
                     <div className="flex min-w-0 items-start gap-3">

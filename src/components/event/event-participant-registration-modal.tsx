@@ -95,7 +95,7 @@ export function EventParticipantRegistrationModal({
                 aria-modal="true"
                 aria-labelledby="event-registration-title"
                 tabIndex={-1}
-                className="mx-auto max-w-2xl rounded-2xl border border-slate-800 bg-surface-elevated p-4 shadow-2xl shadow-black/40 focus:outline-none md:p-6"
+                className="mx-auto max-w-2xl rounded-lg border border-slate-800 bg-surface-elevated p-4 shadow-xl shadow-black/30 focus:outline-none md:p-6"
             >
                 <header className="flex items-start justify-between gap-4">
                     <div>

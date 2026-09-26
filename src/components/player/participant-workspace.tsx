@@ -114,7 +114,7 @@ export const ParticipantWorkspace = ({
                     description="이번 내전의 참가 명단을 추가하고 확인합니다."
                     meta={(
                         <>
-                            <span className="inline-flex items-center gap-1.5 rounded-sm border-l-2 border-cyan-400 bg-cyan-500/[0.06] px-2.5 py-1 text-xs font-semibold text-cyan-200">
+                            <span className="inline-flex items-center gap-1.5 rounded-md border border-slate-700 bg-white/[0.04] px-2.5 py-1 text-xs font-semibold text-slate-200">
                                 <Users size={13} aria-hidden="true" />
                                 참가 {participantCount}/10
                             </span>
@@ -174,17 +174,17 @@ export const ParticipantWorkspace = ({
                                 type="button"
                                 aria-pressed={isActive}
                                 onClick={() => formProps.onModeChange(mode)}
-                                className={`group relative flex min-h-11 min-w-0 flex-col items-center justify-center gap-1 rounded-md px-1.5 py-2 text-center transition-colors after:absolute focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 xl:min-h-14 xl:flex-row xl:justify-start xl:gap-3 xl:px-3 xl:text-left ${
+                                className={`group relative flex min-h-11 min-w-0 flex-col items-center justify-center gap-1 rounded-md border px-1.5 py-2 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 xl:min-h-14 xl:flex-row xl:justify-start xl:gap-3 xl:px-3 xl:text-left ${
                                     isActive
-                                        ? 'bg-slate-900 text-cyan-100 after:inset-x-2 after:bottom-0 after:h-0.5 after:bg-cyan-400 xl:after:inset-y-2 xl:after:left-0 xl:after:right-auto xl:after:h-auto xl:after:w-0.5'
-                                        : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
+                                        ? 'border-slate-700 bg-white/[0.06] text-white'
+                                        : 'border-transparent text-slate-400 hover:bg-white/[0.04] hover:text-slate-200'
                                 }`}
                             >
                                 <Icon size={18} className="shrink-0" aria-hidden="true" />
                                 <span className="min-w-0">
                                     <span className="block truncate text-[11px] font-semibold sm:text-sm">{label}</span>
                                     <span className={`mt-0.5 hidden text-[11px] xl:block ${
-                                        isActive ? 'text-blue-100/80' : 'text-slate-400 group-hover:text-slate-400'
+                                        isActive ? 'text-slate-300' : 'text-slate-500 group-hover:text-slate-400'
                                     }`}>
                                         {description}
                                     </span>

@@ -320,7 +320,7 @@ export function RosterIdentityResolver({
                 aria-modal="true"
                 aria-labelledby="roster-identity-title"
                 tabIndex={-1}
-                className="flex h-[calc(100dvh-1rem)] w-full max-w-5xl flex-col overscroll-contain overflow-hidden rounded-2xl border border-slate-700/80 bg-surface-elevated shadow-2xl focus:outline-none md:h-[min(900px,calc(100dvh-2.5rem))]"
+                className="flex h-[calc(100dvh-1rem)] w-full max-w-5xl flex-col overscroll-contain overflow-hidden rounded-lg border border-slate-800 bg-surface-elevated shadow-xl shadow-black/30 focus:outline-none md:h-[min(900px,calc(100dvh-2.5rem))]"
             >
                 <header className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-800 px-4 py-4 md:px-6">
                     <div>
@@ -356,13 +356,13 @@ export function RosterIdentityResolver({
                     </div>
                 ) : (
                 <div className="grid shrink-0 grid-cols-3 gap-2 border-b border-slate-800 px-4 py-3 md:px-6">
-                    <div className="rounded-lg bg-cyan-500/[0.08] px-3 py-2">
-                        <p className="text-[10px] text-cyan-400/70">기존 연결</p>
-                        <p className="mt-0.5 text-sm font-semibold text-cyan-200">{matchedCount}명</p>
+                    <div className="rounded-md border border-slate-800 bg-white/[0.025] px-3 py-2">
+                        <p className="text-[10px] text-slate-500">기존 연결</p>
+                        <p className="mt-0.5 text-sm font-semibold text-slate-200">{matchedCount}명</p>
                     </div>
-                    <div className="rounded-lg bg-violet-500/[0.08] px-3 py-2">
-                        <p className="text-[10px] text-violet-400/70">신규 생성</p>
-                        <p className="mt-0.5 text-sm font-semibold text-violet-200">{newCount}명</p>
+                    <div className="rounded-md border border-slate-800 bg-white/[0.025] px-3 py-2">
+                        <p className="text-[10px] text-slate-500">신규 생성</p>
+                        <p className="mt-0.5 text-sm font-semibold text-slate-200">{newCount}명</p>
                     </div>
                     <div className={`rounded-lg px-3 py-2 ${
                         unresolvedCount > 0 ? 'bg-rose-500/[0.1]' : 'bg-emerald-500/[0.08]'

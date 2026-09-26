@@ -168,7 +168,7 @@ export function ScrimDateTimePicker({
                     <div
                         role="dialog"
                         aria-label="내전 진행 날짜 선택"
-                        className="absolute left-0 top-full z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-slate-700 bg-[#171a21] p-4 shadow-2xl shadow-black/50"
+                        className="absolute left-0 top-full z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-lg border border-slate-800 bg-surface-elevated p-4 shadow-xl shadow-black/30"
                     >
                         <div className="flex items-center justify-between">
                             <button type="button" className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white" onClick={() => shiftMonth(-1)} aria-label="이전 달">
@@ -249,7 +249,7 @@ export function ScrimDateTimePicker({
                     <div
                         role="dialog"
                         aria-label="내전 시작 시간 선택"
-                        className="absolute right-0 top-full z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-slate-700 bg-[#171a21] p-4 shadow-2xl shadow-black/50"
+                        className="absolute right-0 top-full z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-lg border border-slate-800 bg-surface-elevated p-4 shadow-xl shadow-black/30"
                     >
                         <div className="mb-3 text-center text-sm font-semibold text-white">{formatTimeLabel(time)}</div>
                         <div className="grid grid-cols-[0.85fr_1fr_1fr] gap-2">

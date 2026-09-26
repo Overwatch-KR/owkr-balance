@@ -19,7 +19,7 @@ export function ParticipationLinkError({
                 initial={{ opacity: 0, y: 16, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ duration: 0.28 }}
-                className="w-full max-w-lg overflow-hidden rounded-3xl border border-slate-800 bg-surface-elevated px-6 py-8 text-center shadow-2xl shadow-black/30 sm:px-10"
+                className="w-full max-w-lg overflow-hidden rounded-lg border border-slate-800 bg-surface-elevated px-6 py-8 text-center shadow-xl shadow-black/30 sm:px-10"
             >
                 <DouMascot
                     variant={isUnavailable ? 'link-expired' : 'error'}

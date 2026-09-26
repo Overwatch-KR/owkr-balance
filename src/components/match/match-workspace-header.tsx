@@ -22,11 +22,8 @@ export function MatchWorkspaceHeader({
             : `${remainingCount}명 더 필요`;
 
     return (
-        <header className="flex flex-col gap-3 border-b border-slate-800/90 pb-4 sm:flex-row sm:items-end sm:justify-between">
+        <header className="flex flex-col gap-3 border-b border-slate-800 pb-5 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0">
-                <p className="mb-1.5 font-mono text-[10px] font-semibold tracking-[0.18em] text-cyan-300" translate="no">
-                    MATCH CONTROL
-                </p>
                 <div className="flex flex-wrap items-center gap-2.5">
                     <h1 className="text-pretty text-[28px] font-semibold tracking-tight text-white">대진표</h1>
                     <span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-semibold tabular-nums ${

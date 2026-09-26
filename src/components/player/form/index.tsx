@@ -248,7 +248,7 @@ const PlayerForm = ({
                                 onClick={() => onModeChange('discord')}
                                 className={`flex min-h-10 flex-1 touch-manipulation items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 ${
                                     mode === 'discord'
-                                        ? 'bg-accent text-white shadow-lg shadow-accent/25'
+                                        ? 'bg-accent text-slate-950'
                                         : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
                                 }`}
                             >
@@ -262,7 +262,7 @@ const PlayerForm = ({
                                 onClick={() => onModeChange('manual')}
                                 className={`flex min-h-10 flex-1 touch-manipulation items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 ${
                                     mode === 'manual'
-                                        ? 'bg-accent text-white shadow-lg shadow-accent/25'
+                                        ? 'bg-accent text-slate-950'
                                         : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
                                 }`}
                             >
@@ -276,7 +276,7 @@ const PlayerForm = ({
                                 onClick={() => onModeChange('mentions')}
                                 className={`flex min-h-10 touch-manipulation items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 ${
                                     mode === 'mentions'
-                                        ? 'bg-accent text-white shadow-lg shadow-accent/25'
+                                        ? 'bg-accent text-slate-950'
                                         : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
                                 }`}
                             >

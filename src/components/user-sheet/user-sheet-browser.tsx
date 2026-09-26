@@ -10,7 +10,6 @@ import {
     type UserSheetEntry,
     type UserSheetSnapshot,
 } from '../../utils/user-sheet';
-import { DouMascot } from '../common/dou-mascot';
 import { UserSheetEntryView } from './user-sheet-entry-view';
 
 interface UserSheetBrowserProps {
@@ -108,7 +107,9 @@ export function UserSheetBrowser({
                 <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto">
                     {filteredEntries.length === 0 ? (
                         <div className="flex flex-col items-center px-3 py-8 text-center text-xs leading-relaxed text-slate-400">
-                            <DouMascot variant={entries.length === 0 ? 'empty' : 'search'} size={64} className="mb-3 opacity-80" decorative />
+                            <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg border border-slate-800 bg-white/[0.025] text-slate-500">
+                                <Search size={18} aria-hidden="true" />
+                            </span>
                             <p>{entries.length === 0 ? '저장된 유저가 없습니다. 전체 편집에서 먼저 추가해 주세요.' : '검색 결과가 없습니다.'}</p>
                         </div>
                     ) : filteredEntries.map(entry => {
@@ -178,7 +179,9 @@ export function UserSheetBrowser({
                     />
                 ) : (
                     <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
-                        <DouMascot variant="search" size={96} className="mb-3 opacity-80" decorative />
+                        <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-lg border border-slate-800 bg-white/[0.025] text-slate-500">
+                            <Search size={21} aria-hidden="true" />
+                        </span>
                         <p className="text-sm font-medium text-slate-400">조회할 유저를 선택해 주세요</p>
                         <p className="mt-1 text-xs text-slate-400">유저를 선택하면 상세 정보에서 바로 수정할 수 있습니다.</p>
                     </div>

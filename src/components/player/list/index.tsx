@@ -6,7 +6,6 @@ import {
     type UserSheetEntry,
 } from '../../../utils/user-sheet';
 import { BattleTagCopyButton } from '../battle-tag-copy-button';
-import { DouMascot } from '../../common/dou-mascot';
 import { PlayerIdentity } from '../player-identity';
 import RankBadge from '../rank-badge';
 import PlayerNoteEditor from './player-note-editor';
@@ -262,7 +261,9 @@ const PlayerList = ({
 
                             {participantCount === 0 && (
                                 <li className="flex animate-fade-in flex-col items-center justify-center py-10 text-center">
-                                    <DouMascot variant="empty" size={64} className="mb-3 opacity-80" decorative />
+                                    <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg border border-slate-800 bg-white/[0.025] text-slate-500">
+                                        <Users size={18} aria-hidden="true" />
+                                    </span>
                                     <p className="text-sm text-slate-400">아직 추가된 플레이어가 없습니다</p>
                                     <p className="mt-1 text-xs text-slate-400">채팅을 붙여넣거나 직접 입력해 주세요</p>
                                 </li>
@@ -283,7 +284,9 @@ const PlayerList = ({
 
                             {waitlistCount === 0 && (
                                 <li className="flex animate-fade-in flex-col items-center justify-center py-10 text-center">
-                                    <DouMascot variant="empty" size={64} className="mb-3 opacity-80" decorative />
+                                    <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg border border-slate-800 bg-white/[0.025] text-slate-500">
+                                        <Clock size={18} aria-hidden="true" />
+                                    </span>
                                     <p className="text-sm text-slate-400">대기 중인 참가자가 없습니다</p>
                                 </li>
                             )}

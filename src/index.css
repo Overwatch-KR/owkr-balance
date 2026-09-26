@@ -42,6 +42,7 @@
 
     body {
         @apply overflow-x-hidden bg-surface text-slate-200 antialiased;
+        background-image: radial-gradient(circle at 50% -24rem, rgb(255 255 255 / 0.035), transparent 42rem);
         font-feature-settings: 'ss01' on, 'ss02' on;
     }
 
@@ -67,9 +68,9 @@
 
 @layer components {
     .btn-primary {
-        @apply inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-sky-400/30 bg-accent px-4 py-2 font-semibold text-white
-               transition-[background-color,color,border-color,box-shadow,transform] duration-150 active:scale-[0.98] hover:border-sky-300/50 hover:bg-accent-hover
-               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80 focus-visible:ring-offset-2 focus-visible:ring-offset-surface;
+        @apply inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-white/80 bg-accent px-4 py-2 font-semibold text-slate-950
+               transition-[background-color,color,border-color,box-shadow,transform] duration-150 active:scale-[0.98] hover:border-white hover:bg-accent-hover
+               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-surface;
     }
 
     .btn-danger {
@@ -80,7 +81,7 @@
     }
 
     .btn-ghost {
-        @apply inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-md bg-transparent px-4 py-2 text-slate-300 hover:bg-white/[0.07] hover:text-white
+        @apply inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-md bg-transparent px-4 py-2 text-slate-400 hover:bg-white/[0.06] hover:text-white
                font-medium transition-[background-color,color,border-color,box-shadow] duration-150
                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/70;
     }
@@ -100,20 +101,20 @@
     }
 
     .card {
-        @apply rounded-xl border border-slate-700/65 bg-surface-elevated/95 p-4 sm:p-5;
+        @apply rounded-lg border border-slate-800 bg-surface-elevated p-4 sm:p-5;
     }
 
     .input-base {
-        @apply min-h-10 w-full rounded-md border border-slate-600/65 bg-surface-overlay/55 px-3 py-2.5
-               text-sm text-white placeholder:text-slate-400
-               focus:border-accent/50 focus:ring-2 focus:ring-accent/20
+        @apply min-h-10 w-full rounded-md border border-slate-700 bg-black/30 px-3 py-2.5
+               text-sm text-white placeholder:text-slate-500
+               focus:border-slate-500 focus:ring-2 focus:ring-white/10
                outline-none transition-[background-color,border-color,box-shadow] duration-200;
     }
 
     .form-control {
-        @apply h-10 w-full rounded-md border border-slate-600/70 bg-surface-overlay/55 px-3 text-sm text-slate-100 outline-none
-               transition-[border-color,box-shadow] duration-200 placeholder:text-slate-400
-               focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/15;
+        @apply h-10 w-full rounded-md border border-slate-700 bg-black/30 px-3 text-sm text-slate-100 outline-none
+               transition-[border-color,box-shadow] duration-200 placeholder:text-slate-500
+               focus:border-slate-500 focus:ring-2 focus:ring-white/10;
     }
 }
 
@@ -135,7 +136,7 @@
 }
 
 .custom-scrollbar {
-    scrollbar-color: #475569 rgb(15 23 42 / 0.45);
+    scrollbar-color: #3f3f46 rgb(9 9 11 / 0.45);
     scrollbar-width: thin;
 }
 
@@ -144,19 +145,19 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-    background: rgb(15 23 42 / 0.45);
+    background: rgb(9 9 11 / 0.45);
     border-radius: 999px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #475569;
+    background: #3f3f46;
     border: 2px solid transparent;
     border-radius: 999px;
     background-clip: padding-box;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background-color: #64748b;
+    background-color: #52525b;
 }
 
 @media (min-width: 1280px) {
@@ -168,7 +169,7 @@
 .login-scene::before {
     position: absolute;
     background:
-        linear-gradient(115deg, rgb(8 10 15 / 0) 0%, rgb(14 165 233 / 0.08) 38%, rgb(251 191 36 / 0.07) 54%, rgb(8 10 15 / 0) 68%),
+        linear-gradient(115deg, rgb(8 8 8 / 0) 0%, rgb(255 255 255 / 0.035) 46%, rgb(8 8 8 / 0) 68%),
         radial-gradient(circle at 50% 46%, rgb(255 255 255 / 0.06), transparent 30%);
     content: '';
     inset: -18%;
@@ -214,14 +215,14 @@
 .login-ambient-a {
     top: -18rem;
     left: -18rem;
-    background: #0ea5e9;
+    background: #d4d4d8;
     animation: login-float-a 16s ease-in-out infinite alternate;
 }
 
 .login-ambient-b {
     right: -20rem;
     bottom: -22rem;
-    background: #f59e0b;
+    background: #71717a;
     animation: login-float-b 20s ease-in-out infinite alternate;
 }
 

@@ -3,7 +3,6 @@ import { Loader2, RefreshCcw, Shuffle, StarOff } from 'lucide-react';
 import type { MatchLiveRecentChange } from '#domain/balance';
 import type { MatchResultData, Role, SwapSource } from '../../types';
 import type { UserSheetEntry } from '../../utils/user-sheet';
-import { DouMascot } from '../common/dou-mascot';
 import { MatchCollaborationActivity } from './match-collaboration-activity';
 import MatchResult from './result';
 
@@ -111,12 +110,16 @@ export function MatchResultPanel({
                     >
                         {isBalancing ? (
                             <div className="flex flex-col items-center gap-4">
-                                <DouMascot variant="loading" size={128} className="animate-pulse" decorative />
-                                <p className="animate-pulse text-slate-400">최적의 조합을 계산 중…</p>
+                                <span className="flex h-12 w-12 items-center justify-center rounded-lg border border-slate-800 bg-white/[0.025] text-slate-300">
+                                    <Loader2 size={22} className="animate-spin" aria-hidden="true" />
+                                </span>
+                                <p className="text-slate-400">최적의 조합을 계산 중…</p>
                             </div>
                         ) : (
                             <div className="flex flex-col items-center gap-3">
-                                <DouMascot variant="empty" size={128} decorative />
+                                <span className="flex h-12 w-12 items-center justify-center rounded-lg border border-slate-800 bg-white/[0.025] text-slate-500">
+                                    <Shuffle size={21} aria-hidden="true" />
+                                </span>
                                 <p className="text-center text-slate-400">
                                     {isReady
                                         ? '“팀 자동 배정” 버튼을 눌러주세요'

@@ -9,6 +9,7 @@ import { AnimatePresence } from 'framer-motion';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
     BookOpen,
+    CalendarDays,
     Link2,
     NotebookPen,
     ShieldBan,
@@ -27,7 +28,6 @@ import { useToast } from '../../hooks/use-toast';
 import { AppToast } from '../app-toast';
 import { DataLoadError } from '../common/data-load-error';
 import { DataLoadingState } from '../common/data-loading-state';
-import { DouMascot } from '../common/dou-mascot';
 import { PageHeader } from '../layout/page-header';
 import { HeroPickerModal } from './hero-picker-modal';
 import { RandomBanModal } from './random-ban-modal';
@@ -368,7 +368,9 @@ export function ScrimManager({ csrfToken, players, userId }: ScrimManagerProps) 
                                 </p>
                             ) : (
                                 <div className="flex flex-col items-center py-6 text-center text-sm text-slate-400">
-                                    <DouMascot variant="empty" size={72} className="mb-3 opacity-80" decorative />
+                                    <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg border border-slate-800 bg-white/[0.025] text-slate-500">
+                                        <CalendarDays size={18} aria-hidden="true" />
+                                    </span>
                                     <p>등록된 내전이 없습니다.</p>
                                 </div>
                             )}

@@ -18,7 +18,7 @@ export function SurveySubmissionComplete({ kind = 'satisfaction' }: SurveySubmis
 
     return (
         <main className="flex min-h-screen items-center justify-center bg-surface p-5 text-slate-200">
-            <section className="w-full max-w-lg overflow-hidden rounded-3xl border border-slate-800 bg-surface-elevated px-6 py-8 text-center shadow-2xl shadow-black/30 sm:px-10">
+            <section className="w-full max-w-lg overflow-hidden rounded-lg border border-slate-800 bg-surface-elevated px-6 py-8 text-center shadow-xl shadow-black/30 sm:px-10">
                 <DouMascot
                     variant="success"
                     size="clamp(148px, 38vw, 196px)"

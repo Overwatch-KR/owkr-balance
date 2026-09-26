@@ -69,7 +69,7 @@ export function HeroDemandChart({ data }: HeroDemandChartProps) {
                 ))}
             </div>
             <div
-                className="max-h-[420px] overflow-y-auto rounded-2xl border border-slate-800 bg-slate-950/40 px-2 py-3"
+                className="max-h-[420px] overflow-y-auto rounded-lg border border-slate-800 bg-slate-950/40 px-2 py-3"
                 role="img"
                 aria-label="영웅별 밴 투표 득표 그래프"
             >
@@ -138,7 +138,7 @@ export function SatisfactionCharts({
 
     return (
         <div className="grid gap-4 lg:grid-cols-2">
-            <section className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
+            <section className="rounded-lg border border-slate-800 bg-slate-950/40 p-4">
                 <h3 className="text-sm font-semibold text-white">별점 분포</h3>
                 <p className="mt-1 text-xs text-slate-400">1점부터 5점까지 익명 응답 수입니다.</p>
                 <div className="mt-4 h-64" role="img" aria-label="만족도 별점별 응답 수 그래프">
@@ -178,7 +178,7 @@ export function SatisfactionCharts({
                 </div>
             </section>
 
-            <section className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
+            <section className="rounded-lg border border-slate-800 bg-slate-950/40 p-4">
                 <h3 className="text-sm font-semibold text-white">아쉬운 점</h3>
                 <p className="mt-1 text-xs text-slate-400">3점 미만 응답에서 선택된 항목입니다.</p>
                 {disappointmentData.length > 0 ? (

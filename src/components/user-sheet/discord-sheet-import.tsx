@@ -84,14 +84,14 @@ export function DiscordSheetImport({ onImport }: DiscordSheetImportProps) {
                 <button
                     type="button"
                     onClick={() => setIsOpen(true)}
-                    className="group flex min-h-16 w-full touch-manipulation items-center gap-3 rounded-xl border border-violet-400/20 bg-gradient-to-r from-violet-500/[0.09] via-slate-900/80 to-cyan-500/[0.04] px-3.5 py-3 text-left shadow-sm shadow-black/10 transition-[background-color,border-color,box-shadow] hover:border-violet-400/35 hover:from-violet-500/[0.13] hover:shadow-violet-950/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/70 sm:px-4"
+                    className="group flex min-h-16 w-full touch-manipulation items-center gap-3 rounded-lg border border-slate-800 bg-white/[0.025] px-3.5 py-3 text-left transition-[background-color,border-color] hover:border-slate-700 hover:bg-white/[0.045] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 sm:px-4"
                     aria-controls="discord-sheet-import-panel"
                     aria-expanded="false"
                 >
                     <span className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${
                         result
                             ? 'border-emerald-400/25 bg-emerald-400/10 text-emerald-300'
-                            : 'border-violet-400/25 bg-violet-400/10 text-violet-200'
+                            : 'border-slate-700 bg-white/[0.04] text-slate-300'
                     }`}>
                         {result
                             ? <CheckCircle2 size={19} aria-hidden="true" />
@@ -103,7 +103,7 @@ export function DiscordSheetImport({ onImport }: DiscordSheetImportProps) {
                                 {result ? '디스코드 명단 반영 완료' : '디스코드 채팅에서 가져오기'}
                             </span>
                             {!result && (
-                                <span className="rounded-full bg-violet-400/10 px-2 py-0.5 text-[10px] font-semibold text-violet-200">
+                                <span className="rounded border border-slate-800 bg-white/[0.025] px-2 py-0.5 text-[10px] font-medium text-slate-400">
                                     빠른 입력
                                 </span>
                             )}
@@ -114,7 +114,7 @@ export function DiscordSheetImport({ onImport }: DiscordSheetImportProps) {
                                 : '채팅 명단을 붙여넣어 여러 유저를 한 번에 추가하거나 업데이트하세요.'}
                         </span>
                     </span>
-                    <span className="inline-flex min-h-9 shrink-0 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-violet-200 transition-colors group-hover:bg-violet-400/10 group-hover:text-violet-100">
+                    <span className="inline-flex min-h-9 shrink-0 items-center gap-1 rounded-md px-2.5 text-xs font-semibold text-slate-300 transition-colors group-hover:bg-white/[0.05] group-hover:text-white">
                         {result ? '다시 열기' : '열기'}
                         <ChevronDown size={15} aria-hidden="true" />
                     </span>
@@ -126,19 +126,19 @@ export function DiscordSheetImport({ onImport }: DiscordSheetImportProps) {
     return (
         <section
             id="user-sheet-import"
-            className="custom-scrollbar max-h-[min(42dvh,30rem)] shrink-0 overflow-y-auto border-b border-violet-400/20 bg-gradient-to-br from-violet-500/[0.07] via-slate-950/40 to-cyan-500/[0.035] px-4 py-4 md:px-6"
+            className="custom-scrollbar max-h-[min(42dvh,30rem)] shrink-0 overflow-y-auto border-b border-slate-800 bg-white/[0.02] px-4 py-4 md:px-6"
             aria-labelledby="discord-sheet-import-title"
         >
             <div id="discord-sheet-import-panel">
                 <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-start gap-3">
-                        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-violet-400/25 bg-violet-400/10 text-violet-200">
+                        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-700 bg-white/[0.04] text-slate-300">
                             <ClipboardPaste size={19} aria-hidden="true" />
                         </span>
                         <div className="min-w-0">
                             <h3
                                 id="discord-sheet-import-title"
-                                className="text-pretty text-sm font-semibold text-violet-50"
+                                className="text-pretty text-sm font-semibold text-slate-100"
                             >
                                 디스코드 채팅에서 명단 가져오기
                             </h3>
@@ -150,7 +150,7 @@ export function DiscordSheetImport({ onImport }: DiscordSheetImportProps) {
                     <button
                         type="button"
                         onClick={() => setIsOpen(false)}
-                        className="inline-flex min-h-9 shrink-0 touch-manipulation items-center gap-1 rounded-lg px-2.5 text-xs font-medium text-slate-400 transition-colors hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/70"
+                        className="inline-flex min-h-9 shrink-0 touch-manipulation items-center gap-1 rounded-md px-2.5 text-xs font-medium text-slate-400 transition-colors hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
                         aria-controls="discord-sheet-import-panel"
                         aria-expanded="true"
                     >
@@ -165,7 +165,7 @@ export function DiscordSheetImport({ onImport }: DiscordSheetImportProps) {
                             key={step}
                             className="flex min-w-0 items-center gap-2 rounded-lg border border-white/[0.055] bg-slate-950/30 px-3 py-2"
                         >
-                            <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-violet-400/15 text-[10px] font-bold tabular-nums text-violet-200">
+                            <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded bg-white/[0.06] text-[10px] font-bold tabular-nums text-slate-300">
                                 {index + 1}
                             </span>
                             <span className="truncate text-[11px] font-medium text-slate-300">{step}</span>
@@ -192,7 +192,7 @@ export function DiscordSheetImport({ onImport }: DiscordSheetImportProps) {
                             {lineCount > 0 ? `${lineCount}줄 감지` : '붙여넣기 대기'}
                         </span>
                     </div>
-                    <div className="overflow-hidden rounded-xl border border-slate-700/70 bg-slate-950/65 shadow-inner shadow-black/10 transition-[border-color,box-shadow] focus-within:border-violet-400/60 focus-within:ring-2 focus-within:ring-violet-400/15">
+                    <div className="overflow-hidden rounded-lg border border-slate-700 bg-black/30 transition-[border-color,box-shadow] focus-within:border-slate-500 focus-within:ring-2 focus-within:ring-white/10">
                         <textarea
                             id="discord-sheet-import-text"
                             name="discord-sheet-import-text"
