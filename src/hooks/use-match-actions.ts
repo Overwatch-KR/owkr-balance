@@ -36,7 +36,7 @@ interface UseMatchActionsOptions {
     balanceTeams: (players: Player[], options?: BalanceOptions) => Promise<void>;
     match: MatchActionState;
     playerInput: PlayerInputActionState;
-    requestRosterIdentityReview: (players: Player[], failedLines: string[]) => void;
+    requestRosterIdentityReview: (players: Player[], failedLines: string[]) => Promise<void>;
     onMatchCompleted?: (players: Player[]) => void;
     setSwapSource: Dispatch<SetStateAction<SwapSource | null>>;
     showDetailedError: (message: string, details: ErrorDetails) => void;
@@ -203,7 +203,7 @@ export const useMatchActions = ({
             showToast('error', '더미 참가자 명단을 불러오지 못했습니다.');
             return;
         }
-        requestRosterIdentityReview(players, []);
+        void requestRosterIdentityReview(players, []);
     };
 
     const handleSelectAlternative = (index: number) => {

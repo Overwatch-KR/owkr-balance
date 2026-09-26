@@ -11,6 +11,7 @@ import {
     type RosterImportMode,
 } from '../../utils/player';
 import {
+    fetchUserSheet,
     fetchUserSheetConflictSnapshot,
     normalizeUserSheetBattleTag,
     syncRosterPlayersToUserSheet,
@@ -113,8 +114,22 @@ export const useRosterImport = ({
         if (reconciled.players.length === 10) onRosterCompleted();
     };
 
-    const requestRosterIdentityReview = (incoming: Player[], failedLines: string[]) => {
+    const requestRosterIdentityReview = async (
+        incoming: Player[],
+        failedLines: string[],
+    ): Promise<void> => {
         setIdentityImportError('');
+        try {
+            userSheet.updateSnapshot(await fetchUserSheet());
+        } catch (error) {
+            const message = getErrorMessage(
+                error,
+                '최신 유저 시트를 불러오지 못했습니다.',
+            );
+            setIdentityImportError(
+                `${message} 현재 화면의 식별 후보를 확인하거나 시트 갱신 없이 명단만 적용해 주세요.`,
+            );
+        }
         setPendingIdentityImport({ incoming, failedLines });
         input.setIsInputCollapsed(false);
     };
@@ -218,7 +233,7 @@ export const useRosterImport = ({
             });
             return;
         }
-        requestRosterIdentityReview(players, importFailedLines);
+        void requestRosterIdentityReview(players, importFailedLines);
     };
 
     return {

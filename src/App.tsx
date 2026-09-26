@@ -573,6 +573,7 @@ const MatchApp = ({
             <AnimatePresence>
                 {pendingIdentityImport && (
                     <RosterIdentityResolver
+                        key={userSheet.sheetVersion}
                         currentPlayers={players}
                         entries={userSheet.entries}
                         failedLines={pendingIdentityImport.failedLines}
