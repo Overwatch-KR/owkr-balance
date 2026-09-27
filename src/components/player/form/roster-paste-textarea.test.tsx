@@ -19,6 +19,9 @@ describe('RosterPasteTextarea', () => {
         );
 
         expect(markup).toContain('<mark');
+        expect(markup).toContain('data-highlight-start="');
+        expect(markup).toMatch(/<mark[^>]*class="[^"]*text-transparent/);
+        expect(markup).toContain('px-3 py-2.5 font-mono text-sm leading-relaxed');
         expect(markup).toContain('오류 1/2');
         expect(markup).toContain('First#1234');
         expect(markup).toContain('비선호 역할은 한 개만 지정해 주세요.');
