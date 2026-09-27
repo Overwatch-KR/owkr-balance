@@ -42,7 +42,7 @@
 
     body {
         @apply overflow-x-hidden bg-surface text-slate-200 antialiased;
-        background-image: radial-gradient(circle at 50% -24rem, rgb(255 255 255 / 0.035), transparent 42rem);
+        background-image: radial-gradient(circle at 50% -24rem, rgb(169 199 205 / 0.035), transparent 42rem);
         font-feature-settings: 'ss01' on, 'ss02' on;
     }
 
@@ -51,7 +51,7 @@
     input,
     textarea,
     select {
-        -webkit-tap-highlight-color: rgb(59 130 246 / 0.18);
+        -webkit-tap-highlight-color: rgb(131 173 182 / 0.16);
     }
 
     button:disabled,

@@ -100,7 +100,7 @@ const UserProfileAvatar = ({
         role="img"
         aria-label={`${userName} 프로필`}
         title={`${userName} 프로필`}
-        className={`relative flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-cyan-400/10 font-bold text-cyan-200 ring-1 ring-cyan-400/20 ${className}`}
+        className={`relative flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/[0.05] font-bold text-slate-300 ring-1 ring-white/10 ${className}`}
     >
         <span aria-hidden="true">
             {userName.slice(0, 1).toUpperCase() || <UserRound size={16} />}
@@ -365,7 +365,7 @@ export const NavigationLoadingShell = ({
                         alt=""
                         width={40}
                         height={40}
-                        className="h-10 w-10 shrink-0 rounded-lg"
+                        className="h-10 w-10 shrink-0 rounded-lg saturate-[0.72]"
                     />
                     {!collapsed ? (
                         <div>
@@ -623,7 +623,7 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                                 width={40}
                                 height={40}
                                 aria-hidden="true"
-                                className="h-10 w-10 shrink-0 rounded-lg"
+                                className="h-10 w-10 shrink-0 rounded-lg saturate-[0.72]"
                             />
                             {!isCollapsed ? (
                                 <span className="min-w-0">
