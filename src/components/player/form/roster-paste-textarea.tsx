@@ -30,7 +30,7 @@ const renderHighlightedText = (
             <mark
                 key={`highlight-${index}`}
                 data-highlight-start={range.start}
-                className="rounded-sm bg-rose-500/25 text-rose-200 underline decoration-2 decoration-rose-400 underline-offset-2"
+                className="rounded-sm bg-rose-500/25 text-transparent underline decoration-2 decoration-rose-400 underline-offset-2"
             >
                 {text.slice(range.start, range.end)}
             </mark>,
@@ -150,7 +150,7 @@ const RosterPasteTextarea = ({
                     >
                         <div
                             ref={highlightLayerRef}
-                            className="min-h-full whitespace-pre-wrap break-words px-4 py-3 font-mono text-sm leading-relaxed"
+                            className="min-h-full whitespace-pre-wrap break-words px-3 py-2.5 font-mono text-sm leading-relaxed"
                         >
                             {renderHighlightedText(value, ranges)}
                         </div>
