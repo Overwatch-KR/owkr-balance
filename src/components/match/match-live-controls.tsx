@@ -69,32 +69,49 @@ export function MatchLiveControls({
 
     return (
         <section
-            className="border-l-2 border-cyan-400/60 bg-cyan-500/[0.035] p-4"
-            aria-labelledby="match-live-title"
+            className="p-4"
+            aria-label="함께 편집"
         >
-            <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                        <Radio size={16} className="text-emerald-300" aria-hidden="true" />
-                        <h2 id="match-live-title" className="text-sm font-semibold text-white">
-                            함께 편집
-                        </h2>
+            <p className="text-sm text-slate-300">
+                같은 코드로 명단과 팀 변경을 실시간으로 맞춥니다.
+            </p>
+
+            {isConnected && session ? (
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-slate-800 pt-3">
+                    <div className="min-w-0">
+                        <div className="flex items-center gap-2 text-xs text-slate-400">
+                            <span className={`h-1.5 w-1.5 ${syncError ? 'bg-amber-400' : 'bg-cyan-300'}`} aria-hidden="true" />
+                            <span>{isPublishing ? '변경 저장 중…' : syncError ? '연결 확인 필요' : '연결됨'}</span>
+                            <strong className="font-mono tracking-[0.14em] text-cyan-200">{session.code}</strong>
+                        </div>
+                        <span className="mt-1 block text-[11px] text-slate-500">
+                            새로고침 후에도 자동으로 다시 연결됩니다.
+                        </span>
                     </div>
-                    <p className="mt-1 max-w-2xl text-xs leading-relaxed text-slate-400">
-                        같은 코드로 접속한 관리자와 명단·팀 변경을 자동으로 맞춥니다.
-                    </p>
+                    <div className="flex items-center gap-1">
+                        <button
+                            type="button"
+                            onClick={() => void handleCopy()}
+                            className="btn-ghost min-h-9 px-2 text-xs"
+                        >
+                            {copyCompleted
+                                ? <Check size={13} aria-hidden="true" />
+                                : <ClipboardCopy size={13} aria-hidden="true" />}
+                            {copyCompleted ? '복사됨' : '코드 복사'}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={onLeave}
+                            disabled={isBusy}
+                            className="btn-ghost min-h-9 px-2 text-xs disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                            <LogOut size={13} aria-hidden="true" />
+                            연결 종료
+                        </button>
+                    </div>
                 </div>
-                {isConnected ? (
-                    <button
-                        type="button"
-                        onClick={onLeave}
-                        disabled={isBusy}
-                        className="btn-ghost flex items-center gap-2 text-sm disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                        <LogOut size={14} aria-hidden="true" />
-                        연결 종료
-                    </button>
-                ) : (
+            ) : (
+                <div className="mt-3 grid items-end gap-3 lg:grid-cols-[minmax(180px,0.8fr)_auto_minmax(320px,1.2fr)]">
                     <button
                         type="button"
                         onClick={() => void handleStart()}
@@ -102,78 +119,54 @@ export function MatchLiveControls({
                         title={canStart
                             ? '현재 명단으로 실시간 대진표 공유를 시작합니다.'
                             : 'Discord ID가 없는 참가자를 유저 시트와 먼저 연결해 주세요.'}
-                        className="btn-ghost flex items-center gap-2 text-sm disabled:cursor-not-allowed disabled:opacity-40"
+                        className="btn-primary w-full text-sm disabled:cursor-not-allowed disabled:opacity-40"
                     >
                         {isConnecting
-                            ? <Loader2 size={14} className="animate-spin" aria-hidden="true" />
+                            ? <Loader2 size={14} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
                             : <Users size={14} aria-hidden="true" />}
-                        {isConnecting ? '연결 중…' : '실시간 공유 시작'}
+                        {isConnecting ? '연결 중…' : '새 공동 작업 시작'}
                     </button>
-                )}
-            </div>
-
-            {isConnected && session ? (
-                <div className="mt-4 border-t border-emerald-500/20 bg-emerald-500/[0.035] px-3 py-3">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="min-w-0">
-                            <div className="flex items-center gap-2 text-xs text-slate-400">
-                                <span className={`h-2 w-2 rounded-full ${syncError ? 'bg-amber-400' : 'bg-emerald-400'}`} />
-                                <span>{isPublishing ? '변경 저장 중…' : syncError ? '연결 확인 필요' : '연결됨'}</span>
+                    <span className="hidden self-center text-xs text-slate-600 lg:inline">또는</span>
+                    <div>
+                        <label htmlFor="match-live-code" className="mb-1.5 block text-xs font-medium text-slate-400">
+                            받은 코드로 참여
+                        </label>
+                        <div className="flex gap-2">
+                            <div className="relative min-w-0 flex-1">
+                                <Link2
+                                    size={15}
+                                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+                                    aria-hidden="true"
+                                />
+                                <input
+                                    id="match-live-code"
+                                    name="match-live-code"
+                                    value={code}
+                                    onChange={event => setCode(normalizeMatchShareCode(event.target.value))}
+                                    onKeyDown={event => {
+                                        if (event.key === 'Enter') void handleJoin();
+                                    }}
+                                    disabled={!isRemote || isBusy}
+                                    maxLength={10}
+                                    autoComplete="off"
+                                    spellCheck={false}
+                                    placeholder="예: ABCD123456…"
+                                    className="min-w-0 w-full rounded-sm border border-slate-700 bg-slate-950/60 py-2 pl-9 pr-3 font-mono text-sm uppercase tracking-[0.16em] text-white outline-none transition-colors placeholder:font-sans placeholder:tracking-normal placeholder:text-slate-500 focus:border-cyan-500 focus-visible:ring-2 focus-visible:ring-cyan-400/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                />
                             </div>
-                            <strong className="mt-1 block font-mono text-sm tracking-[0.14em] text-emerald-200">
-                                {session.code}
-                            </strong>
-                            <span className="mt-1 block text-[11px] text-slate-400">
-                                새로고침해도 이 브라우저에서 자동으로 다시 연결됩니다.
-                            </span>
+                            <button
+                                type="button"
+                                onClick={() => void handleJoin()}
+                                disabled={!isRemote || code.length !== 10 || isBusy}
+                                className="btn-ghost shrink-0 border border-slate-700 px-4 text-sm disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                                {isConnecting
+                                    ? <Loader2 size={14} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
+                                    : <Radio size={14} aria-hidden="true" />}
+                                {isConnecting ? '연결 중…' : '참여'}
+                            </button>
                         </div>
-                        <button
-                            type="button"
-                            onClick={() => void handleCopy()}
-                            className="btn-ghost flex items-center gap-1.5 text-xs"
-                        >
-                            {copyCompleted
-                                ? <Check size={13} aria-hidden="true" />
-                                : <ClipboardCopy size={13} aria-hidden="true" />}
-                            {copyCompleted ? '복사됨' : '코드 복사'}
-                        </button>
                     </div>
-                </div>
-            ) : (
-                <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
-                    <label htmlFor="match-live-code" className="sr-only">공동 작업 코드</label>
-                    <div className="relative min-w-0 flex-1">
-                        <Link2
-                            size={15}
-                            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
-                            aria-hidden="true"
-                        />
-                        <input
-                            id="match-live-code"
-                            value={code}
-                            onChange={event => setCode(normalizeMatchShareCode(event.target.value))}
-                            onKeyDown={event => {
-                                if (event.key === 'Enter') void handleJoin();
-                            }}
-                            disabled={!isRemote || isBusy}
-                            maxLength={10}
-                            autoComplete="off"
-                            spellCheck={false}
-                            placeholder="실시간 공유 코드 10자리"
-                            className="min-w-0 w-full rounded-md border border-slate-700 bg-slate-950/60 py-2 pl-9 pr-3 font-mono text-sm uppercase tracking-[0.16em] text-white outline-none transition-colors placeholder:font-sans placeholder:tracking-normal placeholder:text-slate-400 focus:border-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
-                        />
-                    </div>
-                    <button
-                        type="button"
-                        onClick={() => void handleJoin()}
-                        disabled={!isRemote || code.length !== 10 || isBusy}
-                        className="btn-primary flex shrink-0 items-center justify-center gap-2 text-sm disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                        {isConnecting
-                            ? <Loader2 size={14} className="animate-spin" aria-hidden="true" />
-                            : <Radio size={14} aria-hidden="true" />}
-                        {isConnecting ? '연결 중…' : '실시간 참여'}
-                    </button>
                 </div>
             )}
 
@@ -185,7 +178,7 @@ export function MatchLiveControls({
 
             {!isRemote && (
                 <p className="mt-3 text-xs text-amber-300/80">
-                    원격 Redis와 유저 시트를 사용하는 실행 환경에서만 공동 작업을 사용할 수 있습니다.
+                    원격 데이터 환경에서만 공동 작업을 사용할 수 있습니다.
                 </p>
             )}
         </section>

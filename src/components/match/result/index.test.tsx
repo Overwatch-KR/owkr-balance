@@ -98,7 +98,7 @@ const createAlternative = (rankValue: number): MatchResultData => {
 const alternatives = Array.from({ length: 11 }, (_, index) => createAlternative(index + 2));
 
 describe('MatchResult', () => {
-    it('탱·딜·힐 티어 스위치를 OFF로 시작하고 화면 영역을 이미지 복사 대상으로 사용한다', () => {
+    it('표시 설정에서 전체 티어를 OFF로 시작하고 화면 영역을 이미지 복사 대상으로 사용한다', () => {
         const markup = renderToStaticMarkup(
             <MatchResult
                 matchResult={matchResult}
@@ -107,12 +107,14 @@ describe('MatchResult', () => {
             />,
         );
 
-        expect(markup).toContain('role="switch"');
-        expect(markup).toContain('aria-checked="false"');
-        expect(markup).toContain('탱·딜·힐 티어 표시');
+        expect(markup).toContain('표시 설정');
+        expect(markup).toContain('특이사항 표시');
+        expect(markup).toContain('탱·딜·힐 전체 티어 표시');
+        expect(markup).toMatch(/특이사항 표시<\/span><input[^>]*checked=""/);
+        expect(markup).toMatch(/탱·딜·힐 전체 티어 표시<\/span><input[^>]*type="checkbox"[^>]*\/?>/);
         expect(markup).toContain('id="result-share-controls"');
         expect(markup).toContain('이미지 복사');
-        expect(markup.indexOf('탱·딜·힐 티어 표시')).toBeLessThan(markup.indexOf('이미지 복사'));
+        expect(markup.indexOf('탱·딜·힐 전체 티어')).toBeLessThan(markup.indexOf('이미지 복사'));
         expect(markup.indexOf('이미지 복사')).toBeLessThan(markup.indexOf('data-capture-content="true"'));
         expect(markup).toContain('밸런스 요약');
         expect(markup).toContain('선호 역할 이탈 1명');
@@ -253,7 +255,7 @@ describe('MatchResult', () => {
         expect(markup).toContain('1팀 · 힐러');
     });
 
-    it('기본 결과 아래에는 추천 후보 2개와 전체 조합 Dialog 진입점만 보여준다', () => {
+    it('기본 결과 아래에는 추천 후보 수와 전체 조합 Dialog 진입점만 보여준다', () => {
         const markup = renderToStaticMarkup(
             <MatchResult
                 matchResult={{
@@ -268,14 +270,14 @@ describe('MatchResult', () => {
         );
 
         expect(markup).toContain('다른 추천 조합');
-        expect(markup).toContain('전체 12개 자세히 보기');
-        expect(markup).toContain('추천 2위');
-        expect(markup).toContain('추천 3위');
+        expect(markup).toContain('전체 12개 보기');
+        expect(markup).not.toContain('추천 2위');
+        expect(markup).not.toContain('추천 3위');
         expect(markup).not.toContain('추천 4위');
-        expect(markup.match(/이 조합 적용/g)).toHaveLength(2);
-        expect(markup.match(/data-assigned-rank=/g)).toHaveLength(20);
-        expect(markup.match(/data-candidate-matchup-row=/g)).toHaveLength(10);
-        expect(markup.match(/data-candidate-change-slot=/g)).toHaveLength(2);
+        expect(markup).not.toContain('이 조합 적용');
+        expect(markup).not.toContain('data-assigned-rank=');
+        expect(markup).not.toContain('data-candidate-matchup-row=');
+        expect(markup).not.toContain('data-candidate-change-slot=');
         expect(markup).toContain('Player1');
         expect(markup).toContain('Player10');
         expect(markup).toContain('골3');

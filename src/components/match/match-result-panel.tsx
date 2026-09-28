@@ -19,10 +19,12 @@ interface MatchResultPanelProps {
     onRunMatching: () => void;
     onSelectAlternative: (index: number) => void;
     onShowAllRanksChange: (show: boolean) => void;
+    onShowSheetNotesChange: (show: boolean) => void;
     onSlotClick: (teamIndex: number, role: Role, index: number) => void;
     participantCount: number;
     result: MatchResultData | null;
     showAllRanks: boolean;
+    showSheetNotes: boolean;
     swapSource: SwapSource | null;
     userSheetByBattleTag: Map<string, UserSheetEntry>;
 }
@@ -43,18 +45,20 @@ export function MatchResultPanel({
     onRunMatching,
     onSelectAlternative,
     onShowAllRanksChange,
+    onShowSheetNotesChange,
     onSlotClick,
     participantCount,
     result,
     showAllRanks,
+    showSheetNotes,
     swapSource,
     userSheetByBattleTag,
 }: MatchResultPanelProps) {
     return (
-        <section className="grid min-w-0 content-start gap-4" aria-labelledby="match-result-title">
-            <div className="flex min-h-11 flex-wrap items-center justify-between gap-3">
+        <section className="grid min-w-0 content-start gap-3" aria-labelledby="match-result-title">
+            <div className="flex min-h-11 flex-wrap items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
                 <div className="flex min-w-0 flex-wrap items-center gap-2.5">
-                    <h2 id="match-result-title" className="text-lg font-semibold text-white">팀 배정</h2>
+                    <h2 id="match-result-title" className="text-base font-semibold text-white">팀 배정</h2>
                     {result && liveRecentChange && (
                         <MatchCollaborationActivity recentChange={liveRecentChange} />
                     )}
@@ -90,7 +94,7 @@ export function MatchResultPanel({
                         className="btn-primary flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                         {isBalancing
-                            ? <Loader2 size={16} className="animate-spin" aria-hidden="true" />
+                            ? <Loader2 size={16} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
                             : <Shuffle size={16} aria-hidden="true" />}
                         {isReady
                             ? isResultStale ? '다시 배정' : '팀 자동 배정'
@@ -106,25 +110,21 @@ export function MatchResultPanel({
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="flex min-h-[300px] flex-col items-center justify-center rounded-xl border border-slate-800/80 bg-surface-elevated/35 px-6 sm:min-h-[360px]"
+                        className="flex min-h-[180px] flex-col items-center justify-center border-y border-slate-800/80 px-6 sm:min-h-[220px]"
                     >
                         {isBalancing ? (
-                            <div className="flex flex-col items-center gap-4">
-                                <span className="flex h-12 w-12 items-center justify-center rounded-lg border border-slate-800 bg-white/[0.025] text-slate-300">
-                                    <Loader2 size={22} className="animate-spin" aria-hidden="true" />
-                                </span>
-                                <p className="text-slate-400">최적의 조합을 계산 중…</p>
+                            <div className="flex items-center gap-3">
+                                <Loader2 size={18} className="animate-spin motion-reduce:animate-none text-cyan-300" aria-hidden="true" />
+                                <p className="text-sm text-slate-300">최적의 조합을 계산 중…</p>
                             </div>
                         ) : (
-                            <div className="flex flex-col items-center gap-3">
-                                <span className="flex h-12 w-12 items-center justify-center rounded-lg border border-slate-800 bg-white/[0.025] text-slate-500">
-                                    <Shuffle size={21} aria-hidden="true" />
-                                </span>
-                                <p className="text-center text-slate-400">
+                            <div className="flex flex-col items-center gap-2 text-center">
+                                <p className="text-sm font-medium text-slate-300">
                                     {isReady
-                                        ? '“팀 자동 배정” 버튼을 눌러주세요'
-                                        : `플레이어 ${10 - participantCount}명을 더 추가하면 팀을 짤 수 있습니다`}
+                                        ? '팀 자동 배정을 실행하세요'
+                                        : `${10 - participantCount}명을 더 추가하면 팀을 편성할 수 있습니다`}
                                 </p>
+                                <span className="text-xs text-slate-500">결과는 이 영역에 바로 표시됩니다.</span>
                             </div>
                         )}
                     </motion.div>
@@ -149,7 +149,9 @@ export function MatchResultPanel({
                             onRematch={onRunMatching}
                             onSelectAlternative={onSelectAlternative}
                             onShowAllRanksChange={onShowAllRanksChange}
+                            onShowSheetNotesChange={onShowSheetNotesChange}
                             showAllRanks={showAllRanks}
+                            showSheetNotes={showSheetNotes}
                             userSheetByBattleTag={userSheetByBattleTag}
                         />
                     </motion.div>

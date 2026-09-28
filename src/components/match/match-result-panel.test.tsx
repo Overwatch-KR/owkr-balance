@@ -64,10 +64,12 @@ describe('MatchResultPanel', () => {
                 onRunMatching={vi.fn()}
                 onSelectAlternative={vi.fn()}
                 onShowAllRanksChange={vi.fn()}
+                onShowSheetNotesChange={vi.fn()}
                 onSlotClick={vi.fn()}
                 participantCount={10}
                 result={result}
                 showAllRanks={false}
+                showSheetNotes
                 swapSource={null}
                 userSheetByBattleTag={new Map()}
             />,

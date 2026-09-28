@@ -54,7 +54,7 @@ const countMatches = (value: string, pattern: RegExp): number => value.match(pat
 const expectEqualHeightMatchupSlots = (markup: string): void => {
     expect(countMatches(markup, /data-matchup-row="true"/g)).toBe(5);
     expect(countMatches(markup, /data-match-slot="true"/g)).toBe(10);
-    expect(countMatches(markup, /flex items-stretch gap-1\.5/g)).toBe(5);
+    expect(countMatches(markup, /flex items-stretch border-x/g)).toBe(5);
     expect(countMatches(markup, /relative flex min-w-0 flex-1/g)).toBe(10);
 };
 
@@ -191,5 +191,34 @@ describe('MatchupTable', () => {
         expect(markup).toContain('gap-1 overflow-hidden');
         expect(markup).toContain('min-w-0 flex-1 truncate');
         expect(markup).toContain(longNote);
+    });
+
+    it('특이사항 표시를 끄면 메모와 맞은편 여백을 함께 제거한다', () => {
+        const sheetEntry: UserSheetEntry = {
+            id: 'sheet-hidden-note',
+            discordName: '시트 닉네임',
+            battleTag: players[0].name,
+            tank: '브1',
+            dps: '다3',
+            support: '에메랄드',
+            note: '숨길 특이사항',
+            createdAt: 1,
+            updatedAt: 1,
+            updatedByName: '관리자',
+        };
+        const markup = renderToStaticMarkup(
+            <MatchupTable
+                matchResult={matchResult}
+                onSlotClick={() => undefined}
+                showSheetNotes={false}
+                swapSource={null}
+                userSheetByBattleTag={new Map([
+                    [sheetEntry.battleTag.toLowerCase(), sheetEntry],
+                ])}
+            />,
+        );
+
+        expect(markup).not.toContain('숨길 특이사항');
+        expect(markup).not.toContain('data-match-note');
     });
 });

@@ -136,7 +136,7 @@ const CompositionPlayer = ({ align, player, role }: CompositionPlayerProps) => {
         >
             {align === 'right' && statusIndicators}
             {align === 'left' && rankDisplay}
-            <span className={`min-w-0 break-all text-[11px] font-semibold leading-tight text-slate-200 ${
+            <span className={`min-w-0 truncate text-[11px] font-semibold leading-tight text-slate-200 ${
                 align === 'right' ? 'text-right' : 'text-left'
             }`}>
                 {name}
@@ -215,7 +215,7 @@ export function AlternativeResultCard({
         : '수동 조정';
 
     return (
-        <article className={`rounded-xl border p-3.5 ${
+        <article className={`rounded-sm border p-3.5 ${
             isCurrent
                 ? 'border-cyan-400/45 bg-cyan-500/[0.07] ring-1 ring-cyan-400/10'
                 : 'border-slate-700/80 bg-slate-900/55'
@@ -224,7 +224,7 @@ export function AlternativeResultCard({
                 <div className="flex min-w-0 flex-wrap items-center gap-2">
                     <span className="text-sm font-semibold text-slate-100">{rankLabel}</span>
                     {isCurrent && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-cyan-500/15 px-2 py-0.5 text-[10px] font-medium text-cyan-200">
+                        <span className="inline-flex items-center gap-1 border-l border-cyan-400/50 pl-2 text-[10px] font-medium text-cyan-200">
                             <Check size={10} aria-hidden="true" />
                             현재 조합
                         </span>
@@ -233,7 +233,7 @@ export function AlternativeResultCard({
             </div>
 
             <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <div className="rounded-lg bg-slate-950/45 px-2.5 py-2">
+                <div className="border-l border-slate-700 bg-slate-950/35 px-2.5 py-2">
                     <p className="text-[10px] text-slate-400">팀 평균 차이</p>
                     <p className="mt-0.5 text-xs font-semibold text-cyan-200">
                         {(candidate.teamA.realScore === candidate.teamB.realScore)
@@ -251,7 +251,7 @@ export function AlternativeResultCard({
                     const totalDifference = metrics?.roleDiffs[roleKey]
                         ?? Math.abs(difference) * (role === 'TANK' ? 1 : 2);
                     return (
-                        <div key={role} className="rounded-lg bg-slate-950/45 px-2.5 py-2">
+                        <div key={role} className="border-l border-slate-700 bg-slate-950/35 px-2.5 py-2">
                             <p className="text-[10px] text-slate-400">{label} 평균 차이</p>
                             <p className="mt-0.5 text-xs font-semibold text-slate-300">
                                 {difference === 0
@@ -308,7 +308,7 @@ export function AlternativeResultCard({
             )}
 
             {showComposition && (
-                <div className="mt-3 overflow-hidden rounded-xl border border-slate-800 bg-slate-950/35">
+                <div className="mt-3 overflow-hidden rounded-sm border border-slate-800 bg-slate-950/35">
                     <div className="grid grid-cols-[minmax(0,1fr)_38px_minmax(0,1fr)] items-center border-b border-slate-800 bg-slate-950/35 px-2.5 py-2">
                         <div className="flex min-w-0 items-baseline gap-1.5">
                             <span className="text-xs font-semibold text-blue-300">1팀</span>
@@ -326,14 +326,14 @@ export function AlternativeResultCard({
                             <span className="text-xs font-semibold text-red-300">2팀</span>
                         </div>
                     </div>
-                    <div className="space-y-1.5 p-2">
+                    <div className="p-2">
                         {COMPOSITION_ROW_DEFS.map(({ role, arrayIndex }) => {
                             const teamAPlayer = candidate.teamA.assignment[role][arrayIndex];
                             const teamBPlayer = candidate.teamB.assignment[role][arrayIndex];
                             return (
                                 <div
                                     key={`${role}-${arrayIndex}`}
-                                    className="grid grid-cols-[minmax(0,1fr)_38px_minmax(0,1fr)] items-stretch rounded-lg border border-slate-700/70 bg-slate-950/20"
+                                    className="grid grid-cols-[minmax(0,1fr)_38px_minmax(0,1fr)] items-stretch border-x border-b border-slate-700/70 bg-slate-950/20 first:border-t"
                                     data-candidate-matchup-row
                                 >
                                     <CompositionPlayer align="right" player={teamAPlayer} role={role} />

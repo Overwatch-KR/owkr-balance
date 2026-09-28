@@ -1,12 +1,10 @@
 import type { ComponentProps } from 'react';
 import {
-    AlertCircle,
     ArrowRight,
     Database,
     ListChecks,
     MessageSquareText,
     User,
-    Users,
 } from 'lucide-react';
 import type { PlayerInputMode } from '../../hooks/use-player-input';
 import type { UserSheetEntry } from '../../utils/user-sheet';
@@ -114,17 +112,15 @@ export const ParticipantWorkspace = ({
                     description="이번 내전의 참가 명단을 추가하고 확인합니다."
                     meta={(
                         <>
-                            <span className="inline-flex items-center gap-1.5 rounded-md border border-slate-700 bg-white/[0.04] px-2.5 py-1 text-xs font-semibold text-slate-200">
-                                <Users size={13} aria-hidden="true" />
-                                참가 {participantCount}/10
+                            <span className="text-xs font-medium text-slate-400">
+                                참가 <strong className="ml-1 font-mono text-sm tabular-nums text-slate-100">{participantCount}/10</strong>
                             </span>
-                            <span className="rounded-sm border-l-2 border-slate-600 bg-slate-900 px-2.5 py-1 text-xs font-medium text-slate-300">
-                                대기 {waitlistCount}명
+                            <span className="text-xs font-medium text-slate-500">
+                                대기 <strong className="ml-1 font-mono tabular-nums text-slate-300">{waitlistCount}</strong>
                             </span>
                             {reviewCount > 0 && (
-                                <span className="inline-flex items-center gap-1.5 rounded-sm border-l-2 border-amber-400 bg-amber-500/[0.06] px-2.5 py-1 text-xs font-medium text-amber-300">
-                                    <AlertCircle size={13} aria-hidden="true" />
-                                    보완 {reviewCount}명
+                                <span className="text-xs font-medium text-amber-300">
+                                    보완 <strong className="ml-1 font-mono tabular-nums">{reviewCount}</strong>
                                 </span>
                             )}
                         </>
@@ -134,8 +130,8 @@ export const ParticipantWorkspace = ({
 
             <div
                 id="participant-next-step"
-                className={`flex min-h-10 flex-wrap items-center justify-between gap-3 border-l-2 px-3 py-1 ${
-                    isReady ? 'border-emerald-400 bg-emerald-500/[0.035]' : 'border-slate-700'
+                className={`flex min-h-10 flex-wrap items-center justify-between gap-3 border-y px-1 py-2 ${
+                    isReady ? 'border-cyan-400/30' : 'border-slate-800'
                 }`}
             >
                 <p className={`text-sm ${isReady ? 'text-emerald-300' : 'text-slate-400'}`}>
@@ -160,9 +156,9 @@ export const ParticipantWorkspace = ({
                 )}
             </div>
 
-            <div className="grid min-w-0 gap-5 xl:grid-cols-[190px_minmax(420px,1fr)_minmax(320px,390px)] xl:items-start">
+            <div className="grid min-w-0 gap-5 xl:grid-cols-[180px_minmax(420px,1fr)_minmax(320px,380px)] xl:items-start">
                 <nav
-                    className="grid grid-cols-4 gap-1 rounded-lg border border-slate-800/80 bg-surface-elevated/45 p-1 xl:sticky xl:top-24 xl:grid-cols-1 xl:p-1.5"
+                    className="grid grid-cols-4 border-y border-slate-800/80 xl:sticky xl:top-24 xl:grid-cols-1"
                     aria-label="참가자 입력 방식"
                 >
                     {INPUT_MODES.map(({ mode, id, label, description, icon: Icon }) => {
@@ -174,10 +170,10 @@ export const ParticipantWorkspace = ({
                                 type="button"
                                 aria-pressed={isActive}
                                 onClick={() => formProps.onModeChange(mode)}
-                                className={`group relative flex min-h-11 min-w-0 flex-col items-center justify-center gap-1 rounded-md border px-1.5 py-2 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 xl:min-h-14 xl:flex-row xl:justify-start xl:gap-3 xl:px-3 xl:text-left ${
+                                className={`group relative flex min-h-11 min-w-0 flex-col items-center justify-center gap-1 border-b-2 border-transparent px-1.5 py-2 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/60 xl:min-h-14 xl:flex-row xl:justify-start xl:gap-3 xl:border-b xl:border-b-slate-800 xl:border-l-2 xl:px-3 xl:text-left ${
                                     isActive
-                                        ? 'border-slate-700 bg-white/[0.06] text-white'
-                                        : 'border-transparent text-slate-400 hover:bg-white/[0.04] hover:text-slate-200'
+                                        ? 'border-b-white/80 text-white xl:border-l-white/80'
+                                        : 'text-slate-400 hover:bg-white/[0.03] hover:text-slate-200 xl:border-l-transparent'
                                 }`}
                             >
                                 <Icon size={18} className="shrink-0" aria-hidden="true" />

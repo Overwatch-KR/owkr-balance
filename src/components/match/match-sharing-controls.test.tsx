@@ -50,9 +50,9 @@ describe('match sharing controls', () => {
             />,
         );
 
-        expect(markup).toContain('함께 편집');
-        expect(markup).toContain('명단·팀 변경을 자동으로 맞춥니다.');
-        expect(markup).toContain('새로고침해도 이 브라우저에서 자동으로 다시 연결됩니다.');
+        expect(markup).toContain('aria-label="함께 편집"');
+        expect(markup).toContain('명단과 팀 변경을 실시간으로 맞춥니다.');
+        expect(markup).toContain('새로고침 후에도 자동으로 다시 연결됩니다.');
         expect(markup.match(/LIVE234567/g)).toHaveLength(1);
     });
 
@@ -73,7 +73,7 @@ describe('match sharing controls', () => {
         );
 
         expect(markup).toContain('다시 연결하지 못했습니다.');
-        expect(markup).toContain('실시간 참여');
+        expect(markup).toContain('받은 코드로 참여');
     });
 
     it('생성 코드와 불러오기 입력을 분리해 같은 코드를 중복 표시하지 않는다', () => {
@@ -94,13 +94,13 @@ describe('match sharing controls', () => {
             />,
         );
 
-        expect(markup).toContain('결과 전달');
-        expect(markup).toContain('24시간 동안 읽기 전용으로 전달합니다.');
+        expect(markup).toContain('aria-label="결과만 보내기"');
+        expect(markup).toContain('24시간 동안 읽기 전용으로 보냅니다.');
         expect(markup.match(/READ234567/g)).toHaveLength(1);
-        expect(markup).toContain('placeholder="읽기 전용 코드 10자리"');
+        expect(markup).toContain('placeholder="예: ABCD123456…"');
     });
 
-    it('두 공유 방식을 접힌 보조 영역으로 묶고 연결 상태만 먼저 보여준다', () => {
+    it('두 공유 방식 중 선택한 흐름만 접힌 보조 영역에서 보여준다', () => {
         const markup = renderToStaticMarkup(
             <MatchSharingPanel
                 canCreateSnapshot
@@ -124,6 +124,9 @@ describe('match sharing controls', () => {
         expect(markup).toContain('<summary');
         expect(markup).toContain('LIVE234567 · 1명 연결 · 동기화됨');
         expect(markup).toContain('함께 편집');
-        expect(markup).toContain('결과 전달');
+        expect(markup).toContain('결과만 보내기');
+        expect(markup).toContain('role="group"');
+        expect(markup).toContain('aria-pressed="true"');
+        expect(markup).not.toContain('새 읽기 전용 코드 만들기');
     });
 });

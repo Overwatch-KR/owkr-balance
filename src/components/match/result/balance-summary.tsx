@@ -1,4 +1,3 @@
-import { BarChart3, ShieldCheck } from 'lucide-react';
 import type { MatchResultData, Player, Rank, Role, TeamResult } from '../../../types';
 import { formatAverageTierDifference } from '../../../utils/match-balance';
 
@@ -97,25 +96,17 @@ const BalanceSummary = ({ matchResult }: BalanceSummaryProps) => {
         <section
             id="balance-summary"
             data-exclude-export
-            className="border-y border-slate-800/90 bg-surface-elevated/35 py-3.5"
+            className="border-b border-slate-700/70 pb-3"
             aria-labelledby="balance-summary-title"
         >
-            <div className="flex flex-wrap items-start justify-between gap-2">
-                <div className="flex items-center gap-2">
-                    <BarChart3 size={15} className="text-cyan-300" aria-hidden="true" />
-                    <h3 id="balance-summary-title" className="text-sm font-semibold text-slate-100">
-                        밸런스 요약
-                    </h3>
-                </div>
-                <p className="text-xs text-slate-400">
-                    역할별 평균 티어 차이를 기준으로 확인하세요.
-                </p>
-            </div>
+            <h3 id="balance-summary-title" className="text-sm font-semibold text-slate-100">
+                밸런스 요약
+            </h3>
 
-            <dl className="mt-3 grid grid-cols-2 overflow-hidden rounded-lg border border-slate-800/90 bg-surface sm:grid-cols-4">
-                <div className="border-b border-r border-slate-800/80 bg-cyan-500/[0.045] px-3 py-2.5 sm:border-b-0">
-                    <dt className="text-[11px] text-cyan-200/70">팀 평균 차이</dt>
-                    <dd className="mt-1 text-sm font-semibold text-cyan-100">
+            <dl className="mt-2 grid grid-cols-2 border-y border-slate-800/90 sm:grid-cols-4">
+                <div className="border-b border-r border-slate-800/80 px-3 py-2.5 sm:border-b-0">
+                    <dt className="text-[11px] text-slate-500">팀 평균 차이</dt>
+                    <dd className="mt-1 text-sm font-semibold text-slate-100">
                         {totalLeadingTeam
                             ? `${totalLeadingTeam} ${formatAverageTierDifference(totalDiff, 5)}`
                             : '거의 동일'}
@@ -153,18 +144,15 @@ const BalanceSummary = ({ matchResult }: BalanceSummaryProps) => {
                 ))}
             </dl>
 
-            <div id="balance-exceptions" className="mt-2.5 flex flex-wrap items-center gap-2 rounded-md text-[11px]">
-                <span className="inline-flex items-center gap-1 text-slate-400">
-                    <ShieldCheck size={12} aria-hidden="true" />
-                    배정 예외
-                </span>
+            <div id="balance-exceptions" className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
+                <span className="text-slate-500">배정 예외</span>
                 {exceptions.map(({ label, players }) => (
                     <span
                         key={label}
-                        className={`rounded-full border px-2 py-1 tabular-nums ${
+                        className={`tabular-nums ${
                             players.length === 0
-                                ? 'border-emerald-500/20 bg-emerald-500/[0.07] text-emerald-300'
-                                : 'border-amber-500/20 bg-amber-500/[0.07] text-amber-300'
+                                ? 'text-slate-500'
+                                : 'font-medium text-amber-300'
                         }`}
                     >
                         {label} {players.length}명
@@ -173,14 +161,14 @@ const BalanceSummary = ({ matchResult }: BalanceSummaryProps) => {
             </div>
 
             {activeExceptions.length > 0 && (
-                <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                <div className="mt-2 divide-y divide-amber-500/15 border-y border-amber-500/20">
                     {activeExceptions.map(({ label, players }) => (
                         <div
                             key={label}
-                            className="min-w-0 rounded-lg border border-amber-500/15 bg-amber-500/[0.05] px-3 py-2"
+                            className="min-w-0 px-3 py-2"
                         >
-                            <p className="text-[11px] font-semibold text-amber-200">{label}</p>
-                            <ul className="mt-1.5 space-y-1" aria-label={`${label} 대상`}>
+                            <p className="text-[11px] font-semibold text-amber-300">{label}</p>
+                            <ul className="mt-1 grid gap-x-6 gap-y-1 sm:grid-cols-2" aria-label={`${label} 대상`}>
                                 {players.map(({ player, role, teamLabel }) => {
                                     const playerName = player.discordName ?? player.name;
 

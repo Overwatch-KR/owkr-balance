@@ -66,7 +66,7 @@ const PlayerList = ({
         return (
         <li
             key={player.id}
-            className={`group animate-fade-in border-b px-3 py-3 transition-colors last:border-b-0 ${
+            className={`group animate-fade-in border-b px-3 py-2.5 transition-colors last:border-b-0 ${
                 isWaitlist
                     ? 'border-amber-500/15 bg-amber-500/[0.025] hover:bg-amber-500/[0.055]'
                     : 'border-slate-800/70 hover:bg-surface-overlay/70'
@@ -157,15 +157,17 @@ const PlayerList = ({
     };
 
     return (
-        <section id="player-management" className="card flex min-h-[420px] scroll-mt-24 flex-1 flex-col overflow-hidden p-0 xl:min-h-0" aria-labelledby="player-management-title">
+        <section id="player-management" className="flex min-h-[420px] scroll-mt-24 flex-1 flex-col overflow-hidden border border-slate-700/65 bg-surface-elevated/55 xl:min-h-0" aria-labelledby="player-management-title">
             {/* Header */}
-            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-800/80 px-4 py-3.5">
+            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-700/70 px-4 py-3">
                 <div className="flex min-w-0 items-center gap-2">
-                    <Users size={17} className="shrink-0 text-slate-400" aria-hidden="true" />
                     <h2 id="player-management-title" className="truncate text-sm font-semibold text-white">
                         현재 명단
                     </h2>
-                    <span className="shrink-0 text-xs tabular-nums text-slate-400">총 {totalCount}명</span>
+                    <span className="shrink-0 font-mono text-sm tabular-nums text-slate-400">{participantCount}/10</span>
+                    {waitlistCount > 0 && (
+                        <span className="shrink-0 text-xs tabular-nums text-slate-500">대기 {waitlistCount}</span>
+                    )}
                 </div>
 
                 {totalCount > 0 && (
@@ -190,7 +192,7 @@ const PlayerList = ({
             )}
 
             <div
-                className="mx-4 my-3 grid shrink-0 grid-cols-2 gap-1 rounded-md border border-slate-800/80 bg-surface p-1"
+                className="grid shrink-0 grid-cols-2 border-b border-slate-800/80"
                 role="tablist"
                 aria-label="참가자 명단 구분"
                 aria-orientation="horizontal"
@@ -205,17 +207,14 @@ const PlayerList = ({
                     aria-controls="participants-panel"
                     tabIndex={activeTab === 'participants' ? 0 : -1}
                     onClick={() => setActiveTab('participants')}
-                    className={`flex min-h-10 touch-manipulation items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${
+                    className={`flex min-h-10 touch-manipulation items-center justify-center gap-2 border-b-2 px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-400/70 ${
                         activeTab === 'participants'
-                            ? 'bg-slate-800 text-white'
-                            : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
+                            ? 'border-cyan-400 text-white'
+                            : 'border-transparent text-slate-500 hover:bg-white/[0.03] hover:text-slate-200'
                     }`}
                 >
-                    <Users size={14} aria-hidden="true" />
                     참가자
-                    <span className={`rounded-full px-1.5 py-0.5 text-[10px] tabular-nums ${
-                        isReady ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-400'
-                    }`}>
+                    <span className={`font-mono text-[11px] tabular-nums ${isReady ? 'text-cyan-300' : 'text-slate-500'}`}>
                         {participantCount}/10
                     </span>
                 </button>
@@ -228,15 +227,14 @@ const PlayerList = ({
                     aria-controls="waitlist-panel"
                     tabIndex={activeTab === 'waitlist' ? 0 : -1}
                     onClick={() => setActiveTab('waitlist')}
-                    className={`flex min-h-10 touch-manipulation items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/70 ${
+                    className={`flex min-h-10 touch-manipulation items-center justify-center gap-2 border-b-2 px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-400/70 ${
                         activeTab === 'waitlist'
-                            ? 'bg-amber-500/10 text-amber-200'
-                            : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
+                            ? 'border-amber-400 text-amber-200'
+                            : 'border-transparent text-slate-500 hover:bg-white/[0.03] hover:text-slate-200'
                     }`}
                 >
-                    <Clock size={14} aria-hidden="true" />
                     대기열
-                    <span className="rounded-full bg-slate-800 px-1.5 py-0.5 text-[10px] tabular-nums text-slate-400">
+                    <span className="font-mono text-[11px] tabular-nums text-slate-500">
                         {waitlistCount}
                     </span>
                 </button>

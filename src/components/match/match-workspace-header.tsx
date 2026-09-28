@@ -1,4 +1,4 @@
-import { ArrowRight, Users } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 interface MatchWorkspaceHeaderProps {
     participantCount: number;
@@ -16,32 +16,26 @@ export function MatchWorkspaceHeader({
 }: MatchWorkspaceHeaderProps) {
     const remainingCount = Math.max(10 - participantCount, 0);
     const rosterStatus = participantCount === 10
-        ? '10명 준비 완료'
+        ? '준비 완료'
         : participantCount === 0
-            ? '아직 참가자가 없습니다'
-            : `${remainingCount}명 더 필요`;
+            ? '명단 없음'
+            : `${remainingCount}명 부족`;
 
     return (
-        <header className="flex flex-col gap-3 border-b border-slate-800 pb-5 sm:flex-row sm:items-end sm:justify-between">
-            <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2.5">
-                    <h1 className="text-pretty text-[28px] font-semibold tracking-tight text-white">대진표</h1>
-                    <span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-semibold tabular-nums ${
-                        participantCount === 10
-                            ? 'border-emerald-500/20 bg-emerald-500/[0.07] text-emerald-300'
-                            : 'border-slate-700/70 bg-slate-900/80 text-slate-300'
-                    }`}>
-                        <Users size={13} aria-hidden="true" />
+        <header className="flex flex-col gap-3 border-b border-slate-700/70 pb-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 flex-wrap items-baseline gap-x-5 gap-y-1">
+                <h1 className="text-pretty text-[30px] font-semibold tracking-[-0.035em] text-white">대진표</h1>
+                <p className="text-sm text-slate-400">
+                    현재 명단
+                    <strong className="ml-2 font-mono text-base font-semibold tabular-nums text-slate-100">
+                        {participantCount}/10
+                    </strong>
+                    <span className={`ml-2 text-xs ${participantCount === 10 ? 'text-emerald-300' : 'text-slate-500'}`}>
                         {rosterStatus}
                     </span>
                     {waitlistCount > 0 && (
-                        <span className="text-xs tabular-nums text-slate-400">대기 {waitlistCount}명</span>
+                        <span className="ml-3 text-xs tabular-nums text-slate-500">대기 {waitlistCount}</span>
                     )}
-                </div>
-                <p className="mt-1.5 text-sm text-slate-400">
-                    {participantCount === 10
-                        ? '자동 배정 후 선수를 눌러 자리를 바꿀 수 있습니다.'
-                        : '현재 명단을 채우면 바로 팀을 나눌 수 있습니다.'}
                 </p>
             </div>
 
@@ -50,7 +44,7 @@ export function MatchWorkspaceHeader({
                     id="participant-workspace-button"
                     type="button"
                     onClick={onManageParticipants}
-                    className="btn-ghost inline-flex min-h-10 items-center gap-2 px-3 text-sm"
+                    className="btn-ghost inline-flex min-h-9 items-center gap-2 px-2 text-sm text-cyan-300"
                 >
                     명단 관리
                     <ArrowRight size={15} aria-hidden="true" />

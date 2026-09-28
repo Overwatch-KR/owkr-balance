@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react';
-import { Layers3, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { MatchResultData } from '../../../types';
 import { useDialogFocus } from '../../../hooks/use-dialog-focus';
@@ -88,12 +88,9 @@ export function AlternativeResultsDialog({
             >
                 <header className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-800 px-4 py-4 md:px-6">
                     <div>
-                        <div className="flex items-center gap-2">
-                            <Layers3 size={18} className="text-cyan-300" aria-hidden="true" />
-                            <h2 id="alternative-results-dialog-title" className="font-semibold text-white">
-                                전체 팀 조합 비교
-                            </h2>
-                        </div>
+                        <h2 id="alternative-results-dialog-title" className="font-semibold text-white">
+                            전체 팀 조합 비교
+                        </h2>
                         <p className="mt-1 text-xs leading-relaxed text-slate-400">
                             추천 후보 {candidates.length}개의 전체 로스터와 배정 티어를 비교하세요.
                         </p>
@@ -101,7 +98,7 @@ export function AlternativeResultsDialog({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white/5 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-sm text-slate-400 transition-colors hover:bg-white/5 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
                         aria-label="전체 팀 조합 비교 닫기"
                     >
                         <X size={17} aria-hidden="true" />
