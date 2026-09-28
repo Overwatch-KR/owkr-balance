@@ -42,7 +42,6 @@
 
     body {
         @apply overflow-x-hidden bg-surface text-slate-200 antialiased;
-        background-image: radial-gradient(circle at 50% -24rem, rgb(169 199 205 / 0.035), transparent 42rem);
         font-feature-settings: 'ss01' on, 'ss02' on;
     }
 
@@ -66,10 +65,18 @@
     }
 }
 
+.app-canvas {
+    background-color: #000;
+    background-image:
+        radial-gradient(ellipse 52rem 30rem at 92% -14rem, rgb(0 112 243 / 0.16), transparent 72%),
+        radial-gradient(ellipse 34rem 26rem at -12% 32rem, rgb(121 40 202 / 0.075), transparent 72%);
+    background-attachment: fixed;
+}
+
 @layer components {
     .btn-primary {
-        @apply inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-white/80 bg-accent px-4 py-2 font-semibold text-slate-950
-               transition-[background-color,color,border-color,box-shadow,transform] duration-150 active:scale-[0.98] hover:border-white hover:bg-accent-hover
+        @apply inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-white bg-accent px-4 py-2 font-semibold text-slate-950 shadow-[0_1px_2px_rgb(0_0_0_/_0.35)]
+               transition-[background-color,color,border-color,box-shadow,transform] duration-150 active:scale-[0.98] hover:bg-accent-hover hover:shadow-[0_2px_8px_rgb(255_255_255_/_0.12)]
                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-surface;
     }
 
@@ -101,20 +108,20 @@
     }
 
     .card {
-        @apply rounded-lg border border-slate-800 bg-surface-elevated p-4 sm:p-5;
+        @apply rounded-lg border border-slate-800 bg-surface-elevated p-4 shadow-[0_1px_2px_rgb(0_0_0_/_0.28)] sm:p-5;
     }
 
     .input-base {
-        @apply min-h-10 w-full rounded-md border border-slate-700 bg-black/30 px-3 py-2.5
+        @apply min-h-10 w-full rounded-md border border-slate-700 bg-black/60 px-3 py-2.5
                text-sm text-white placeholder:text-slate-500
-               focus:border-slate-500 focus:ring-2 focus:ring-white/10
+               focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20
                outline-none transition-[background-color,border-color,box-shadow] duration-200;
     }
 
     .form-control {
-        @apply h-10 w-full rounded-md border border-slate-700 bg-black/30 px-3 text-sm text-slate-100 outline-none
+        @apply h-10 w-full rounded-md border border-slate-700 bg-black/60 px-3 text-sm text-slate-100 outline-none
                transition-[border-color,box-shadow] duration-200 placeholder:text-slate-500
-               focus:border-slate-500 focus:ring-2 focus:ring-white/10;
+               focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20;
     }
 }
 
@@ -136,7 +143,7 @@
 }
 
 .custom-scrollbar {
-    scrollbar-color: #3f3f46 rgb(9 9 11 / 0.45);
+    scrollbar-color: #525252 rgb(0 0 0 / 0.65);
     scrollbar-width: thin;
 }
 
@@ -145,19 +152,19 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-    background: rgb(9 9 11 / 0.45);
+    background: rgb(0 0 0 / 0.65);
     border-radius: 999px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #3f3f46;
+    background: #525252;
     border: 2px solid transparent;
     border-radius: 999px;
     background-clip: padding-box;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background-color: #52525b;
+    background-color: #737373;
 }
 
 @media (min-width: 1280px) {
@@ -396,7 +403,7 @@
 }
 
 .tab-active {
-    @apply text-white border-b-2 border-accent;
+    @apply text-white border-b-2 border-cyan-500;
 }
 
 .tab-inactive {
