@@ -47,7 +47,7 @@ const uniqueIds = (entries: UserSheetEntry[]): string[] => (
 );
 
 /**
- * @description 붙여넣은 참가자 한 명을 Discord ID, 배틀태그, 표시 이름 순으로 기존 시트 후보와 연결한다.
+ * @description Discord ID와 배틀태그로 기존 행을 연결하고 표시 이름만 같으면 ID 확인 후보로 남긴다.
  */
 export const suggestRosterIdentity = (
     player: Player,
@@ -102,8 +102,7 @@ export const suggestRosterIdentity = (
             candidateEntryIds: [nameMatches[0].id],
             matchKind: 'DISCORD_NAME',
             player,
-            requiresDiscordUserId: !nameMatches[0].discordUserId,
-            selectedEntryId: nameMatches[0].id,
+            requiresDiscordUserId: true,
         };
     }
 

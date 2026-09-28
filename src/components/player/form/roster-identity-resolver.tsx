@@ -150,7 +150,9 @@ export function RosterIdentityResolver({
         const discordUserId = cleanDiscordUserId(draft.discordUserId);
         const resolvedEntry = getResolvedEntry(draft);
         if (!isLocalOnly && draft.requiresDiscordUserId && !discordUserId) {
-            return '신규 또는 중복 후보는 Discord ID가 필요합니다.';
+            return draft.matchKind === 'DISCORD_NAME'
+                ? '이름만 일치하고 배틀태그가 다릅니다. 실제 Discord ID를 입력해 주세요.'
+                : '신규 또는 중복 후보는 Discord ID가 필요합니다.';
         }
         if (discordUserId && !isValidDiscordUserId(discordUserId)) {
             return 'Discord ID는 17~20자리 숫자여야 합니다.';
@@ -247,7 +249,9 @@ export function RosterIdentityResolver({
         const entry = entriesById.get(entryId);
         updateDraft(draft.player.id, {
             selectedEntryId: entryId,
-            discordUserId: entry?.discordUserId
+            discordUserId: draft.requiresDiscordUserId
+                ? draft.discordUserId
+                : entry?.discordUserId
                 ?? (entryId ? draft.discordUserId : ''),
         });
     };
@@ -258,7 +262,9 @@ export function RosterIdentityResolver({
         updateDraft(draft.player.id, {
             discordUserId,
             selectedEntryId: idMatchedEntry?.id
-                ?? (draft.matchKind === 'NEW' ? '' : draft.selectedEntryId),
+                ?? (draft.matchKind === 'NEW' || draft.matchKind === 'DISCORD_NAME'
+                    ? ''
+                    : draft.selectedEntryId),
         });
     };
 
@@ -293,6 +299,7 @@ export function RosterIdentityResolver({
                 target.discordUserId = item.id;
                 const existing = entriesByDiscordId.get(item.id);
                 if (existing) target.selectedEntryId = existing.id;
+                else if (target.matchKind === 'DISCORD_NAME') target.selectedEntryId = '';
             }
             return next;
         });

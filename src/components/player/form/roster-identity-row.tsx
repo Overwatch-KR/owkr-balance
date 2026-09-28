@@ -24,7 +24,7 @@ const MATCH_LABELS: Record<RosterIdentitySuggestion['matchKind'], string> = {
     DISCORD_ID: 'Discord ID 일치',
     BATTLE_TAG_AND_NAME: '이름·배틀태그 일치',
     BATTLE_TAG: '배틀태그 일치',
-    DISCORD_NAME: '이름으로 추천',
+    DISCORD_NAME: '이름 일치 · ID 확인 필요',
     AMBIGUOUS: '후보 확인 필요',
     NEW: '신규 유저',
 };

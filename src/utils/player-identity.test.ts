@@ -56,17 +56,18 @@ describe('roster identity suggestions', () => {
         });
     });
 
-    it('유일한 Discord 이름은 기존 데이터 후보로 자동 연결한다', () => {
+    it('유일한 Discord 이름만 같고 배틀태그가 다르면 후보만 표시하고 ID를 요구한다', () => {
         const suggestion = suggestRosterIdentity(
             player(1, 'Changed#9999', '같은 이름'),
-            [entry('sheet-1', 'Old#1234', '같은 이름')],
+            [entry('sheet-1', 'Old#1234', '같은 이름', '123456789012345678')],
         );
 
         expect(suggestion).toMatchObject({
+            candidateEntryIds: ['sheet-1'],
             matchKind: 'DISCORD_NAME',
             requiresDiscordUserId: true,
-            selectedEntryId: 'sheet-1',
         });
+        expect(suggestion.selectedEntryId).toBeUndefined();
     });
 
     it('기존 행도 Discord ID가 비어 있으면 식별 완료 전에 입력을 요구한다', () => {
