@@ -98,7 +98,7 @@ const createAlternative = (rankValue: number): MatchResultData => {
 const alternatives = Array.from({ length: 11 }, (_, index) => createAlternative(index + 2));
 
 describe('MatchResult', () => {
-    it('표시 설정에서 전체 티어를 OFF로 시작하고 화면 영역을 이미지 복사 대상으로 사용한다', () => {
+    it('특이사항과 전체 티어 표시 토글을 나란히 제공하고 화면 영역을 이미지 복사 대상으로 사용한다', () => {
         const markup = renderToStaticMarkup(
             <MatchResult
                 matchResult={matchResult}
@@ -107,14 +107,13 @@ describe('MatchResult', () => {
             />,
         );
 
-        expect(markup).toContain('표시 설정');
         expect(markup).toContain('특이사항 표시');
-        expect(markup).toContain('탱·딜·힐 전체 티어 표시');
-        expect(markup).toMatch(/특이사항 표시<\/span><input[^>]*checked=""/);
-        expect(markup).toMatch(/탱·딜·힐 전체 티어 표시<\/span><input[^>]*type="checkbox"[^>]*\/?>/);
+        expect(markup).toContain('전체 티어 표시');
+        expect(markup).toMatch(/role="switch"[^>]*aria-checked="true"[^>]*>.*특이사항 표시/s);
+        expect(markup).toMatch(/role="switch"[^>]*aria-checked="false"[^>]*>.*전체 티어 표시/s);
         expect(markup).toContain('id="result-share-controls"');
         expect(markup).toContain('이미지 복사');
-        expect(markup.indexOf('탱·딜·힐 전체 티어')).toBeLessThan(markup.indexOf('이미지 복사'));
+        expect(markup.indexOf('전체 티어 표시')).toBeLessThan(markup.indexOf('이미지 복사'));
         expect(markup.indexOf('이미지 복사')).toBeLessThan(markup.indexOf('data-capture-content="true"'));
         expect(markup).toContain('밸런스 요약');
         expect(markup).toContain('선호 역할 이탈 1명');

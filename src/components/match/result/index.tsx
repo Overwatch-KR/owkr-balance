@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { AlertTriangle, ArrowLeftRight, ChevronDown, Layers3, Loader2, RefreshCcw, SlidersHorizontal, X } from 'lucide-react';
+import { AlertTriangle, ArrowLeftRight, Layers3, Loader2, RefreshCcw, X } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import type { MatchResultData, Role, SwapSource } from '../../../types';
 import type { UserSheetEntry } from '../../../utils/user-sheet';
@@ -133,35 +133,50 @@ const MatchResult = ({
                 data-exclude-export
                 className="flex flex-wrap items-center justify-end gap-2"
             >
-                <details className="group relative">
-                    <summary className="inline-flex min-h-9 cursor-pointer list-none items-center gap-2 rounded-sm px-2 text-xs font-medium text-slate-400 transition-colors hover:bg-white/5 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 [&::-webkit-details-marker]:hidden">
-                        <SlidersHorizontal size={14} aria-hidden="true" />
-                        표시 설정
-                        <ChevronDown size={13} className="transition-transform group-open:rotate-180" aria-hidden="true" />
-                    </summary>
-                    <div className="absolute right-0 top-full z-30 mt-1 w-52 border border-slate-700 bg-[#0b0f14] p-1">
-                        <label className="flex min-h-10 cursor-pointer items-center justify-between gap-4 px-3 text-xs text-slate-300 transition-colors hover:bg-white/5 focus-within:ring-2 focus-within:ring-inset focus-within:ring-cyan-400/70">
-                            <span>특이사항 표시</span>
-                            <input
-                                type="checkbox"
-                                name="show-sheet-notes"
-                                checked={showSheetNotes}
-                                onChange={event => onShowSheetNotesChange?.(event.target.checked)}
-                                className="h-4 w-4 shrink-0 accent-cyan-400"
-                            />
-                        </label>
-                        <label className="flex min-h-10 cursor-pointer items-center justify-between gap-4 border-t border-slate-800 px-3 text-xs text-slate-300 transition-colors hover:bg-white/5 focus-within:ring-2 focus-within:ring-inset focus-within:ring-cyan-400/70">
-                            <span>탱·딜·힐 전체 티어 표시</span>
-                            <input
-                                type="checkbox"
-                                name="show-all-ranks"
-                                checked={showAllRanks}
-                                onChange={event => onShowAllRanksChange?.(event.target.checked)}
-                                className="h-4 w-4 shrink-0 accent-cyan-400"
-                            />
-                        </label>
-                    </div>
-                </details>
+                <div className="flex flex-wrap items-center gap-1" aria-label="결과 표시 옵션">
+                    <button
+                        type="button"
+                        role="switch"
+                        aria-checked={showSheetNotes}
+                        onClick={() => onShowSheetNotesChange?.(!showSheetNotes)}
+                        className="inline-flex min-h-10 touch-manipulation items-center gap-2 rounded-lg px-2.5 text-xs text-slate-300 transition-colors hover:bg-slate-800/70 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+                    >
+                        <span>특이사항 표시</span>
+                        <span
+                            className={`relative h-5 w-9 shrink-0 rounded-full border transition-colors motion-reduce:transition-none ${
+                                showSheetNotes
+                                    ? 'border-cyan-400/70 bg-cyan-500/70'
+                                    : 'border-slate-600 bg-slate-800'
+                            }`}
+                            aria-hidden="true"
+                        >
+                            <span className={`absolute left-0.5 top-0.5 h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform motion-reduce:transition-none ${
+                                showSheetNotes ? 'translate-x-4' : 'translate-x-0'
+                            }`} />
+                        </span>
+                    </button>
+                    <button
+                        type="button"
+                        role="switch"
+                        aria-checked={showAllRanks}
+                        onClick={() => onShowAllRanksChange?.(!showAllRanks)}
+                        className="inline-flex min-h-10 touch-manipulation items-center gap-2 rounded-lg px-2.5 text-xs text-slate-300 transition-colors hover:bg-slate-800/70 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+                    >
+                        <span>전체 티어 표시</span>
+                        <span
+                            className={`relative h-5 w-9 shrink-0 rounded-full border transition-colors motion-reduce:transition-none ${
+                                showAllRanks
+                                    ? 'border-cyan-400/70 bg-cyan-500/70'
+                                    : 'border-slate-600 bg-slate-800'
+                            }`}
+                            aria-hidden="true"
+                        >
+                            <span className={`absolute left-0.5 top-0.5 h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform motion-reduce:transition-none ${
+                                showAllRanks ? 'translate-x-4' : 'translate-x-0'
+                            }`} />
+                        </span>
+                    </button>
+                </div>
                 <CopyButton status={copyStatus} onClick={handleCopyImage} />
             </div>
 
