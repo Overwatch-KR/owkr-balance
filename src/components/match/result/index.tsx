@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { AlertTriangle, ArrowLeftRight, Layers3, Loader2, RefreshCcw, X } from 'lucide-react';
+import { AlertTriangle, ArrowLeftRight, ChevronDown, Layers3, Loader2, RefreshCcw, SlidersHorizontal, X } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import type { MatchResultData, Role, SwapSource } from '../../../types';
 import type { UserSheetEntry } from '../../../utils/user-sheet';
@@ -7,7 +7,6 @@ import { useCopyImage } from '../../../hooks/use-copy-image';
 import MatchupTable from './matchup-table';
 import CopyButton from './copy-button';
 import BalanceSummary from './balance-summary';
-import { AlternativeResultCard } from './alternative-result-card';
 import { AlternativeResultsDialog } from './alternative-results-dialog';
 
 interface MatchResultProps {
@@ -22,18 +21,11 @@ interface MatchResultProps {
     onCancelSwap?: () => void;
     onRematch?: () => void;
     onShowAllRanksChange?: (showAllRanks: boolean) => void;
+    onShowSheetNotesChange?: (showSheetNotes: boolean) => void;
     showAllRanks?: boolean;
+    showSheetNotes?: boolean;
     userSheetByBattleTag?: Map<string, UserSheetEntry>;
 }
-
-const getMatchResultKey = (result: MatchResultData): string => [
-    ...result.teamA.assignment.TANK,
-    ...result.teamA.assignment.DPS,
-    ...result.teamA.assignment.SUPPORT,
-    ...result.teamB.assignment.TANK,
-    ...result.teamB.assignment.DPS,
-    ...result.teamB.assignment.SUPPORT,
-].map((player) => player.id).join('-');
 
 const getSelectedSwapPlayer = (
     matchResult: MatchResultData,
@@ -56,26 +48,19 @@ const MatchResult = ({
     onCancelSwap,
     onRematch,
     onShowAllRanksChange,
+    onShowSheetNotesChange,
     showAllRanks = false,
+    showSheetNotes = true,
     userSheetByBattleTag,
 }: MatchResultProps) => {
     const captureRef = useRef<HTMLDivElement>(null);
     const [isAlternativeDialogOpen, setIsAlternativeDialogOpen] = useState(false);
     const { copyStatus, handleCopyImage } = useCopyImage(captureRef);
     const selectedSwapPlayer = getSelectedSwapPlayer(matchResult, swapSource);
-    const currentResultKey = getMatchResultKey(matchResult);
-    const previewAlternatives = alternatives
-        .map((alternative, index) => ({ alternative, index }))
-        .filter(({ alternative }) => getMatchResultKey(alternative) !== currentResultKey)
-        .toSorted((first, second) => (
-            (first.alternative.evaluation?.rank ?? first.index + 2)
-            - (second.alternative.evaluation?.rank ?? second.index + 2)
-        ))
-        .slice(0, 2);
     const candidateCount = alternatives.length + 1;
 
     return (
-        <div id="match-result" className="space-y-4">
+        <div id="match-result" className="space-y-3">
             {isStale && (
                 <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-200" role="status">
                     <AlertTriangle size={17} className="mt-0.5 shrink-0 text-amber-400" aria-hidden="true" />
@@ -104,10 +89,10 @@ const MatchResult = ({
             <div
                 id="swap-guide"
                 data-exclude-export
-                className={`flex min-h-11 flex-wrap items-center justify-between gap-2 border-l-2 px-3 py-2 text-xs ${
+                className={`flex min-h-10 flex-wrap items-center justify-between gap-2 border-l px-3 py-2 text-xs ${
                     selectedSwapPlayer
                         ? 'border-cyan-400 bg-cyan-500/[0.08] text-cyan-100'
-                        : 'border-slate-700 bg-surface-elevated/35 text-slate-400'
+                        : 'border-slate-700 text-slate-400'
                 }`}
                 role="status"
                 aria-live="polite"
@@ -146,33 +131,37 @@ const MatchResult = ({
             <div
                 id="result-share-controls"
                 data-exclude-export
-                className="flex flex-wrap items-center justify-end gap-2 px-1"
+                className="flex flex-wrap items-center justify-end gap-2"
             >
-                <button
-                    type="button"
-                    role="switch"
-                    aria-checked={showAllRanks}
-                    onClick={() => onShowAllRanksChange?.(!showAllRanks)}
-                    className="group inline-flex min-h-9 touch-manipulation items-center gap-2.5 whitespace-nowrap rounded-lg px-2 text-xs font-medium text-slate-400 transition-colors hover:bg-white/5 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
-                >
-                    탱·딜·힐 티어 표시
-                    <span
-                        aria-hidden="true"
-                        className={`relative h-5 w-9 rounded-full border transition-colors ${
-                            showAllRanks
-                                ? 'border-cyan-400/50 bg-cyan-500/30'
-                                : 'border-slate-600 bg-slate-800'
-                        }`}
-                    >
-                        <span
-                            className={`absolute top-0.5 h-3.5 w-3.5 rounded-full transition-[left,background-color] ${
-                                showAllRanks
-                                    ? 'left-[18px] bg-cyan-300'
-                                    : 'left-0.5 bg-slate-400'
-                            }`}
-                        />
-                    </span>
-                </button>
+                <details className="group relative">
+                    <summary className="inline-flex min-h-9 cursor-pointer list-none items-center gap-2 rounded-sm px-2 text-xs font-medium text-slate-400 transition-colors hover:bg-white/5 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 [&::-webkit-details-marker]:hidden">
+                        <SlidersHorizontal size={14} aria-hidden="true" />
+                        표시 설정
+                        <ChevronDown size={13} className="transition-transform group-open:rotate-180" aria-hidden="true" />
+                    </summary>
+                    <div className="absolute right-0 top-full z-30 mt-1 w-52 border border-slate-700 bg-[#0b0f14] p-1">
+                        <label className="flex min-h-10 cursor-pointer items-center justify-between gap-4 px-3 text-xs text-slate-300 transition-colors hover:bg-white/5 focus-within:ring-2 focus-within:ring-inset focus-within:ring-cyan-400/70">
+                            <span>특이사항 표시</span>
+                            <input
+                                type="checkbox"
+                                name="show-sheet-notes"
+                                checked={showSheetNotes}
+                                onChange={event => onShowSheetNotesChange?.(event.target.checked)}
+                                className="h-4 w-4 shrink-0 accent-cyan-400"
+                            />
+                        </label>
+                        <label className="flex min-h-10 cursor-pointer items-center justify-between gap-4 border-t border-slate-800 px-3 text-xs text-slate-300 transition-colors hover:bg-white/5 focus-within:ring-2 focus-within:ring-inset focus-within:ring-cyan-400/70">
+                            <span>탱·딜·힐 전체 티어 표시</span>
+                            <input
+                                type="checkbox"
+                                name="show-all-ranks"
+                                checked={showAllRanks}
+                                onChange={event => onShowAllRanksChange?.(event.target.checked)}
+                                className="h-4 w-4 shrink-0 accent-cyan-400"
+                            />
+                        </label>
+                    </div>
+                </details>
                 <CopyButton status={copyStatus} onClick={handleCopyImage} />
             </div>
 
@@ -185,55 +174,38 @@ const MatchResult = ({
                 <div
                     ref={captureRef}
                     data-capture-content
-                    className="rounded-xl bg-[#0b0c10] py-2.5 sm:py-5"
+                    className="bg-[#0b0c10] py-2.5 sm:py-3"
                 >
                     <MatchupTable
                         matchResult={matchResult}
                         onSlotClick={onSlotClick}
                         swapSource={swapSource}
                         showAllRanks={showAllRanks}
+                        showSheetNotes={showSheetNotes}
                         userSheetByBattleTag={userSheetByBattleTag}
                     />
                 </div>
 
                 {/* 다른 조합 (캡처 제외) */}
-                <div id="alternative-results" className="rounded-lg">
+                <div id="alternative-results">
                 {alternatives.length > 0 ? (
-                    <div className="space-y-3 px-1">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                            <div>
-                                <p className="text-sm font-medium text-slate-300">다른 추천 조합</p>
-                                <p className="mt-0.5 text-xs text-slate-400">
-                                    현재 조합과 팀 구성이 의미 있게 다른 후보입니다.
-                                </p>
-                            </div>
-                            {candidateCount > previewAlternatives.length + 1 && (
-                                <button
-                                    type="button"
-                                    onClick={() => setIsAlternativeDialogOpen(true)}
-                                    className="inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-cyan-300 transition-colors hover:bg-cyan-400/10 hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
-                                >
-                                    <Layers3 size={14} aria-hidden="true" />
-                                    전체 {candidateCount}개 자세히 보기
-                                </button>
-                            )}
-                        </div>
-                        <div className="grid gap-2 sm:grid-cols-2">
-                            {previewAlternatives.map(({ alternative, index }) => (
-                                <AlternativeResultCard
-                                    key={getMatchResultKey(alternative)}
-                                    candidate={alternative}
-                                    currentResult={matchResult}
-                                    showComposition
-                                    onApply={() => onSelectAlternative?.(index)}
-                                />
-                            ))}
-                        </div>
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-y border-slate-800 py-2.5">
+                        <p className="text-sm text-slate-400">
+                            다른 추천 조합 <span className="ml-1 font-mono tabular-nums text-slate-200">{alternatives.length}</span>
+                        </p>
+                        <button
+                            type="button"
+                            onClick={() => setIsAlternativeDialogOpen(true)}
+                            className="inline-flex min-h-9 items-center gap-1.5 rounded-sm px-2.5 text-xs font-medium text-cyan-300 transition-colors hover:bg-cyan-400/10 hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+                        >
+                            <Layers3 size={14} aria-hidden="true" />
+                            전체 {candidateCount}개 보기
+                        </button>
                     </div>
                 ) : isGeneratingAlternatives ? (
                     <div className="flex items-center gap-2 px-1 text-sm text-slate-400" role="status">
-                        <Loader2 size={14} className="animate-spin" aria-hidden="true" />
-                        다른 팀 조합 계산 중…
+                        <Loader2 size={14} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
+                        다른 조합 계산 중…
                     </div>
                 ) : null}
                 </div>

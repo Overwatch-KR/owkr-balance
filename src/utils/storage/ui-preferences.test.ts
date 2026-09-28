@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { readUiPreferences, writeShowAllRanksPreference } from './ui-preferences';
+import {
+    readUiPreferences,
+    writeShowAllRanksPreference,
+    writeShowSheetNotesPreference,
+} from './ui-preferences';
 
 class MemoryStorage {
     private readonly values = new Map<string, string>();
@@ -24,7 +28,23 @@ describe('UI preferences', () => {
 
         writeShowAllRanksPreference(true);
 
-        expect(readUiPreferences()).toEqual({ showAllRanks: true });
+        expect(readUiPreferences()).toEqual({
+            showAllRanks: true,
+            showSheetNotes: true,
+        });
+    });
+
+    it('공용 특이사항 표시 설정을 다른 UI 설정과 함께 보존한다', () => {
+        const storage = new MemoryStorage();
+        vi.stubGlobal('localStorage', storage);
+
+        writeShowAllRanksPreference(true);
+        writeShowSheetNotesPreference(false);
+
+        expect(readUiPreferences()).toEqual({
+            showAllRanks: true,
+            showSheetNotes: false,
+        });
     });
 
     it('손상된 저장값은 기본 설정으로 복구한다', () => {
@@ -32,6 +52,9 @@ describe('UI preferences', () => {
         storage.setItem('owkr_ui_preferences:v1', '{invalid');
         vi.stubGlobal('localStorage', storage);
 
-        expect(readUiPreferences()).toEqual({ showAllRanks: false });
+        expect(readUiPreferences()).toEqual({
+            showAllRanks: false,
+            showSheetNotes: true,
+        });
     });
 });

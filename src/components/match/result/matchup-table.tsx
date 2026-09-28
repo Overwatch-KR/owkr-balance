@@ -19,6 +19,7 @@ interface MatchupTableProps {
     onSlotClick: (teamIdx: number, role: Role, idx: number) => void;
     swapSource: SwapSource | null;
     showAllRanks?: boolean;
+    showSheetNotes?: boolean;
     userSheetByBattleTag?: Map<string, UserSheetEntry>;
 }
 
@@ -200,6 +201,7 @@ const MatchupTable = ({
     onSlotClick,
     swapSource,
     showAllRanks = false,
+    showSheetNotes = true,
     userSheetByBattleTag,
 }: MatchupTableProps) => {
     const { teamA, teamB } = matchResult;
@@ -217,15 +219,15 @@ const MatchupTable = ({
         swapSource?.teamIdx === teamIdx && swapSource?.role === role && swapSource?.index === idx;
 
     return (
-        <div id="matchup-table" className="space-y-1.5">
+        <div id="matchup-table">
             {/* 팀 헤더 */}
-            <div className="mb-4 flex items-center px-3.5">
-                <div className="flex-1 flex items-center gap-2">
+            <div className="flex min-h-14 items-center border-x border-t border-slate-700/80 border-l-4 border-l-blue-400 border-r-4 border-r-red-400 px-3.5">
+                <div className="flex flex-1 items-center gap-2">
                     <span className="font-bold text-lg text-blue-400">1팀</span>
                     <span className="border-l border-blue-400/50 pl-2 text-xs font-medium text-blue-200/80">선공격</span>
                 </div>
-                <div className="w-7 sm:w-10" />
-                <div className="flex-1 flex items-center gap-2 flex-row-reverse">
+                <div className="w-9 sm:w-12" />
+                <div className="flex flex-1 flex-row-reverse items-center gap-2">
                     <span className="font-bold text-lg text-red-400">2팀</span>
                     <span className="border-r border-red-400/50 pr-2 text-xs font-medium text-red-200/80">선수비</span>
                 </div>
@@ -239,12 +241,12 @@ const MatchupTable = ({
                 const selB = isSelected(1, row.role, row.arrayIndex);
                 const slotKeyA = `A-${row.role}-${row.arrayIndex}`;
                 const slotKeyB = `B-${row.role}-${row.arrayIndex}`;
-                const sheetNoteA = userSheetByBattleTag?.get(
-                    getPlayerUserSheetLookupKey(row.playerA),
-                )?.note;
-                const sheetNoteB = userSheetByBattleTag?.get(
-                    getPlayerUserSheetLookupKey(row.playerB),
-                )?.note;
+                const sheetNoteA = showSheetNotes
+                    ? userSheetByBattleTag?.get(getPlayerUserSheetLookupKey(row.playerA))?.note
+                    : undefined;
+                const sheetNoteB = showSheetNotes
+                    ? userSheetByBattleTag?.get(getPlayerUserSheetLookupKey(row.playerB))?.note
+                    : undefined;
                 const rowHasSheetNote = Boolean(sheetNoteA?.trim() || sheetNoteB?.trim());
 
                 return (
@@ -252,7 +254,7 @@ const MatchupTable = ({
                         key={`${row.role}-${row.arrayIndex}`}
                         id={row.role === 'TANK' ? 'matchup-tank-row' : undefined}
                         data-matchup-row
-                        className="flex items-stretch gap-1.5 rounded-md border border-slate-700/70 bg-slate-950/20"
+                        className="flex items-stretch border-x border-t border-slate-700/70 border-l-4 border-l-blue-400 border-r-4 border-r-red-400 bg-slate-950/20 last:border-b"
                     >
                         {/* TEAM 1 슬롯 */}
                         <div
@@ -272,7 +274,7 @@ const MatchupTable = ({
                                     animate={{ opacity: 1, x: 0 }}
                                     exit={{ opacity: 0, x: '38%' }}
                                     transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
-                                    className={`relative flex w-full min-w-0 items-center justify-end rounded-l-md transition-colors ${
+                                    className={`relative flex w-full min-w-0 items-center justify-end transition-colors ${
                                         selA ? 'bg-blue-900/40 ring-1 ring-inset ring-blue-500' : 'hover:bg-slate-800/70'
                                     }`}
                                 >
@@ -283,9 +285,9 @@ const MatchupTable = ({
                                     onClick={() => onSlotClick(0, row.role, row.arrayIndex)}
                                     aria-label={`${row.playerA.discordName ?? row.playerA.name} 교체 슬롯 선택`}
                                     aria-pressed={selA}
-                                    className="absolute inset-0 z-0 rounded-l-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+                                    className="absolute inset-0 z-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-400"
                                 />
-                                <div className="pointer-events-none relative z-10 flex w-full min-w-0 flex-col px-2.5 py-2.5 text-right sm:px-4 sm:py-3">
+                                <div className="pointer-events-none relative z-10 flex w-full min-w-0 flex-col px-2.5 py-2.5 text-right sm:px-4">
                                     {showAllRanks ? (
                                         <>
                                             <PlayerIdentityWithStatus
@@ -342,7 +344,7 @@ const MatchupTable = ({
                         </div>
 
                         {/* 역할 아이콘 (중앙) */}
-                        <div className="flex w-7 shrink-0 items-center justify-center sm:w-10">
+                        <div className="flex w-9 shrink-0 items-center justify-center border-x border-slate-800 text-slate-500 sm:w-12">
                             {getRoleIcon(row.role)}
                         </div>
 
@@ -364,7 +366,7 @@ const MatchupTable = ({
                                     animate={{ opacity: 1, x: 0 }}
                                     exit={{ opacity: 0, x: '-38%' }}
                                     transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
-                                    className={`relative flex w-full min-w-0 items-center rounded-r-md transition-colors ${
+                                    className={`relative flex w-full min-w-0 items-center transition-colors ${
                                         selB ? 'bg-red-900/30 ring-1 ring-inset ring-red-500' : 'hover:bg-slate-800/70'
                                     }`}
                                 >
@@ -375,9 +377,9 @@ const MatchupTable = ({
                                     onClick={() => onSlotClick(1, row.role, row.arrayIndex)}
                                     aria-label={`${row.playerB.discordName ?? row.playerB.name} 교체 슬롯 선택`}
                                     aria-pressed={selB}
-                                    className="absolute inset-0 z-0 rounded-r-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+                                    className="absolute inset-0 z-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-red-400"
                                 />
-                                <div className="pointer-events-none relative z-10 flex w-full min-w-0 flex-col px-2.5 py-2.5 text-left sm:px-4 sm:py-3">
+                                <div className="pointer-events-none relative z-10 flex w-full min-w-0 flex-col px-2.5 py-2.5 text-left sm:px-4">
                                     {showAllRanks ? (
                                         <>
                                             <PlayerIdentityWithStatus

@@ -22,7 +22,11 @@ import { useAuth, type AuthUser, type DataMode } from './hooks/use-auth';
 import { useMatchSession } from './hooks/use-match-session';
 import { useUserSheet } from './hooks/use-user-sheet';
 import { getErrorMessage, requestJson } from './utils/api';
-import { readUiPreferences, writeShowAllRanksPreference } from './utils/storage/ui-preferences';
+import {
+    readUiPreferences,
+    writeShowAllRanksPreference,
+    writeShowSheetNotesPreference,
+} from './utils/storage/ui-preferences';
 import type { Player, SwapSource } from './types';
 import {
     RosterIdentityResolver,
@@ -85,6 +89,7 @@ const MatchApp = ({
 
     const [swapSource, setSwapSource] = useState<SwapSource | null>(null);
     const [showAllRanks, setShowAllRanks] = useState(() => readUiPreferences().showAllRanks);
+    const [showSheetNotes, setShowSheetNotes] = useState(() => readUiPreferences().showSheetNotes);
     const [ignorePreferences, setIgnorePreferences] = useState(false);
     const [errorDetails, setErrorDetails] = useState<ErrorDetails | null>(null);
     const playerEditReturnPathRef = useRef(pathname);
@@ -387,6 +392,10 @@ const MatchApp = ({
         setShowAllRanks(show);
         writeShowAllRanksPreference(show);
     }, []);
+    const handleShowSheetNotesChange = useCallback((show: boolean) => {
+        setShowSheetNotes(show);
+        writeShowSheetNotesPreference(show);
+    }, []);
     const handleStartEditingPlayer = useCallback((player: Parameters<typeof startEditingPlayer>[0]) => {
         playerEditReturnPathRef.current = pathname;
         startEditingPlayer(player);
@@ -486,8 +495,8 @@ const MatchApp = ({
                                 onManageParticipants={() => navigate('/participants')}
                             />
 
-                            <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(380px,430px)_minmax(0,1fr)] xl:items-start">
-                                <aside className="order-2 flex min-h-0 min-w-0 flex-col xl:order-1 xl:sticky xl:top-24 xl:h-[calc(100dvh-8rem)]">
+                            <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5 xl:grid-cols-[minmax(300px,340px)_minmax(0,1fr)] xl:items-start">
+                                <aside className="hidden min-h-0 min-w-0 flex-col xl:sticky xl:top-24 xl:order-1 xl:flex xl:h-[calc(100dvh-8rem)]">
                                     <PlayerList {...playerListProps} />
                                 </aside>
 
@@ -505,10 +514,12 @@ const MatchApp = ({
                                         onRunMatching={() => void handleRunMatching({ ignorePreferences })}
                                         onSelectAlternative={handleSelectAlternative}
                                         onShowAllRanksChange={handleShowAllRanksChange}
+                                        onShowSheetNotesChange={handleShowSheetNotesChange}
                                         onSlotClick={handleSlotClick}
                                         participantCount={participants.length}
                                         result={result}
                                         showAllRanks={showAllRanks}
+                                        showSheetNotes={showSheetNotes}
                                         swapSource={swapSource}
                                         userSheetByBattleTag={userSheetByBattleTag}
                                     />

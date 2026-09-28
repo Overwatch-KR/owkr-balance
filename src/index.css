@@ -75,7 +75,7 @@
 
     .btn-danger {
         @apply inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap px-4 py-2 bg-danger/10 hover:bg-danger/20 text-danger hover:text-danger-hover
-               font-medium rounded-md border border-danger/20 hover:border-danger/40
+               font-medium rounded-sm border border-danger/20 hover:border-danger/40
                transition-[background-color,color,border-color,box-shadow] duration-200
                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/70;
     }
