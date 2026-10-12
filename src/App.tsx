@@ -32,6 +32,8 @@ import {
     RosterIdentityResolver,
 } from './components/player/form/roster-identity-resolver';
 import PlayerList from './components/player/list';
+import { ClearRosterDialog } from './components/player/clear-roster-dialog';
+import { createRosterClearActions } from '@application/roster/clear-roster';
 import { ParticipantWorkspace } from './components/player/participant-workspace';
 import { OnboardingGuide } from './components/onboarding-guide';
 import { GuideResumePrompt } from './components/guide-resume-prompt';
@@ -92,6 +94,7 @@ const MatchApp = ({
     const [showSheetNotes, setShowSheetNotes] = useState(() => readUiPreferences().showSheetNotes);
     const [ignorePreferences, setIgnorePreferences] = useState(false);
     const [errorDetails, setErrorDetails] = useState<ErrorDetails | null>(null);
+    const [isClearRosterDialogOpen, setIsClearRosterDialogOpen] = useState(false);
     const playerEditReturnPathRef = useRef(pathname);
     const isGuideActiveRef = useRef(false);
     const userSheet = useUserSheet(user.id, pathname === '/user-sheet');
@@ -359,6 +362,14 @@ const MatchApp = ({
         leaveLiveSession();
         showToast('success', '실시간 공동 작업 연결을 종료했습니다. 현재 화면의 명단은 유지됩니다.');
     }, [leaveLiveSession, showToast]);
+    const rosterClear = createRosterClearActions({
+        clearRoster: handleClearAll,
+        closeDialog: () => setIsClearRosterDialogOpen(false),
+        isConnected: isLiveConnected,
+        leaveSession: leaveLiveSession,
+        openDialog: () => setIsClearRosterDialogOpen(true),
+        playerCount: players.length,
+    });
     const handleCreateMatchShare = useCallback(async (): Promise<string> => {
         try {
             if (!result || isResultStale) {
@@ -435,7 +446,7 @@ const MatchApp = ({
         waitlist,
         onEditPlayer: handleStartEditingPlayer,
         onRemovePlayer: handleRemovePlayer,
-        onClearAll: handleClearAll,
+        onClearAll: rosterClear.requestClear,
         csrfToken,
         noteCacheScope: user.id,
         userSheetByBattleTag,
@@ -581,6 +592,11 @@ const MatchApp = ({
                     <EventParticipantsPage csrfToken={csrfToken} userId={user.id} />
                 ) : null}
             </main>
+            <AnimatePresence>
+                {isClearRosterDialogOpen && (
+                    <ClearRosterDialog onCancel={rosterClear.cancelClear} onConfirm={rosterClear.confirmClear} />
+                )}
+            </AnimatePresence>
             <AnimatePresence>
                 {pendingIdentityImport && (
                     <RosterIdentityResolver

@@ -86,6 +86,7 @@ export const useMatchLiveShare = ({
     const playersRef = useRef(players);
     playersRef.current = players;
     const revisionRef = useRef(0);
+    const sessionGenerationRef = useRef(0);
     const lastSyncedSignatureRef = useRef('');
     const localSignatureRef = useRef('');
     const isPublishingRef = useRef(false);
@@ -119,6 +120,7 @@ export const useMatchLiveShare = ({
     }, []);
 
     const resetSessionState = useCallback(() => {
+        sessionGenerationRef.current++;
         revisionRef.current = 0;
         lastSyncedSignatureRef.current = '';
         localSignatureRef.current = '';
@@ -145,12 +147,13 @@ export const useMatchLiveShare = ({
 
     const applyRemoteSession = useCallback(async (
         remoteSession: MatchLiveSessionSnapshot,
-    ): Promise<LoadedMatchLiveSession> => {
+    ): Promise<void> => {
+        const generation = sessionGenerationRef.current;
         const userSheet = await fetchUserSheet();
+        if (generation !== sessionGenerationRef.current) return;
         const hydrated = hydrateMatchLiveSession(remoteSession, userSheet.entries, playersRef.current);
         const loaded: LoadedMatchLiveSession = { ...hydrated, userSheet };
         applyLoadedSession(loaded);
-        return loaded;
     }, [applyLoadedSession]);
 
     const startSession = useCallback(async (): Promise<MatchLiveSessionSnapshot> => {
@@ -349,6 +352,7 @@ export const useMatchLiveShare = ({
         }
         if (localSignature === lastSyncedSignatureRef.current) return;
 
+        const generation = sessionGenerationRef.current;
         const timeoutId = window.setTimeout(() => {
             const publish = async () => {
                 isPublishingRef.current = true;
@@ -362,18 +366,22 @@ export const useMatchLiveShare = ({
                         result,
                         csrfToken,
                     );
+                    if (generation !== sessionGenerationRef.current) return;
                     revisionRef.current = updated.revision;
                     lastSyncedSignatureRef.current = getParticipantSignature(updated.participants);
                     rememberSessionCode(updated);
                     setPublishRetryCount(0);
                     setSession(updated);
                 } catch (error) {
+                    if (generation !== sessionGenerationRef.current) return;
                     const conflict = getMatchLiveConflictSnapshot(error);
                     if (conflict) {
                         try {
                             await applyRemoteSession(conflict);
+                            if (generation !== sessionGenerationRef.current) return;
                             onConflict('다른 관리자가 먼저 수정해 최신 변경을 반영했습니다. 필요한 변경은 다시 적용해 주세요.');
                         } catch (hydrateError) {
+                            if (generation !== sessionGenerationRef.current) return;
                             setSyncError(getErrorMessage(
                                 hydrateError,
                                 '충돌한 공동 작업 상태를 다시 불러오지 못했습니다.',
@@ -391,8 +399,10 @@ export const useMatchLiveShare = ({
                         }
                     }
                 } finally {
-                    isPublishingRef.current = false;
-                    setIsPublishing(false);
+                    if (generation === sessionGenerationRef.current) {
+                        isPublishingRef.current = false;
+                        setIsPublishing(false);
+                    }
                 }
             };
             void publish();
