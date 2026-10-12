@@ -136,7 +136,10 @@ export const normalizeMatchLiveSessionSnapshot = (
     const collaborators = normalizeCollaborators(source.collaborators);
     const recentChange = normalizeRecentChange(source.recentChange);
     if (
-        code.length !== 10
+        typeof source.expiresAt !== 'number'
+        || !Number.isSafeInteger(source.expiresAt)
+        || source.expiresAt < 0
+        || code.length !== 10
         || !participants
         || typeof source.revision !== 'number'
         || !Number.isSafeInteger(source.revision)
@@ -149,6 +152,7 @@ export const normalizeMatchLiveSessionSnapshot = (
     }
     return {
         code,
+        expiresAt: source.expiresAt,
         collaborators,
         revision: source.revision,
         participants,

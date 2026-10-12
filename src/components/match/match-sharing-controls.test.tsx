@@ -6,6 +6,7 @@ import { MatchShareControls } from './match-share-controls';
 import { MatchSharingPanel } from './match-sharing-panel';
 
 const liveSession: MatchLiveSessionSnapshot = {
+    expiresAt: Date.parse('2026-10-13T02:30:00+09:00'),
     code: 'LIVE234567',
     collaborators: [{
         userId: 'discord-admin-1',
@@ -52,7 +53,9 @@ describe('match sharing controls', () => {
 
         expect(markup).toContain('aria-label="함께 편집"');
         expect(markup).toContain('명단과 팀 변경을 실시간으로 맞춥니다.');
-        expect(markup).toContain('새로고침 후에도 자동으로 다시 연결됩니다.');
+        expect(markup).toContain('새로고침 시 자동 재연결');
+        expect(markup).toContain('02:30 만료');
+        expect(markup).toContain('생성 후 3시간에 만료');
         expect(markup.match(/LIVE234567/g)).toHaveLength(1);
     });
 

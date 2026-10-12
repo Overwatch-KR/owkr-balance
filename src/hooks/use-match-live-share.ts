@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     createMatchLiveParticipants,
     normalizeMatchShareCode,
+    getMatchLiveExpiresAt,
     type MatchLiveSessionSnapshot,
     type MatchResultData,
 } from '#domain/balance';
@@ -25,7 +26,6 @@ import { fetchUserSheet } from '../utils/user-sheet';
 
 const LEGACY_MATCH_LIVE_SESSION_KEY = 'owkr_match_live_session';
 const MATCH_LIVE_SESSION_KEY_PREFIX = 'owkr_match_live_session:';
-const MATCH_LIVE_SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000;
 const MATCH_LIVE_PUSH_DELAY_MS = 180;
 const MATCH_LIVE_RETRY_DELAY_MS = 1_500;
 const MATCH_LIVE_MAX_RETRY_DELAY_MS = 10_000;
@@ -62,7 +62,7 @@ const readRememberedSessionCode = (userId: string): string => {
         sessionStorage.getItem(LEGACY_MATCH_LIVE_SESSION_KEY) ?? '',
     );
     if (legacyCode.length !== 10) return '';
-    setWithExpiry(storageKey, legacyCode, MATCH_LIVE_SESSION_EXPIRY_MS);
+    setWithExpiry(storageKey, legacyCode, getMatchLiveExpiresAt(Date.now()) - Date.now());
     sessionStorage.removeItem(LEGACY_MATCH_LIVE_SESSION_KEY);
     return legacyCode;
 };
@@ -98,11 +98,11 @@ export const useMatchLiveShare = ({
     const localSignature = participants ? getParticipantSignature(participants) : '';
     localSignatureRef.current = localSignature;
 
-    const rememberSessionCode = useCallback((code: string) => {
+    const rememberSessionCode = useCallback((snapshot: MatchLiveSessionSnapshot) => {
         setWithExpiry(
             getSessionStorageKey(userId),
-            code,
-            MATCH_LIVE_SESSION_EXPIRY_MS,
+            snapshot.code,
+            Math.max(0, snapshot.expiresAt - Date.now()),
         );
         sessionStorage.removeItem(LEGACY_MATCH_LIVE_SESSION_KEY);
     }, [userId]);
@@ -133,7 +133,7 @@ export const useMatchLiveShare = ({
         revisionRef.current = remoteSession.revision;
         lastSyncedSignatureRef.current = getParticipantSignature(remoteSession.participants);
         localSignatureRef.current = lastSyncedSignatureRef.current;
-        rememberSessionCode(remoteSession.code);
+        rememberSessionCode(remoteSession);
         markSyncActive();
         setPublishRetryCount(0);
         setSession(remoteSession);
@@ -163,7 +163,7 @@ export const useMatchLiveShare = ({
             revisionRef.current = created.revision;
             lastSyncedSignatureRef.current = getParticipantSignature(created.participants);
             localSignatureRef.current = lastSyncedSignatureRef.current;
-            rememberSessionCode(created.code);
+            rememberSessionCode(created);
             markSyncActive();
             setPublishRetryCount(0);
             setSession(created);
@@ -229,6 +229,26 @@ export const useMatchLiveShare = ({
             if (retryTimeoutId !== undefined) window.clearTimeout(retryTimeoutId);
         };
     }, [applyLoadedSession, enabled, forgetSessionCode, userId]);
+
+    useEffect(() => {
+        if (!session) return;
+        const expire = () => {
+            forgetSessionCode();
+            resetSessionState();
+            setSyncError('공동 작업 세션이 만료되었습니다. 새 코드를 만들어 참여해 주세요.');
+        };
+        const timeoutId = window.setTimeout(expire, Math.max(0, session.expiresAt - Date.now()));
+        const checkExpiry = () => {
+            if (Date.now() >= session.expiresAt) expire();
+        };
+        window.addEventListener('focus', checkExpiry);
+        document.addEventListener('visibilitychange', checkExpiry);
+        return () => {
+            window.clearTimeout(timeoutId);
+            window.removeEventListener('focus', checkExpiry);
+            document.removeEventListener('visibilitychange', checkExpiry);
+        };
+    }, [forgetSessionCode, resetSessionState, session]);
 
     useEffect(() => {
         if (!enabled || !session) return;
@@ -342,7 +362,7 @@ export const useMatchLiveShare = ({
                     );
                     revisionRef.current = updated.revision;
                     lastSyncedSignatureRef.current = getParticipantSignature(updated.participants);
-                    rememberSessionCode(updated.code);
+                    rememberSessionCode(updated);
                     setPublishRetryCount(0);
                     setSession(updated);
                 } catch (error) {

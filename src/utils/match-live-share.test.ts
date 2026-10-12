@@ -7,6 +7,7 @@ import { hydrateMatchLiveSession } from './match-live-share';
 import type { UserSheetEntry } from './user-sheet';
 
 const session: MatchLiveSessionSnapshot = {
+    expiresAt: Date.parse('2026-10-12T15:00:00Z'),
     code: 'ABCDEFGH23',
     collaborators: [],
     revision: 4,

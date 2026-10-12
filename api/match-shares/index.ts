@@ -6,7 +6,6 @@ import { disableResponseCache } from '../_lib/http.js';
 import {
     createMatchLiveSession,
     getMatchLiveSession,
-    MATCH_LIVE_TTL_SECONDS,
     updateMatchLiveSession,
     type MatchLiveActor,
 } from '../_lib/match-live-store.js';
@@ -77,7 +76,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     ? res.status(201).json({
                         code: created.code,
                         ...created.session,
-                        expiresInSeconds: MATCH_LIVE_TTL_SECONDS,
+                        expiresInSeconds: Math.max(0, Math.ceil((created.session.expiresAt - Date.now()) / 1000)),
                     })
                     : res.status(400).json({ error: '참가자의 Discord ID와 팀 배치를 확인해 주세요.' });
             }

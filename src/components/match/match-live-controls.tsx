@@ -73,7 +73,7 @@ export function MatchLiveControls({
             aria-label="함께 편집"
         >
             <p className="text-sm text-slate-300">
-                같은 코드로 명단과 팀 변경을 실시간으로 맞춥니다.
+                같은 코드로 명단과 팀 변경을 실시간으로 맞춥니다. 세션은 생성 후 3시간에 만료되며 수정·재접속으로 연장되지 않습니다.
             </p>
 
             {isConnected && session ? (
@@ -85,7 +85,7 @@ export function MatchLiveControls({
                             <strong className="font-mono tracking-[0.14em] text-cyan-200">{session.code}</strong>
                         </div>
                         <span className="mt-1 block text-[11px] text-slate-500">
-                            새로고침 후에도 자동으로 다시 연결됩니다.
+                            {new Date(session.expiresAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })} 만료 · 새로고침 시 자동 재연결
                         </span>
                     </div>
                     <div className="flex items-center gap-1">

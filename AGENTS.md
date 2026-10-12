@@ -125,5 +125,5 @@ PlayerName#1234 다3! 플2 골1         # ! = preferred
 - Tests use Vitest
 - Korean UI throughout
 - Deployed on Vercel with Vite static assets and Vercel Functions
-- Browser match state is scoped by admin ID and expires after 30 minutes; remembered live/share codes expire after 24 hours
+- Browser match state is scoped by admin ID and expires after 30 minutes; live sessions and remembered live codes expire 3 hours after session creation without renewal on edits or reconnects; remembered read-only share codes expire after 24 hours
 - Live collaboration uses revision-based adaptive polling: 500 ms while active, 1.5 s while idle, and immediate refresh on focus/visibility return

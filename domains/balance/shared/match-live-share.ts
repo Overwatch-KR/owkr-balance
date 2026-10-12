@@ -41,12 +41,20 @@ export interface MatchLiveRecentChange {
  */
 export interface MatchLiveSessionSnapshot {
     code: string;
+    expiresAt: number;
     collaborators: MatchLiveCollaborator[];
     revision: number;
     participants: MatchLiveParticipant[];
     recentChange: MatchLiveRecentChange | null;
     updatedAt: number;
 }
+
+/**
+ * @description 세션 생성 시점부터 3시간 뒤를 고정 만료 시각으로 계산한다.
+ */
+export const getMatchLiveExpiresAt = (createdAt: number): number => {
+    return createdAt + 3 * 60 * 60 * 1000;
+};
 
 const matchLivePositionSet = new Set<string>(MATCH_SHARE_POSITIONS);
 

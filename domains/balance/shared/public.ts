@@ -6,6 +6,7 @@ export {
 
 export {
     MATCH_LIVE_MAX_PARTICIPANTS,
+    getMatchLiveExpiresAt,
     createMatchLiveParticipants,
     normalizeMatchLiveParticipants,
 } from './match-live-share.js';

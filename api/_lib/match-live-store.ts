@@ -2,6 +2,7 @@ import { randomInt } from 'node:crypto';
 import type { Redis } from '@upstash/redis';
 import {
     normalizeMatchLiveParticipants,
+    getMatchLiveExpiresAt,
     type MatchLiveChangeKind,
     type MatchLiveParticipant,
 } from '../../domains/balance/shared/public.js';
@@ -18,7 +19,6 @@ const MATCH_LIVE_CHANGE_KINDS = new Set<MatchLiveChangeKind>([
     'TEAMS',
     'ROSTER_AND_TEAMS',
 ]);
-export const MATCH_LIVE_TTL_SECONDS = 24 * 60 * 60;
 
 export interface MatchLiveActor {
     avatarUrl?: string;
@@ -37,6 +37,7 @@ interface StoredMatchLiveRecentChange {
 }
 
 export interface StoredMatchLiveSession {
+    expiresAt: number;
     collaborators: StoredMatchLiveCollaborator[];
     revision: number;
     participants: MatchLiveParticipant[];
@@ -57,6 +58,10 @@ if not currentJson then
 end
 
 local current = cjson.decode(currentJson)
+if not current.expiresAt or tonumber(current.expiresAt) <= tonumber(ARGV[2]) then
+    redis.call('DEL', KEYS[1])
+    return cjson.encode({ status = 'NOT_FOUND' })
+end
 local actor = cjson.decode(ARGV[1])
 local now = tonumber(ARGV[2])
 local cutoff = now - tonumber(ARGV[3])
@@ -104,6 +109,10 @@ if not currentJson then
 end
 
 local current = cjson.decode(currentJson)
+if not current.expiresAt or tonumber(current.expiresAt) <= tonumber(ARGV[4]) then
+    redis.call('DEL', KEYS[1])
+    return cjson.encode({ status = 'NOT_FOUND' })
+end
 if tonumber(current.revision) ~= tonumber(ARGV[1]) then
     return cjson.encode({ status = 'CONFLICT', session = current })
 end
@@ -123,6 +132,7 @@ end
 
 local recentActor = cjson.decode(ARGV[3])
 local nextSession = {
+    expiresAt = current.expiresAt,
     revision = tonumber(current.revision) + 1,
     participants = cjson.decode(ARGV[2]),
     updatedAt = tonumber(ARGV[4]),
@@ -134,7 +144,7 @@ local nextSession = {
     }
 }
 local nextJson = cjson.encode(nextSession)
-redis.call('SET', KEYS[1], nextJson, 'EX', tonumber(ARGV[8]))
+redis.call('SET', KEYS[1], nextJson, 'KEEPTTL')
 return cjson.encode({ status = 'OK', session = nextSession })
 `;
 
@@ -228,6 +238,9 @@ const normalizeStoredMatchLiveSession = (value: unknown): StoredMatchLiveSession
     const participants = normalizeMatchLiveParticipants(source.participants);
     if (
         !participants
+        || typeof source.expiresAt !== 'number'
+        || !Number.isSafeInteger(source.expiresAt)
+        || source.expiresAt <= Date.now()
         || typeof source.revision !== 'number'
         || !Number.isSafeInteger(source.revision)
         || source.revision < 1
@@ -238,6 +251,7 @@ const normalizeStoredMatchLiveSession = (value: unknown): StoredMatchLiveSession
         return null;
     }
     return {
+        expiresAt: source.expiresAt,
         collaborators: normalizeCollaborators(source.collaborators),
         revision: source.revision,
         participants,
@@ -265,13 +279,14 @@ export const createMatchLiveSession = async (
 
         const now = Date.now();
         const session: StoredMatchLiveSession = {
+            expiresAt: getMatchLiveExpiresAt(now),
             collaborators: [{ ...actor, lastSeenAt: now }],
             revision: 1,
             participants,
             recentChange: null,
             updatedAt: now,
         };
-        await redis.set(key, session, { ex: MATCH_LIVE_TTL_SECONDS });
+        await redis.set(key, session, { ex: Math.ceil((session.expiresAt - now) / 1000) });
         return { code, session };
     }
 
@@ -349,7 +364,6 @@ export const updateMatchLiveSession = async (
             changeKind,
             String(MATCH_LIVE_MAX_COLLABORATORS),
             String(MATCH_LIVE_PRESENCE_WINDOW_MS),
-            String(MATCH_LIVE_TTL_SECONDS),
         ],
     );
 
