@@ -167,6 +167,7 @@ export const normalizeMatchLiveSessionSnapshot = (
 export const hydrateMatchLiveSession = (
     sessionInput: unknown,
     entries: UserSheetEntry[],
+    currentPlayers: Player[] = [],
 ): Pick<LoadedMatchLiveSession, 'players' | 'result' | 'session'> => {
     const session = normalizeMatchLiveSessionSnapshot(sessionInput);
     if (!session) throw new Error('공동 작업 데이터 형식이 올바르지 않습니다.');
@@ -186,15 +187,16 @@ export const hydrateMatchLiveSession = (
         throw new Error(`유저 시트에서 공동 작업 참가자를 찾지 못했습니다: ${preview}${suffix}`);
     }
 
-    const idBase = Date.now();
+    const currentIds = new Map(currentPlayers.map(player => [player.discordUserId, player.id]));
+    let nextId = Math.max(Date.now(), ...currentPlayers.map(player => player.id + 1));
     const playersByDiscordId = new Map<string, Player>();
     const invalidEntries: string[] = [];
-    session.participants.forEach((participant, index) => {
+    session.participants.forEach(participant => {
         const entry = entriesByDiscordId.get(participant.discordUserId)!;
         const player = createPlayerFromUserSheetEntry(
             entry,
             participant.discordUserId,
-            idBase + index,
+            currentIds.get(participant.discordUserId) ?? nextId++,
         );
         if (!player) {
             invalidEntries.push(entry.discordName.trim() || entry.battleTag);
@@ -304,10 +306,11 @@ export const fetchMatchLiveSession = async (
  */
 export const loadMatchLiveSession = async (
     codeInput: string,
+    currentPlayers: Player[] = [],
 ): Promise<LoadedMatchLiveSession> => {
     const session = await fetchMatchLiveSession(codeInput);
     const userSheet = await fetchUserSheet();
-    const hydrated = hydrateMatchLiveSession(session, userSheet.entries);
+    const hydrated = hydrateMatchLiveSession(session, userSheet.entries, currentPlayers);
     return { ...hydrated, userSheet };
 };
 

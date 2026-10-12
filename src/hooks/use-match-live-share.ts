@@ -83,6 +83,8 @@ export const useMatchLiveShare = ({
     const [isConnecting, setIsConnecting] = useState(false);
     const [isPublishing, setIsPublishing] = useState(false);
     const [syncError, setSyncError] = useState('');
+    const playersRef = useRef(players);
+    playersRef.current = players;
     const revisionRef = useRef(0);
     const lastSyncedSignatureRef = useRef('');
     const localSignatureRef = useRef('');
@@ -145,7 +147,7 @@ export const useMatchLiveShare = ({
         remoteSession: MatchLiveSessionSnapshot,
     ): Promise<LoadedMatchLiveSession> => {
         const userSheet = await fetchUserSheet();
-        const hydrated = hydrateMatchLiveSession(remoteSession, userSheet.entries);
+        const hydrated = hydrateMatchLiveSession(remoteSession, userSheet.entries, playersRef.current);
         const loaded: LoadedMatchLiveSession = { ...hydrated, userSheet };
         applyLoadedSession(loaded);
         return loaded;
@@ -178,7 +180,7 @@ export const useMatchLiveShare = ({
         setIsConnecting(true);
         setSyncError('');
         try {
-            const loaded = await loadMatchLiveSession(code);
+            const loaded = await loadMatchLiveSession(code, playersRef.current);
             applyLoadedSession(loaded);
             return loaded;
         } finally {
@@ -202,7 +204,7 @@ export const useMatchLiveShare = ({
         const restore = async () => {
             setIsConnecting(true);
             try {
-                const loaded = await loadMatchLiveSession(storedCode);
+                const loaded = await loadMatchLiveSession(storedCode, playersRef.current);
                 if (!disposed) applyLoadedSession(loaded);
             } catch (error) {
                 if (disposed) return;

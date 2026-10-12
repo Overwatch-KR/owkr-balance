@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
     MATCH_SHARE_POSITIONS,
     type MatchLiveSessionSnapshot,
@@ -40,6 +40,28 @@ const entries: UserSheetEntry[] = session.participants.map((participant, index) 
 }));
 
 describe('match live hydration', () => {
+    afterEach(() => vi.useRealTimers());
+
+    it('원격 교체와 명단 순서 변경에서 같은 참가자의 ID를 유지한다', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(1000);
+        const first = hydrateMatchLiveSession(session, entries);
+        vi.setSystemTime(2000);
+        const changed = {
+            ...session,
+            revision: 5,
+            participants: session.participants.map((participant, index) => ({
+                ...participant,
+                position: index === 0 ? session.participants[5].position : index === 5 ? session.participants[0].position : participant.position,
+            })).reverse(),
+        };
+        const second = hydrateMatchLiveSession(changed, entries, first.players);
+        const originalIds = new Map(first.players.map(player => [player.discordUserId, player.id]));
+        expect(second.players.every(player => originalIds.get(player.discordUserId) === player.id)).toBe(true);
+        expect(second.result?.teamA.assignment.TANK[0].id).toBe(first.players[5].id);
+        expect(second.result?.teamA.assignment.DPS[0].id).toBe(first.players[1].id);
+    });
+
     it('참가자·대기열 순서와 팀 위치를 최신 유저 시트 티어로 복원한다', () => {
         const hydrated = hydrateMatchLiveSession(session, entries);
 
