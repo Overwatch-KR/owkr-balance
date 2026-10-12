@@ -47,6 +47,14 @@ const result = {
 };
 
 describe('match live share contract', () => {
+    it('포지션 제외를 보존하고 잘못된 제외·배치를 거부한다', () => {
+        const participant = { discordUserId: players[0].discordUserId, position: null, excludedRoles: ['TANK'] };
+        expect(normalizeMatchLiveParticipants([participant])).toEqual([participant]);
+        for (const excludedRoles of [['OTHER'], ['TANK', 'TANK'], ['TANK', 'DPS', 'SUPPORT'], null]) {
+            expect(normalizeMatchLiveParticipants([{ ...participant, excludedRoles }])).toBeNull();
+        }
+        expect(createMatchLiveParticipants([{ ...players[0], excludedRoles: ['TANK'] }, ...players.slice(1)], result)).toBeNull();
+    });
     it('참가자 순서와 완성된 10개 팀 위치를 함께 보존한다', () => {
         const participants = createMatchLiveParticipants(players, result);
 

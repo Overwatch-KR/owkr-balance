@@ -111,6 +111,11 @@ export const useRosterEditor = ({
             return;
         }
 
+        if (input.inputs.excludedRoles.length >= 3) {
+            setManualInputError('배정 가능한 포지션을 최소 1개 남겨 주세요.');
+            return;
+        }
+
         const normalizedName = normalizePlayerName(input.inputs.name);
         const duplicate = match.players.find(player => (
             player.id !== input.editingPlayerId
@@ -144,6 +149,7 @@ export const useRosterEditor = ({
             discordName: input.inputs.discordName.trim() || undefined,
             discordUserId: existingPlayer?.discordUserId,
             userSheetEntryId: existingPlayer?.userSheetEntryId,
+            excludedRoles: [...input.inputs.excludedRoles],
             tank: { tier: input.inputs.tTier, div: input.inputs.tDiv, score: getTierScore(input.inputs.tTier, input.inputs.tDiv), isPreferred: input.inputs.tPref, isAvoided: input.inputs.tAvoid },
             dps: { tier: input.inputs.dTier, div: input.inputs.dDiv, score: getTierScore(input.inputs.dTier, input.inputs.dDiv), isPreferred: input.inputs.dPref, isAvoided: input.inputs.dAvoid },
             sup: { tier: input.inputs.sTier, div: input.inputs.sDiv, score: getTierScore(input.inputs.sTier, input.inputs.sDiv), isPreferred: input.inputs.sPref, isAvoided: input.inputs.sAvoid },

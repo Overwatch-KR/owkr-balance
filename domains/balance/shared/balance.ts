@@ -142,6 +142,7 @@ const getAllTeamAssignments = (players: Player[]): AssignmentResult[] => {
     const results: AssignmentResult[] = [];
 
     for (let tankIndex = 0; tankIndex < TEAM_SIZE; tankIndex++) {
+        if (players[tankIndex].excludedRoles?.includes('TANK')) continue;
         const remainingIndexes = [0, 1, 2, 3, 4].filter((index) => index !== tankIndex);
 
         for (let first = 0; first < remainingIndexes.length; first++) {
@@ -151,6 +152,11 @@ const getAllTeamAssignments = (players: Player[]): AssignmentResult[] => {
                 const supportIndexes = remainingIndexes.filter(
                     (index) => index !== firstDpsIndex && index !== secondDpsIndex,
                 );
+
+                if (
+                    [firstDpsIndex, secondDpsIndex].some(index => players[index].excludedRoles?.includes('DPS'))
+                    || supportIndexes.some(index => players[index].excludedRoles?.includes('SUPPORT'))
+                ) continue;
 
                 results.push(buildAssignmentResult({
                     TANK: [players[tankIndex]],
@@ -390,6 +396,10 @@ export const swapMatchResultPlayers = (
         throw new Error('교체할 플레이어를 찾지 못했습니다.');
     }
 
+    if (sourcePlayer.excludedRoles?.includes(target.role) || targetPlayer.excludedRoles?.includes(source.role)) {
+        throw new Error('완전 제외된 포지션으로는 자리를 바꿀 수 없습니다. 참가자 수정에서 제외 설정을 확인해 주세요.');
+    }
+
     nextResult[sourceTeam].assignment[source.role][source.index] = targetPlayer;
     nextResult[targetTeam].assignment[target.role][target.index] = sourcePlayer;
 
@@ -473,7 +483,7 @@ export const balancePlayers = (
 
     const selectedCandidates = selectDiverseCandidates(topCandidates);
     const [bestCandidate, ...alternativeCandidates] = selectedCandidates;
-    if (!bestCandidate) throw new Error('유효한 팀 조합을 찾지 못했습니다.');
+    if (!bestCandidate) throw new Error('포지션 제외 조건을 만족하는 팀 조합이 없습니다. 참가자 수정에서 제외 설정을 조정해 주세요.');
 
     return {
         result: toMatchResult(bestCandidate, 1),

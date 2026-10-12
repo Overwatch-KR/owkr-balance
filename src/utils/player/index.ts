@@ -29,6 +29,7 @@ const getPlayerFingerprint = (player: Player): string => {
         rankFingerprint(player.tank),
         rankFingerprint(player.dps),
         rankFingerprint(player.sup),
+        [...(player.excludedRoles ?? [])].sort().join(','),
     ].join('|');
 };
 

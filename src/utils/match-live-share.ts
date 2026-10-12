@@ -202,6 +202,7 @@ export const hydrateMatchLiveSession = (
             invalidEntries.push(entry.discordName.trim() || entry.battleTag);
             return;
         }
+        if (participant.excludedRoles?.length) player.excludedRoles = [...participant.excludedRoles];
         playersByDiscordId.set(participant.discordUserId, player);
     });
 

@@ -80,6 +80,44 @@ const countTeamChanges = (first: MatchResultData, second: MatchResultData): numb
     return [...firstTeams].filter(([playerId, team]) => secondTeams.get(playerId) !== team).length;
 };
 
+describe('포지션 완전 제외', () => {
+    const flexiblePlayers = (): Player[] => Array.from({ length: 10 }, (_, index) => createPlayer(index + 1, 'TANK'));
+
+    it.each([false, true])('선호 무시=%s에서도 모든 추천 결과가 제외 조건을 지킨다', ignorePreferences => {
+        const players = flexiblePlayers().map((player, index): Player => ({
+            ...player,
+            excludedRoles: index < 8 ? ['TANK'] : ['DPS', 'SUPPORT'],
+        }));
+        const balanced = balancePlayers(players, { ignorePreferences });
+        for (const result of [balanced.result, ...balanced.alternatives]) {
+            for (const team of [result.teamA, result.teamB]) {
+                for (const role of ['TANK', 'DPS', 'SUPPORT'] as const) {
+                    expect(team.assignment[role].every(player => !player.excludedRoles?.includes(role))).toBe(true);
+                }
+            }
+        }
+    });
+
+    it('가능한 탱커가 한 명뿐이면 제외 조건을 완화하지 않고 실패한다', () => {
+        const players = flexiblePlayers().map((player, index): Player => ({
+            ...player, excludedRoles: index === 0 ? [] : ['TANK'],
+        }));
+        expect(() => balancePlayers(players, { ignorePreferences: true })).toThrow('포지션 제외 조건');
+    });
+
+    it('수동 교체에서 양쪽 모두의 제외 포지션을 검증한다', () => {
+        const players = flexiblePlayers();
+        players[0].excludedRoles = ['DPS'];
+        const result = balancePlayers(players).result;
+        const source = (['teamA', 'teamB'] as const).flatMap((team, teamIdx) => (
+            (['TANK', 'DPS', 'SUPPORT'] as const).flatMap(role => result[team].assignment[role].map((player, index) => ({ player, teamIdx, role, index })))
+        )).find(slot => slot.player.id === players[0].id)!;
+        const target = { teamIdx: 1 - source.teamIdx, role: 'DPS' as const, index: 0 };
+        expect(() => swapMatchResultPlayers(result, source, target)).toThrow('완전 제외');
+        expect(() => swapMatchResultPlayers(result, target, source)).toThrow('완전 제외');
+    });
+});
+
 describe('balancePlayers', () => {
     it('선호 역할을 지키면서 모든 플레이어를 한 번씩 배치한다', () => {
         const players = [

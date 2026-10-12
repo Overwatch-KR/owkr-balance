@@ -213,7 +213,8 @@ const getChangeKind = (
     next: MatchLiveParticipant[],
 ): MatchLiveChangeKind => {
     const rosterChanged = current.length !== next.length || current.some(
-        (participant, index) => participant.discordUserId !== next[index]?.discordUserId,
+        (participant, index) => participant.discordUserId !== next[index]?.discordUserId
+            || JSON.stringify(participant.excludedRoles ?? []) !== JSON.stringify(next[index]?.excludedRoles ?? []),
     );
     const currentPositions = new Map(
         current.map(participant => [participant.discordUserId, participant.position] as const),

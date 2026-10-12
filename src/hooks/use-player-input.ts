@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { Player, Tier } from '../types';
+import type { Player, Role, Tier } from '../types';
 import {
     parseMultipleLines,
     type ParseResult,
@@ -11,6 +11,7 @@ export type PlayerInputMode = 'discord' | 'manual' | 'mentions' | 'sheet';
 const ROSTER_PASTE_VALIDATION_DELAY_MS = 350;
 
 export interface PlayerInputs {
+    excludedRoles: Role[];
     name: string;
     discordName: string;
     tTier: Tier;
@@ -31,6 +32,7 @@ export interface PlayerInputs {
  * @description 수동 참가자 입력 폼의 초기값을 만든다.
  */
 export const createDefaultPlayerInputs = (): PlayerInputs => ({
+    excludedRoles: [],
     name: '',
     discordName: '',
     tTier: 'DIAMOND',
@@ -121,6 +123,7 @@ export const usePlayerInput = (initialPlayerCount: number) => {
 
     const editPlayer = useCallback((player: Player) => {
         setInputs({
+            excludedRoles: [...(player.excludedRoles ?? [])],
             name: player.name,
             discordName: player.discordName ?? '',
             tTier: player.tank.tier,

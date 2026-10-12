@@ -62,6 +62,13 @@ describe('match live hydration', () => {
         expect(second.result?.teamA.assignment.DPS[0].id).toBe(first.players[1].id);
     });
 
+    it('포지션 완전 제외 설정을 시트 정보와 결합해 복원한다', () => {
+        const excluded = { ...session, participants: session.participants.map(participant => ({
+            ...participant, position: null, excludedRoles: ['TANK'],
+        })) };
+        const hydrated = hydrateMatchLiveSession(excluded, entries);
+        expect(hydrated.players.every(player => player.excludedRoles?.includes('TANK'))).toBe(true);
+    });
     it('참가자·대기열 순서와 팀 위치를 최신 유저 시트 티어로 복원한다', () => {
         const hydrated = hydrateMatchLiveSession(session, entries);
 

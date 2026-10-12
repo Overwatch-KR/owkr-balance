@@ -41,6 +41,7 @@ export interface Rank {
  * @property discordName - 디스코드에서 사용하는 표시 이름
  * @property discordUserId - 변경되지 않는 디스코드 고유 ID
  * @property userSheetEntryId - 연결된 유저 시트 내부 UUID
+ * @property excludedRoles - 이번 내전에서 자동 배정과 수동 교체가 금지된 포지션
  * @property tank - 탱커 역할 랭크
  * @property dps - 딜러 역할 랭크
  * @property sup - 힐러 역할 랭크
@@ -51,6 +52,7 @@ export interface Player {
     discordName?: string;
     discordUserId?: string;
     userSheetEntryId?: string;
+    excludedRoles?: Role[];
     tank: Rank;
     dps: Rank;
     sup: Rank;

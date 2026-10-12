@@ -95,6 +95,12 @@ const PlayerList = ({
                     </div>
                 </div>
 
+                {Boolean(player.excludedRoles?.length) && (
+                    <span className="text-xs text-amber-300">
+                        {player.excludedRoles?.map(role => ({ TANK: '탱커', DPS: '딜러', SUPPORT: '힐러' }[role])).join('·')} 제외
+                    </span>
+                )}
+
                 <div className="-mr-1 flex shrink-0 items-center gap-0.5" data-exclude-export data-html2canvas-ignore="true">
                     {sheetEntry && (
                         <button

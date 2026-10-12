@@ -179,4 +179,14 @@ describe('isMatchResultStale', () => {
 
         expect(isMatchResultStale(result, changedPlayers)).toBe(true);
     });
+
+    it('포지션 완전 제외를 설정하거나 해제하면 기존 결과를 다시 배정해야 한다', () => {
+        const players = Array.from({ length: 10 }, (_, index) => createPlayer(index, `Player${index}#1234`));
+        const result = createResult(players);
+        const changedPlayers: Player[] = players.map((player, index) => index === 0
+            ? { ...player, excludedRoles: ['TANK'] }
+            : player);
+        expect(isMatchResultStale(result, changedPlayers)).toBe(true);
+        expect(isMatchResultStale(createResult(changedPlayers), players)).toBe(true);
+    });
 });

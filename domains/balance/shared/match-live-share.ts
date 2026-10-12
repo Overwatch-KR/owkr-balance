@@ -1,3 +1,4 @@
+import type { Role } from '../../player/shared/public.js';
 import type { MatchResultData } from './model.js';
 import {
     MATCH_SHARE_POSITIONS,
@@ -13,6 +14,7 @@ export const MATCH_LIVE_MAX_PARTICIPANTS = 50;
 export interface MatchLiveParticipant {
     discordUserId: string;
     position: MatchSharePosition | null;
+    excludedRoles?: Role[];
 }
 
 export type MatchLiveChangeKind = 'ROSTER' | 'TEAMS' | 'ROSTER_AND_TEAMS';
@@ -72,7 +74,7 @@ export const normalizeMatchLiveParticipants = (
 
     for (const raw of value) {
         if (!raw || typeof raw !== 'object') return null;
-        const item = raw as { discordUserId?: unknown; position?: unknown };
+        const item = raw as { discordUserId?: unknown; position?: unknown; excludedRoles?: unknown };
         const discordUserId = typeof item.discordUserId === 'string'
             ? item.discordUserId.replace(/\D/g, '').trim()
             : '';
@@ -83,9 +85,20 @@ export const normalizeMatchLiveParticipants = (
                 ? rawPosition.trim()
                 : '__invalid__';
 
+        const roles: Role[] = ['TANK', 'DPS', 'SUPPORT'];
+        if (item.excludedRoles !== undefined && (
+            !Array.isArray(item.excludedRoles)
+            || item.excludedRoles.some(role => !roles.includes(role as Role))
+            || new Set(item.excludedRoles).size !== item.excludedRoles.length
+            || item.excludedRoles.length > 2
+        )) return null;
+        const excludedRoles = roles.filter(role => (item.excludedRoles as Role[] | undefined)?.includes(role));
+        if (position !== null && !matchLivePositionSet.has(position)) return null;
+        if (position && excludedRoles.includes(parseMatchSharePosition(position as MatchSharePosition).role)) return null;
+
         if (!/^\d{17,20}$/.test(discordUserId) || participantIds.has(discordUserId)) return null;
         if (position !== null) {
-            if (!matchLivePositionSet.has(position) || positions.has(position)) return null;
+            if (positions.has(position)) return null;
             positions.add(position);
         }
 
@@ -93,6 +106,7 @@ export const normalizeMatchLiveParticipants = (
         participants.push({
             discordUserId,
             position: position as MatchSharePosition | null,
+            ...(excludedRoles.length > 0 ? { excludedRoles } : {}),
         });
     }
 
@@ -104,7 +118,7 @@ export const normalizeMatchLiveParticipants = (
  * @description 현재 참가자 순서와 유효한 팀 결과를 실시간 공유용 최소 정보로 변환한다.
  */
 export const createMatchLiveParticipants = (
-    players: ReadonlyArray<{ discordUserId?: string }>,
+    players: ReadonlyArray<{ discordUserId?: string; excludedRoles?: Role[] }>,
     result: MatchResultData | null,
 ): MatchLiveParticipant[] | null => {
     if (players.length > MATCH_LIVE_MAX_PARTICIPANTS) return null;
@@ -126,6 +140,7 @@ export const createMatchLiveParticipants = (
         return {
             discordUserId,
             position: result ? positionByDiscordId.get(discordUserId) ?? null : null,
+            ...(player.excludedRoles?.length ? { excludedRoles: player.excludedRoles } : {}),
         };
     });
 

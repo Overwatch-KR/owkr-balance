@@ -75,7 +75,7 @@ export const useMatchActions = ({
             showDetailedError(errorMessage, {
                 title: '팀 자동 배정을 완료하지 못했습니다',
                 description: errorMessage,
-                hint: '참가자 역할 티어를 확인한 뒤 다시 시도해 주세요. 계속 실패하면 페이지를 새로고침해 주세요.',
+                hint: '참가자 역할 티어와 포지션 완전 제외 설정을 확인한 뒤 다시 시도해 주세요.',
             });
             return false;
         }
@@ -92,11 +92,17 @@ export const useMatchActions = ({
             return;
         }
         const previousResult = match.result;
-        const swappedResult = swapMatchResultPlayers(
-            previousResult,
-            swapSource,
-            { teamIdx, role, index },
-        );
+        let swappedResult: MatchResultData;
+        try {
+            swappedResult = swapMatchResultPlayers(
+                previousResult,
+                swapSource,
+                { teamIdx, role, index },
+            );
+        } catch (error) {
+            showToast('error', getErrorMessage(error, '자리를 바꾸지 못했습니다.'));
+            return;
+        }
         match.setResult(swappedResult);
         setSwapSource(null);
         showToast('success', '두 플레이어의 자리를 바꿨습니다.', {
