@@ -7,6 +7,7 @@ interface RankBadgeProps {
     role: Role;
     rank: Rank;
     isAssigned?: boolean;
+    isExcluded?: boolean;
 }
 
 const ROLE_LABELS: Record<Role, string> = {
@@ -46,7 +47,7 @@ const getRoleIcon = (role: Role) => {
     }
 };
 
-const getAccessibleLabel = (role: Role, rank: Rank, isAssigned: boolean): string => {
+const getAccessibleLabel = (role: Role, rank: Rank, isAssigned: boolean, isExcluded: boolean): string => {
     const roleLabel = ROLE_LABELS[role];
     const rankLabel = rank.tier === 'UNRANKED'
         ? '미배치'
@@ -57,17 +58,20 @@ const getAccessibleLabel = (role: Role, rank: Rank, isAssigned: boolean): string
             ? ', 비선호 역할'
             : '';
     const assignedLabel = isAssigned ? ', 현재 배정 역할' : '';
+    const excludedLabel = isExcluded ? ', 이번 내전 완전 제외' : '';
 
-    return `${roleLabel} ${rankLabel}${preferenceLabel}${assignedLabel}`;
+    return `${roleLabel} ${rankLabel}${preferenceLabel}${assignedLabel}${excludedLabel}`;
 };
 
 /**
  * @description 참가자 목록과 팀 결과에서 같은 역할·티어·선호 상태 포맷을 제공한다.
  */
-const RankBadge = ({ role, rank, isAssigned = false }: RankBadgeProps) => {
-    const accessibleLabel = getAccessibleLabel(role, rank, isAssigned);
+const RankBadge = ({ role, rank, isAssigned = false, isExcluded = false }: RankBadgeProps) => {
+    const accessibleLabel = getAccessibleLabel(role, rank, isAssigned, isExcluded);
     const isUnranked = rank.tier === 'UNRANKED';
-    const statusClass = isUnranked
+    const statusClass = isExcluded
+        ? isUnranked ? 'border-red-400/40 bg-red-500/10 text-red-400' : 'text-red-400'
+        : isUnranked
         ? 'border-slate-600/70 bg-slate-800/80 text-slate-300'
         : rank.isPreferred
         ? 'font-semibold text-amber-400'
@@ -96,7 +100,7 @@ const RankBadge = ({ role, rank, isAssigned = false }: RankBadgeProps) => {
                 {getRoleIcon(role)}
             </span>
             {isUnranked && <ShieldQuestion size={12} aria-hidden="true" />}
-            <span aria-hidden="true">{formatRank(rank)}</span>
+            <span className={isExcluded ? 'line-through decoration-red-400' : undefined} aria-hidden="true">{formatRank(rank)}</span>
             {assignedStyle && (
                 <span
                     className={`inline-flex h-3.5 w-3.5 items-center justify-center rounded-full ${assignedStyle.marker}`}
