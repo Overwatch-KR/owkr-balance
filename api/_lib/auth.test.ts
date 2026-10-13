@@ -123,6 +123,7 @@ describe('local authentication', () => {
 describe('admin allowlist', () => {
     it('관리자 상수에 등록된 Discord 사용자 ID만 허용한다', () => {
         expect(isAllowedAdmin('579176046817968128')).toBe(true);
+        expect(isAllowedAdmin('972367504590639154')).toBe(false);
         expect(isAllowedAdmin('not-an-admin')).toBe(false);
     });
 });
