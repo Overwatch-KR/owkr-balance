@@ -1,5 +1,9 @@
 # OWKR Match
 
+**내전 운영진용 팀 편성·관리 웹** · [서비스 열기](https://owkr-internal-balance.vercel.app/) · [내전 규정](https://overwatch-kr.github.io/owkr-docs/)
+
+> Discord 로그인이 필요하며, 등록된 운영진만 접근할 수 있습니다. 저장소 이름은 `owkr-balance`, 서비스 이름은 **OWKR Match**입니다.
+
 OWKR 운영진을 위한 Overwatch 2 내전 팀 밸런싱 도구입니다.
 
 Discord 참가 명단을 붙여넣거나 직접 입력하면 10명의 역할과 티어를 분석해 두 팀을 구성합니다.
@@ -348,3 +352,12 @@ Vite 정적 파일은 `dist`에 빌드되고 `/api`는 Vercel Functions로 실�
 Overwatch, Blizzard Entertainment, Battle.net 및 관련 이름, 로고, 랭크 아이콘과 게임 에셋은
 각 권리자에게 있습니다. 이 프로젝트는 비공식 커뮤니티 도구이며 Blizzard Entertainment와
 관련이 없습니다.
+
+## 관련 프로젝트
+
+- [OWKR 커뮤니티](https://github.com/Overwatch-KR) · [Discord](https://discord.gg/overwatchkr)
+- [OWKR Match](https://github.com/Overwatch-KR/owkr-balance) — 내전 참가 명단과 팀 편성
+- [Gather Bot](https://github.com/Overwatch-KR/owkr-gather-bot) — Discord 내전 모집과 티어 수집
+- [내전 규정](https://github.com/Overwatch-KR/owkr-docs) — 규정, 참가 안내와 FAQ
+- [관리자 시험](https://github.com/Overwatch-KR/owkr-exam) — 내전 관리자 시험 웹
+- [내전 워크샵](https://github.com/Overwatch-KR/owkr-scrim-workshop) — 준비 중인 OverPy 소스
