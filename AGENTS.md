@@ -58,6 +58,9 @@ pnpm check    # Typecheck, lint, test, boundaries, and build
 
 ## Key Concepts
 
+### Participation Policy
+- Microphone use is mandatory for every participant. Do not add microphone opt-outs, unused-microphone indicators, or microphone-based balancing.
+
 ### Scoring Formula
 ```typescript
 base = [0, 500, 1100, 1800, 2600, 3600, 4800, 6200, 7800][tierIndex]
