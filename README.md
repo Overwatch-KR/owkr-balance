@@ -356,8 +356,8 @@ Overwatch, Blizzard Entertainment, Battle.net 및 관련 이름, 로고, 랭크 
 ## 관련 프로젝트
 
 - [OWKR 커뮤니티](https://github.com/Overwatch-KR) · [Discord](https://discord.gg/overwatchkr)
-- [OWKR Match](https://github.com/Overwatch-KR/owkr-balance) — 내전 참가 명단과 팀 편성
-- [Gather Bot](https://github.com/Overwatch-KR/owkr-gather-bot) — Discord 내전 모집과 티어 수집
-- [내전 규정](https://github.com/Overwatch-KR/owkr-docs) — 규정, 참가 안내와 FAQ
-- [관리자 시험](https://github.com/Overwatch-KR/owkr-exam) — 내전 관리자 시험 웹
-- [내전 워크샵](https://github.com/Overwatch-KR/owkr-scrim-workshop) — 준비 중인 OverPy 소스
+- [OWKR Match](https://github.com/Overwatch-KR/owkr-balance) · 내전 참가 명단과 팀 편성
+- [Gather Bot](https://github.com/Overwatch-KR/owkr-gather-bot) · Discord 내전 모집과 티어 수집
+- [내전 규정](https://github.com/Overwatch-KR/owkr-docs) · 규정, 참가 안내와 FAQ
+- [관리자 시험](https://github.com/Overwatch-KR/owkr-exam) · 내전 관리자 시험 웹
+- [내전 워크샵](https://github.com/Overwatch-KR/owkr-scrim-workshop) · 준비 중인 OverPy 소스
