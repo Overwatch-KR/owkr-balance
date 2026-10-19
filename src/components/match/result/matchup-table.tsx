@@ -333,6 +333,8 @@ const MatchupTable = ({
                                         </>
                                     )}
                                     <PlayerSheetNote
+                                        player={row.playerA}
+                                        onOpen={() => setHoveredSlot(null)}
                                         note={sheetNoteA}
                                         align="right"
                                         reserveSpace={rowHasSheetNote}
@@ -340,7 +342,7 @@ const MatchupTable = ({
                                 </div>
                                 </motion.div>
                             </AnimatePresence>
-                            <PlayerTooltip player={row.playerA} visible={hoveredSlot === slotKeyA} />
+                            <PlayerTooltip player={row.playerA} note={sheetNoteA} visible={hoveredSlot === slotKeyA} />
                         </div>
 
                         {/* 역할 아이콘 (중앙) */}
@@ -425,6 +427,8 @@ const MatchupTable = ({
                                         </>
                                     )}
                                     <PlayerSheetNote
+                                        player={row.playerB}
+                                        onOpen={() => setHoveredSlot(null)}
                                         note={sheetNoteB}
                                         align="left"
                                         reserveSpace={rowHasSheetNote}
@@ -432,7 +436,7 @@ const MatchupTable = ({
                                 </div>
                                 </motion.div>
                             </AnimatePresence>
-                            <PlayerTooltip player={row.playerB} visible={hoveredSlot === slotKeyB} alignRight />
+                            <PlayerTooltip player={row.playerB} note={sheetNoteB} visible={hoveredSlot === slotKeyB} alignRight />
                         </div>
                     </div>
                 );
