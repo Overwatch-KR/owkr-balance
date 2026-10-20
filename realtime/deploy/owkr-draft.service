@@ -1,0 +1,31 @@
+[Unit]
+Description=OWKR realtime draft backend
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/etc/owkr-draft/participant-oauth.env
+
+[Service]
+Type=simple
+User=owkr
+Group=owkr
+WorkingDirectory=/opt/owkr-draft/current
+EnvironmentFile=/etc/owkr-draft/server.env
+EnvironmentFile=/etc/owkr-draft/participant-oauth.env
+ExecStart=/opt/owkr-runtime/bin/node --max-old-space-size=192 realtime/src/index.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=15
+MemoryHigh=256M
+MemoryMax=384M
+TasksMax=64
+LimitNOFILE=4096
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+UMask=0077
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

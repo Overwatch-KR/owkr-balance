@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import {
     createClearedOAuthStateCookie,
+    createClearedAuthCookies,
     createDiscordAvatarUrl,
     createSessionCookie,
     isAllowedAdmin,
@@ -68,7 +69,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         );
 
         if (!isAllowedAdmin(discordUser.id)) {
-            return res.status(403).send('등록된 관리자가 아닙니다.');
+            res.setHeader('Set-Cookie', createClearedAuthCookies(req));
+            return res.status(403).send('접근 권한이 없습니다. 일반 참가자는 공유받은 내전 링크에서 로그인해 주세요.');
         }
 
         const sessionCookie = createSessionCookie(req, {

@@ -7,5 +7,5 @@ import type { Tier } from '../types';
  */
 export const getTierImage = (tier: Tier): string | undefined => {
     if (tier === 'UNRANKED') return undefined;
-    return `${import.meta.env.BASE_URL}tier/${tier.toLowerCase()}.png`;
+    return `${import.meta.env.BASE_URL}tier/${tier.toLowerCase()}.webp`;
 };

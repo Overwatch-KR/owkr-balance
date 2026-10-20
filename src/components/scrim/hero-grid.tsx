@@ -22,7 +22,7 @@ function HeroImage({ hero }: { hero: Hero }) {
         <img
             alt=""
             className="h-12 w-12 rounded-md bg-slate-800 object-cover"
-            src={`/hero/${hero.role}/${hero.id}.png`}
+            src={`/hero/${hero.role}/${hero.id}.webp`}
             width={48}
             height={48}
             onError={() => setFailed(true)}

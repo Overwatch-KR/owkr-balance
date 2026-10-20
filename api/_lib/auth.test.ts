@@ -89,7 +89,7 @@ describe('local authentication', () => {
 
         const cookie = createSessionCookie(request, {
             avatarUrl: 'https://cdn.discordapp.com/avatars/discord-user-1/avatar.webp?size=128',
-            id: 'discord-user-1',
+            id: '579176046817968128',
             username: 'discord-admin',
             globalName: '운영자',
         });
@@ -102,7 +102,7 @@ describe('local authentication', () => {
         expect(cookie).toContain('Max-Age=604800');
         expect((payload?.exp ?? 0) - (payload?.iat ?? 0)).toBe(60 * 60 * 24 * 7);
         expect(getSessionUser(authenticatedRequest)).toMatchObject({
-            id: 'discord-user-1',
+            id: '579176046817968128',
             username: 'discord-admin',
             globalName: '운영자',
             avatarUrl: 'https://cdn.discordapp.com/avatars/discord-user-1/avatar.webp?size=128',
@@ -118,6 +118,19 @@ describe('local authentication', () => {
             'https://cdn.discordapp.com/embed/avatars/5.png',
         );
     });
+
+    it('참가자 쿠키와 관리자 명단 밖의 서명 세션을 관리자 인증으로 수락하지 않는다', () => {
+        vi.stubEnv('OWKR_LOCAL_AUTH_BYPASS', 'false');
+        vi.stubEnv('JWT_SECRET', 'test-secret-with-at-least-32-characters');
+        expect(getSessionUser(createRequest('site.example', {
+            cookie: 'owkr_draft_participant_ROOM234567=opaque-participant-handle',
+        }))).toBeNull();
+        const cookie = createSessionCookie(createRequest(), { id: 'not-an-admin', username: 'participant' });
+        expect(getSessionUser(createRequest('site.example', { cookie: cookie.split(';', 1)[0] }))).toBeNull();
+        const token = jwt.sign({ type: 'realtime-entry', id: '579176046817968128', csrfToken: 'csrf' },
+            'test-secret-with-at-least-32-characters');
+        expect(getSessionUser(createRequest('site.example', { cookie: `owkr_session=${token}` }))).toBeNull();
+    });
 });
 
 describe('admin allowlist', () => {
@@ -125,5 +138,6 @@ describe('admin allowlist', () => {
         expect(isAllowedAdmin('579176046817968128')).toBe(true);
         expect(isAllowedAdmin('972367504590639154')).toBe(false);
         expect(isAllowedAdmin('not-an-admin')).toBe(false);
+        expect(isAllowedAdmin('__proto__')).toBe(false);
     });
 });

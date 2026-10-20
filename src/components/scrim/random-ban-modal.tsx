@@ -137,7 +137,7 @@ export function RandomBanModal({
                                 >
                                     <img
                                         className="mx-auto h-24 w-24 rounded-xl object-cover"
-                                        src={`/hero/${hero.role}/${hero.id}.png`}
+                                        src={`/hero/${hero.role}/${hero.id}.webp`}
                                         alt=""
                                         width={96}
                                         height={96}
@@ -161,7 +161,7 @@ export function RandomBanModal({
                                 >
                                     <img
                                         className="h-full w-full rounded-md object-cover"
-                                        src={`/hero/${displayHero.role}/${displayHero.id}.png`}
+                                        src={`/hero/${displayHero.role}/${displayHero.id}.webp`}
                                         alt=""
                                         width={152}
                                         height={152}

@@ -26,6 +26,7 @@ import type {
     MatchLiveRecentChange,
 } from '#domain/balance';
 import { useAuth } from '../../hooks/use-auth';
+import { REALTIME_DRAFT_ENABLED } from '@application/draft/use-draft-room';
 
 export const APP_PATH_CHANGE_EVENT = 'owkr:navigation:path-change';
 export const OPEN_GUIDE_EVENT = 'owkr:navigation:open-guide';
@@ -361,7 +362,7 @@ export const NavigationLoadingShell = ({
             <div className={`flex h-20 items-center border-b border-slate-800/60 ${collapsed ? 'justify-center px-2' : 'px-4'}`}>
                 <div className={`flex items-center ${collapsed ? '' : 'gap-3'}`}>
                     <img
-                        src="/favicon.png"
+                        src="/favicon.webp"
                         alt=""
                         width={40}
                         height={40}
@@ -618,7 +619,7 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                     >
                         <span className={`flex items-center ${isCollapsed ? '' : 'gap-3'}`}>
                             <img
-                                src="/favicon.png"
+                                src="/favicon.webp"
                                 alt=""
                                 width={40}
                                 height={40}
@@ -661,6 +662,8 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                             label="대진표"
                             onNavigate={event => handleNavigationLink(event, '/')}
                         />
+                        {REALTIME_DRAFT_ENABLED && <NavigationLink active={isRouteActive('/draft-control')} collapsed={isCollapsed}
+                            href="/draft-control" icon={Swords} label="밴픽 운영" onNavigate={event => handleNavigationLink(event, '/draft-control')} />}
                         <NavigationLink
                             active={isRouteActive('/participants')}
                             collapsed={isCollapsed}
@@ -833,6 +836,8 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                         </div>
 
                         <div className="space-y-1">
+                            {REALTIME_DRAFT_ENABLED && <NavigationLink active={isRouteActive('/draft-control')}
+                                href="/draft-control" icon={Swords} label="밴픽 운영" onNavigate={event => handleNavigationLink(event, '/draft-control')} />}
                             <NavigationLink
                                 active={isRouteActive('/event-participants')}
                                 href="/event-participants"

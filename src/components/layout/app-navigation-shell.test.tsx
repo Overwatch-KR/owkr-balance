@@ -53,7 +53,7 @@ describe('AppNavigationShell', () => {
         expect(markup).toContain('href="/scrims"');
         expect(markup).toContain('href="/user-sheet"');
         expect(markup).toContain('href="/event-participants"');
-        expect(markup).toContain('src="/favicon.png"');
+        expect(markup).toContain('src="/favicon.webp"');
         expect(markup).toContain('내전 관리');
         expect(markup.match(/aria-current="page"/g)).toHaveLength(2);
     });
@@ -67,7 +67,7 @@ describe('AppNavigationShell', () => {
 
         expect(markup).toContain('data-navigation-loading="true"');
         expect(markup).toContain('lg:pl-52');
-        expect(markup).toContain('src="/favicon.png"');
+        expect(markup).toContain('src="/favicon.webp"');
     });
 
     it('모바일 더보기는 다이얼로그 확장 상태를 전달한다', () => {

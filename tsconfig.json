@@ -14,6 +14,7 @@
     "types": ["vite/client"],
     "baseUrl": ".",
     "paths": {
+      "#domain/draft": ["./domains/draft/shared/public.ts"],
       "src/*": ["./src/*"],
       "@application/*": ["./src/application/*"],
       "@presentation/*": ["./src/components/*"],
@@ -23,6 +24,6 @@
       "#domain/scrim/rules": ["./domains/scrim/shared/rules.ts"]
     }
   },
-  "include": ["src", "api", "vite.config.ts", "tailwind.config.js", "postcss.config.js"],
+  "include": ["src", "api", "domains/draft", "realtime/src", "vite.config.ts", "tailwind.config.js", "postcss.config.js"],
   "exclude": ["node_modules", "dist"]
 }

@@ -5,12 +5,20 @@
   "type": "module",
   "packageManager": "pnpm@11.9.0",
   "imports": {
+    "#domain/draft": "./domains/draft/shared/public.ts",
     "#domain/balance": "./domains/balance/shared/public.ts",
     "#domain/player": "./domains/player/shared/public.ts",
     "#domain/scrim": "./domains/scrim/shared/public.ts",
     "#domain/scrim/rules": "./domains/scrim/shared/rules.ts"
   },
   "scripts": {
+    "realtime:build": "tsc -p realtime/tsconfig.json",
+    "realtime:package": "pnpm realtime:build && node realtime/package-release.mjs",
+    "realtime:local": "pnpm realtime:build && node realtime-dist/realtime/src/index.js --local-only",
+    "realtime:start": "node realtime-dist/realtime/src/index.js",
+    "realtime:test": "vitest run domains/draft realtime/src",
+    "assets:optimize": "node scripts/optimize-images.mjs",
+    "assets:overwatch": "node scripts/crawl-overwatch-assets.mjs",
     "dev": "pnpm dev:local-only",
     "dev:frontend": "vite",
     "dev:full": "dotenv -e .env.local -- vercel dev",
@@ -22,7 +30,7 @@
     "typecheck": "tsc --noEmit",
     "boundaries": "boundra check-boundaries --root . --format json",
     "domains:graph": "boundra graph-domains --root . --format mermaid",
-    "check": "npm run typecheck && npm run lint && npm run test && npm run boundaries && npm run build",
+    "check": "npm run typecheck && npm run lint && npm run test && npm run boundaries && npm run build && npm run realtime:build",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -38,6 +46,7 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "recharts": "^3.10.1",
+    "ws": "^8.22.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -46,6 +55,7 @@
     "@types/node": "^25.0.9",
     "@types/react": "^19.2.8",
     "@types/react-dom": "^19.2.3",
+    "@types/ws": "^8.18.2",
     "@vitejs/plugin-react": "^5.1.1",
     "autoprefixer": "^10.4.23",
     "dotenv-cli": "^11.0.0",
@@ -54,6 +64,7 @@
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
     "postcss": "^8.5.6",
+    "sharp": "^0.35.5",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.63.0",

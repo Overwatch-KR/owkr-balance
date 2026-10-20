@@ -20,7 +20,7 @@ describe('TierSelect', () => {
 
         expect(markup).toContain('value="EMERALD"');
         expect(markup).toContain('에메랄드');
-        expect(markup).toContain('/tier/platinum.png');
+        expect(markup).toContain('/tier/platinum.webp');
         expect(markup).toContain('name="s-division"');
         expect(markup).toContain('aria-label="힐러 등급"');
     });

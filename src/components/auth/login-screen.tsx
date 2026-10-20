@@ -86,6 +86,7 @@ const LoginScreen = ({ serviceError, onRetry }: LoginScreenProps) => {
                             </button>
                         )}
                         <p className="mt-5 text-xs text-slate-400">등록된 관리자만 접근 가능합니다.</p>
+                        <p className="mt-2 text-xs text-slate-400">일반 참가자는 공유받은 내전 링크에서 로그인해 주세요.</p>
                     </div>
                 </div>
                 <footer className="flex shrink-0 justify-center">

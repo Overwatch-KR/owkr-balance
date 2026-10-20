@@ -132,7 +132,7 @@ export function ScrimBanTab({
                         {finalHeroes.map(hero => (
                             <div key={hero.id} className="flex items-center gap-3 rounded-lg border border-amber-300/25 bg-amber-300/8 p-3">
                                 <img
-                                    src={`/hero/${hero.role}/${hero.id}.png`}
+                                    src={`/hero/${hero.role}/${hero.id}.webp`}
                                     alt=""
                                     width={64}
                                     height={64}
@@ -191,7 +191,7 @@ export function ScrimBanTab({
                         {usedHeroes.map(hero => (
                             <span key={hero.id} className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-2.5 py-2 text-sm text-slate-200">
                                 <img
-                                    src={`/hero/${hero.role}/${hero.id}.png`}
+                                    src={`/hero/${hero.role}/${hero.id}.webp`}
                                     alt=""
                                     width={32}
                                     height={32}

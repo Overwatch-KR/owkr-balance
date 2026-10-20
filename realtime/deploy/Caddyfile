@@ -1,0 +1,38 @@
+{
+	log default {
+		format filter {
+			wrap json
+			fields {
+				request>uri delete
+				request>headers>Authorization delete
+				request>headers>Cookie delete
+				resp_headers>Set-Cookie delete
+			}
+		}
+	}
+	servers {
+		timeouts {
+			read_header 10s
+			read_body 15s
+			idle 2m
+		}
+	}
+}
+
+civilwar.devbot.me {
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+		Cache-Control no-store
+	}
+	request_body {
+		max_size 16KB
+	}
+	reverse_proxy 127.0.0.1:8787 {
+		stream_close_delay 5m
+	}
+	handle_errors 502 503 {
+		respond "OWKR draft backend is unavailable." 503
+	}
+}

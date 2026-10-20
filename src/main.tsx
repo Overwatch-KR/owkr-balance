@@ -17,12 +17,19 @@ window.addEventListener('vite:preloadError', (event) => {
 });
 
 const normalizedPath = window.location.pathname.replace(/\/+$/, '') || '/';
-const pagePromise = normalizedPath === '/discord-login-policy'
+const isDraftPreview = import.meta.env.DEV && ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname)
+    && normalizedPath === '/__preview/draft';
+const pagePromise = isDraftPreview
+    ? import('./components/draft/draft-preview-page').then(module => module.DraftPreviewPage)
+    : normalizedPath === '/discord-login-policy'
     ? import('./components/auth/discord-login-policy-page').then(module => module.DiscordLoginPolicyPage)
+    : normalizedPath.startsWith('/draft/')
+        ? import('./components/draft/public-draft-page').then(module => module.PublicDraftPage)
     : normalizedPath.startsWith('/participate/')
         ? import('./components/scrim/public-participation-page').then(module => module.PublicParticipationPage)
         : import('./App').then(module => module.default);
-const shouldUseAppNavigation = normalizedPath !== '/discord-login-policy'
+const shouldUseAppNavigation = !isDraftPreview && normalizedPath !== '/discord-login-policy'
+    && !normalizedPath.startsWith('/draft/')
     && !normalizedPath.startsWith('/participate/');
 const LazyPage = lazy(() => pagePromise.then(Page => ({ default: Page })));
 
@@ -30,6 +37,7 @@ if (normalizedPath === '/discord-login-policy') {
     document.title = 'Discord 로그인 정보 이용 안내 | OWKR Balance';
 }
 if (normalizedPath.startsWith('/participate/')) document.title = 'OWKR 내전 참여';
+if (normalizedPath.startsWith('/draft/')) document.title = 'OWKR 실시간 내전 참여';
 
 const root = createRoot(rootElement);
 

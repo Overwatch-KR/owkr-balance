@@ -73,7 +73,7 @@ export const isLocalAuthRequest = (req: VercelRequest): boolean => {
  * @description Discord 사용자 ID가 관리자 허용 목록에 포함되는지 확인한다.
  */
 export const isAllowedAdmin = (userId: string): boolean => (
-    userId in ADMIN_USERS
+    Object.hasOwn(ADMIN_USERS, userId)
 );
 
 /**
@@ -171,7 +171,7 @@ export const getSessionUser = (req: VercelRequest): SessionUser | null => {
 
     try {
         const decoded = jwt.verify(token, getJwtSecret()) as SessionPayload;
-        if (decoded.type !== 'session' || !decoded.id || !decoded.csrfToken) return null;
+        if (decoded.type !== 'session' || !decoded.id || !decoded.csrfToken || !isAllowedAdmin(decoded.id)) return null;
         return decoded;
     } catch {
         return null;

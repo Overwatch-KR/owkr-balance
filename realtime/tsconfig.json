@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "rootDir": "..",
+    "outDir": "../realtime-dist",
+    "types": ["node"],
+    "declaration": false
+  },
+  "include": ["src/**/*.ts", "../domains/draft/shared/**/*.ts"],
+  "exclude": ["src/**/*.test.ts"]
+}

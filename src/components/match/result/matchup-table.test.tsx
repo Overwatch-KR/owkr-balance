@@ -70,7 +70,7 @@ describe('MatchupTable', () => {
 
         expect(markup).not.toContain('현재 배정');
         expect(countMatches(markup, /<img /g)).toBe(20);
-        expect(markup).toContain('/tier/emerald.png');
+        expect(markup).toContain('/tier/emerald.webp');
         expect(markup).toContain('sm:hidden');
         expect(markup).toContain('hidden w-full min-w-0');
         expect(markup).toContain('id="matchup-table"');
