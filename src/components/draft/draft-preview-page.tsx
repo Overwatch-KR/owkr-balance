@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { DraftHero, DraftMap, DraftParticipant, DraftPhase, DraftRoomSnapshot } from '#domain/draft';
 import type { DraftRoomController } from '@application/draft/use-draft-room';
-import manifest from '../../../public/draft-assets/manifest.json';
+import { useQuery } from '@tanstack/react-query';
 import { DraftRoomPanel } from './draft-room-panel';
 import { DraftParticipantEntry } from './draft-participant-entry';
 
@@ -10,9 +10,6 @@ const screens = [
   ['preference', '선호 영웅'], ['ban', '영웅 밴 투표'], ['result', '맵·밴 결과'], ['operator', '운영자 현황'],
 ] as const;
 const roles = { tank: 'TANK', damage: 'DPS', support: 'SUPPORT' } as const;
-const heroes: DraftHero[] = manifest.assets.filter(asset => asset.kind === 'heroes').map(asset => ({
-  heroId: asset.id, nameKo: asset.name, role: roles[asset.role as keyof typeof roles], active: true,
-}));
 const participants: DraftParticipant[] = ['하늘', '노을', '바다', '별빛', '새벽', '달빛', '구름', '여울', '이슬', '은하'].map((name, index) => ({
   userSheetId: `example-${index}`, discordId: `example-${index}`, displayName: name,
   team: index < 5 ? 'A' : 'B', role: (['TANK', 'DPS', 'DPS', 'SUPPORT', 'SUPPORT'] as const)[index % 5], slot: index % 5,
@@ -22,7 +19,7 @@ const maps: DraftMap[] = ['kings-row', 'ilios', 'circuit-royal', 'busan'].map((i
   nameEn: id, mode: (['HYBRID', 'CONTROL', 'ESCORT', 'CONTROL'] as const)[index], active: true,
 }));
 
-function exampleSnapshot(screen: string): DraftRoomSnapshot {
+function exampleSnapshot(screen: string, heroes: readonly DraftHero[]): DraftRoomSnapshot {
   const now = Date.now();
   const phases: Record<string, DraftPhase> = { map: 'MAP_VOTING', preference: 'HERO_PREFERENCE', ban: 'HERO_VOTING', result: 'HERO_RESOLVED' };
   const phase = phases[screen] ?? 'LOBBY';
@@ -50,9 +47,9 @@ function exampleSnapshot(screen: string): DraftRoomSnapshot {
 }
 
 /** @description 로컬 개발에서 실제 컴포넌트를 가상 데이터로 확인하며 서버 명령이나 인증 요청은 보내지 않는다. */
-export function DraftPreviewPage() {
+function DraftPreviewContent({ heroes }: { heroes: readonly DraftHero[] }) {
   const screen = new URLSearchParams(window.location.search).get('screen') ?? 'login';
-  const initial = useMemo(() => exampleSnapshot(screen), [screen]);
+  const initial = useMemo(() => exampleSnapshot(screen, heroes), [screen, heroes]);
   const [snapshot, setSnapshot] = useState(initial);
   const controller: DraftRoomController = { snapshot, connected: true, pending: false, error: '', reconnect: () => {},
     command: async (type, values) => {
@@ -75,4 +72,18 @@ export function DraftPreviewPage() {
       <footer className="mt-8 text-center text-[10px] text-slate-600">Overwatch © Blizzard Entertainment · 개발용 미리보기</footer>
     </div>
   </main>;
+}
+
+
+export function DraftPreviewPage() {
+  const { data, error } = useQuery({ queryKey: ['draft-preview-heroes'], queryFn: async (): Promise<DraftHero[]> => {
+    const response = await fetch(`${import.meta.env.BASE_URL}draft-assets/manifest.json`);
+    if (!response.ok) throw new Error('예제 이미지 목록을 불러오지 못했습니다.');
+    const manifest = await response.json() as { assets: { kind: string; id: string; name: string; role?: string }[] };
+    return manifest.assets.filter(asset => asset.kind === 'heroes').map(asset => ({
+      heroId: asset.id, nameKo: asset.name, role: roles[asset.role as keyof typeof roles], active: true,
+    }));
+  }, staleTime: Infinity });
+  if (!data) return <main className="min-h-screen bg-[#080a0f] p-8 text-slate-200">{error ? error.message : '예제 화면을 준비하고 있습니다.'}</main>;
+  return <DraftPreviewContent heroes={data} />;
 }

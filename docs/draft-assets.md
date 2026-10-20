@@ -27,4 +27,4 @@ pnpm assets:overwatch
 
 2026-10-20 변환 시 전체 PNG·JPEG 151개(중복 영웅 포함) 25,520,197바이트를 WebP 100개 2,944,174바이트로 줄였다(88.5% 감소). 사용처·favicon·검증 기대값을 함께 변경했다.
 
-개발 서버의 `http://localhost:5173/__preview/draft?screen=login`에서 login/lobby/map/preference/ban/result/operator 예제를 확인할 수 있다. 실제 공용 컴포넌트와 가상 참가자를 사용하며 서버 요청을 보내지 않는다. 이 경로는 개발 모드의 로컬 호스트에서만 열리고 운영 빌드에는 포함되지 않는다. 이미지 수집 목록은 운영용 승인 카탈로그로 쓰지 않는다.
+개발 서버의 `http://localhost:5173/__preview/draft?screen=login`에서 login/lobby/map/preference/ban/result/operator 예제를 확인할 수 있다. 실제 공용 컴포넌트와 가상 참가자를 사용하며 실시간 명령·인증 요청은 보내지 않는다. 이 경로는 개발 모드의 로컬 호스트에서만 열리고 운영 빌드에는 포함되지 않는다. 이미지 수집 목록은 운영용 승인 카탈로그로 쓰지 않는다.
