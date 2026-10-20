@@ -64,6 +64,36 @@ describe('realtime HTTP and WebSocket transport', () => {
     expect(JSON.stringify(payload)).not.toContain('receipts');
     socket.terminate();
   });
+  it('keeps authenticated arrivals and the writer lease alive while commands wait', async () => {
+    const app = await setup();
+    const created = await app.post('/v1/rooms', { sourceId: 'LOCAL23456', commandId: 'queued-auth' });
+    const { roomCode } = await created.json() as { roomCode: string };
+    const now = Math.floor(Date.now() / 1000);
+    const ticket = signDraftTicket({ iss: 'owkr-realtime', purpose: 'realtime-entry',
+      sub: app.fixture.identities[0].discordUserId, displayName: '시험', roomCode,
+      scope: 'join', iat: now, exp: now + 300 }, keys.privateKey);
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    const queued = app.engine.serial(() => gate);
+    const renew = vi.spyOn(app.fixture.store, 'renewLease');
+    const socket = new WebSocket(`${app.base.replace('http:', 'ws:')}/v1/socket`, { origin });
+    try {
+      await new Promise<void>((resolve, reject) => {
+        socket.once('error', reject);
+        socket.once('open', () => { socket.send(JSON.stringify({ type: 'auth', ticket })); resolve(); });
+      });
+      await new Promise(resolve => setTimeout(resolve, 5500));
+      expect(socket.readyState).toBe(WebSocket.OPEN);
+      expect(renew).toHaveBeenCalled();
+      const snapshot = new Promise<Record<string, unknown>>((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('snapshot timeout')), 2000);
+        socket.once('message', data => { clearTimeout(timeout); resolve(JSON.parse(data.toString())); });
+      });
+      release(); await queued;
+      expect((await snapshot).type).toBe('room.snapshot');
+    } finally { release(); socket.terminate(); renew.mockRestore(); }
+  }, 10000);
+
   it('restricts ticket issuer, purpose, audience, lifetime and signature', () => {
     const now = Math.floor(Date.now() / 1000);
     const token = signDraftTicket({ iss: 'owkr-vercel', purpose: 'admin-entry', sub: '1000000000000000000',
