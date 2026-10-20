@@ -44,7 +44,7 @@ export default tseslint.config(
         },
     },
     {
-        files: ['api/**/*.ts', 'realtime/**/*.ts', 'scripts/**/*.mjs', '*.{js,ts}'],
+        files: ['api/**/*.ts', 'realtime/**/*.{ts,mjs}', 'scripts/**/*.mjs', '*.{js,ts}'],
         languageOptions: {
             ecmaVersion: 'latest',
             globals: globals.node,

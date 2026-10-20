@@ -392,10 +392,11 @@ export class DraftEngine {
     }));
   }
 
-  async snapshot(connectionId: string): Promise<DraftRoomSnapshot> {
+  async snapshot(connectionId: string, currentBundle?: RoomBundle): Promise<DraftRoomSnapshot> {
     const client = this.clients.get(connectionId);
     requireDraft(client, 'AUTH_EXPIRED', '연결이 만료되었습니다.');
-    const bundle = await this.requireRoom(client.roomCode);
+    const bundle = currentBundle ?? await this.requireRoom(client.roomCode);
+    requireDraft(bundle.room.roomCode === client.roomCode, 'ROOM_ACCESS_DENIED', '현재 방 상태가 아닙니다.');
     requireDraft(isConnectionAlive(client, bundle.now), 'AUTH_EXPIRED', '연결이 만료되었습니다.');
     const { room, history } = bundle;
     const operator = isDraftOperator(history.operators, client.discordId);

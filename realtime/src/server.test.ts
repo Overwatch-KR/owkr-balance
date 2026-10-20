@@ -1,6 +1,6 @@
 import { generateKeyPairSync } from 'node:crypto';
 import type { AddressInfo } from 'node:net';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { WebSocket } from 'ws';
 import { createRealtimeServer } from './server.js';
 import { createLocalDraftFixtures } from './local-fixtures.js';
@@ -112,7 +112,15 @@ describe('realtime HTTP and WebSocket transport', () => {
       return { socket, send };
     }));
     try {
-      for (let index = 0; index < clients.length; index++) await clients[index].send('ready.set', index);
+      const snapshots = vi.spyOn(app.engine, 'snapshot');
+      await clients[0].send('ready.set', 0);
+      await app.engine.serial(async () => undefined);
+      expect(snapshots).toHaveBeenCalledTimes(10);
+      const sharedBundle = snapshots.mock.calls[0][1];
+      expect(sharedBundle).toBeDefined();
+      expect(snapshots.mock.calls.every(([, bundle]) => bundle === sharedBundle)).toBe(true);
+      snapshots.mockRestore();
+      for (let index = 1; index < clients.length; index++) await clients[index].send('ready.set', index);
       if (mapMode === 'POTG') {
         await clients[0].send('map.configure', 0, [], { mapMode: 'POTG', pickerDiscordId: app.fixture.identities[3].discordUserId });
         for (let index = 0; index < clients.length; index++) await clients[index].send('ready.set', index);

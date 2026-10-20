@@ -45,7 +45,7 @@ pnpm realtime:package
 
 `realtime-dist/`에는 실행 파일, 순수 도메인 코드, 서버 전용 package.json과 잠금 파일, 프로세스 감독 예시만 들어간다. 이미지·기존 프런트엔드 의존성·비밀키·환경변수 파일은 포함하지 않는다. 생성 디렉터리를 서버에 옮기고 그 디렉터리에서 `pnpm install --prod --frozen-lockfile`로 런타임 의존성만 설치한다. Node.js 24 이상이 필요하다.
 
-`deploy/owkr-draft.service`는 Linux systemd 예시다. 계정·실제 Node 경로·배포 경로를 맞춘 뒤 사용한다. 프로세스 하나만 실행하고 rolling overlap 대신 기존 프로세스 종료 후 교체한다. Node 힙 상한 384 MB, 프로세스 전체 상한 768 MB 예시이며 실제 1GB 서버에서 검증한 수치가 아니다. 남은 자원으로 TLS 프록시를 실행한다. 로그는 토큰·OAuth 응답·투표 본문 없이 journal에서 관리하고 호스트의 journal 보존 용량을 제한한다.
+`deploy/owkr-draft.service`는 Linux systemd 예시다. 계정·실제 Node 경로·배포 경로를 맞춘 뒤 사용한다. 현재 전용 런타임 경로는 /opt/owkr-runtime/bin/node이며 참가자 OAuth 환경 파일이 있어야 시작한다. 프로세스 하나만 실행하고 rolling overlap 대신 기존 프로세스 종료 후 교체한다. 공유 1GB 서버에 맞춰 Node 힙 상한 192 MB, 프로세스 전체 상한 384 MB를 사용한다. 실제 배치와 검증 범위는 deploy/OPERATIONS.md를 확인한다. 남은 자원으로 TLS 프록시를 실행한다. 로그는 토큰·OAuth 응답·투표 본문 없이 journal에서 관리하고 호스트의 journal 보존 용량을 제한한다.
 
 TLS 프록시는 공개 HTTPS/WSS를 `127.0.0.1:8787`로 전달하며 WebSocket 업그레이드를 지원해야 한다. `/v1/socket`은 쿼리 토큰 없이 첫 인증 메시지로 인증한다. 외부 직접 노출 전에 요청/연결 속도 제한과 액세스 로그의 쿼리 제거를 설정한다. OAuth 콜백의 인증 코드·state는 프록시 로그에 남기지 않는다.
 
@@ -78,7 +78,7 @@ pnpm realtime:test
 pnpm check
 ```
 
-로컬 메모리 저장소를 이용한 경합·복구 계약과 실제 HTTP/WebSocket 시험은 포함한다. Redis Lua를 실제 Redis에서 실행하는 통합 시험, 실제 Discord OAuth와 제3자 쿠키 차단 환경, 모바일 전체 흐름, 1GB 실서버의 동시 10방 부하는 아직 별도 검증 대상이다. 성능 상한은 보장치가 아니다.
+로컬 메모리 저장소를 이용한 경합·복구 계약과 실제 HTTP/WebSocket 시험은 포함한다. 2026-10-20 Oracle 공유 1GB 서버와 실제 Upstash의 격리 합성 10인 시험에서 Lua 저장·동시 투표·재시작 복구를 확인했다. 실제 Discord OAuth와 제3자 쿠키 차단 환경, 모바일 전체 흐름, 동시 10방 부하는 아직 별도 검증 대상이다. 성능 상한은 보장치가 아니다.
 
 참고: [ws 공식 문서](https://github.com/websockets/ws#readme), [Upstash EVAL](https://upstash.com/docs/redis/commands/scripting/eval), [Discord OAuth2](https://docs.discord.com/developers/topics/oauth2).
 
@@ -90,3 +90,5 @@ pnpm check
 - 어떤 방식이든 확정 후 `MAP_RESOLVED`에서 맵 이미지·이름·첫 공격/수비를 모두에게 3초 보여준다. 저장이 지연돼도 원자 저장 시각부터 온전한 3초를 계산한다. 이때 영웅 픽창과 투표 입력은 없으며, 서버가 3초 이후에만 선호 영웅 단계를 연다.
 - 경기 종료 기록 후 운영자의 `game.next`로 같은 방·초대 링크·참가자 인증을 유지하며 준비→맵→선호→밴을 다시 진행한다. 이전 준비·후보·맵·밴은 초기화하지만 실제로 시작한 경기의 맵은 계속 제외한다. 맵 사용 기록 초기화 기능은 제공하지 않는다. 미진행으로 기록한 맵은 사용한 맵으로 간주하지 않는다.
 - 방의 고정 3시간 만료는 다음 경기나 재접속으로 연장하지 않는다. 원본 팀이 바뀌면 기존 규칙대로 다시 준비하며 팟지 선수도 현재 명단에서 지정해야 한다.
+
+실제 civilwar.devbot.me 서버 설치·인증 설정·재배포·격리 Redis 부하 시험 절차는 [운영 안내](deploy/OPERATIONS.md)를 참고한다.

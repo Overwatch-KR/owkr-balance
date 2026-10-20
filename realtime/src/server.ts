@@ -4,6 +4,7 @@ import { WebSocket, WebSocketServer } from 'ws';
 import { DraftRuleError, requireDraft, emitDraftStreamEvent, type DraftStreamCursor } from '../../domains/draft/shared/public.js';
 import { DraftEngine, parseDraftCommand } from './engine.js';
 import { signDraftTicket, verifyDraftTicket } from './tickets.js';
+import type { RoomBundle } from './model.js';
 import type { DraftParticipantAuth } from './participant-auth.js';
 
 export interface RealtimeServerOptions {
@@ -148,11 +149,11 @@ export async function createRealtimeServer(options: RealtimeServerOptions) {
     wss.handleUpgrade(request, socket, head, websocket => wss.emit('connection', websocket));
   });
 
-  async function publish(connectionId: string, force = false): Promise<void> {
+  async function publish(connectionId: string, force = false, bundle?: RoomBundle): Promise<void> {
     const socket = sockets.get(connectionId);
     if (!socket || socket.readyState !== WebSocket.OPEN) return;
     if (socket.bufferedAmount > 256 * 1024) { socket.close(1013, 'snapshot required'); return; }
-    const payload = await engine.snapshot(connectionId);
+    const payload = await engine.snapshot(connectionId, bundle);
     const state = streams.get(connectionId)!;
     const visible = Object.fromEntries(Object.entries(payload).filter(([key]) => key !== 'serverNow' && key !== 'roomRevision'));
     const fingerprint = JSON.stringify(visible);
@@ -163,10 +164,12 @@ export async function createRealtimeServer(options: RealtimeServerOptions) {
     socket.send(JSON.stringify({ type: force ? 'room.snapshot' : 'room.updated', ...result.envelope }));
   }
 
-  async function publishRoom(code: string): Promise<void> {
-    for (const [id, client] of engine.clients) {
-      if (client.roomCode !== code) continue;
-      try { await publish(id); }
+  async function publishRoom(code: string, forceConnectionId?: string): Promise<void> {
+    const clients = [...engine.clients].filter(([, client]) => client.roomCode === code);
+    if (clients.length === 0) return;
+    const bundle = await engine.requireRoom(code);
+    for (const [id] of clients) {
+      try { await publish(id, id === forceConnectionId, bundle); }
       catch { sockets.get(id)?.close(1008, 'room access ended'); }
     }
   }
@@ -182,6 +185,18 @@ export async function createRealtimeServer(options: RealtimeServerOptions) {
     socket.on('pong', () => { const client = engine.clients.get(id); if (client) client.lastResponseAt = Date.now(); });
     socket.on('message', (data, binary) => {
       if (pendingMessages >= 20) { socket.close(1008, 'input queue limit'); return; }
+      if (!joined && pendingMessages === 0) {
+        try {
+          requireDraft(!binary, 'AUTH_REQUIRED', '인증 메시지가 필요합니다.');
+          const initial = JSON.parse(data.toString()) as Record<string, unknown>;
+          requireDraft(initial.type === 'auth' && typeof initial.ticket === 'string', 'AUTH_REQUIRED', '인증 메시지가 필요합니다.');
+          verifyDraftTicket(initial.ticket, options.realtimePublicKey, 'realtime-entry', Date.now());
+          clearTimeout(authTimer);
+        } catch (error) {
+          socket.send(JSON.stringify({ type: 'command.rejected', ...errorBody(error) }));
+          socket.close(1008, 'authentication failed'); return;
+        }
+      }
       pendingMessages++;
       void engine.serial(async () => {
         let commandId: string | undefined;
@@ -195,7 +210,7 @@ export async function createRealtimeServer(options: RealtimeServerOptions) {
             await engine.connect(ticket, id);
             streams.set(id, { cursor: { streamId: randomUUID(), streamSeq: 0 }, fingerprint: '' });
             joined = true; joining = false; clearTimeout(authTimer);
-            await publish(id, true); await publishRoom(ticket.roomCode!); return;
+            await publishRoom(ticket.roomCode!, id); return;
           }
           if (message.type === 'snapshot.request') {
             streams.set(id, { cursor: { streamId: randomUUID(), streamSeq: 0 }, fingerprint: '' });
@@ -235,6 +250,17 @@ export async function createRealtimeServer(options: RealtimeServerOptions) {
     });
   });
 
+  let renewingLease = false;
+  const leaseInterval = setInterval(() => {
+    if (renewingLease || shuttingDown) return;
+    renewingLease = true;
+    void engine.store.renewLease().then(renewed => {
+      if (renewed) lastLeaseAt = Date.now();
+      else healthy = false;
+    }).catch(() => { healthy = false; }).finally(() => { renewingLease = false; });
+  }, 5000);
+  leaseInterval.unref();
+
   const interval = setInterval(() => {
     if (housekeeping || shuttingDown) return;
     housekeeping = true;
@@ -265,7 +291,7 @@ export async function createRealtimeServer(options: RealtimeServerOptions) {
   return {
     server,
     async close(): Promise<void> {
-      shuttingDown = true; clearInterval(interval);
+      shuttingDown = true; clearInterval(interval); clearInterval(leaseInterval);
       for (const socket of wss.clients) socket.terminate();
       await engine.serial(async () => { await engine.recover(); await engine.store.releaseLease(); });
       await new Promise<void>(resolve => wss.close(() => resolve()));

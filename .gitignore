@@ -31,3 +31,7 @@ dist-ssr
 !.env.example
 /작업_현황_파일.md
 /realtime-dist/
+
+# Deployment credentials
+/ubuntu.pem
+/.deployment-secrets/
