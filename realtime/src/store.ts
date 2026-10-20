@@ -11,31 +11,72 @@ const HISTORY = `${PREFIX}session:`;
 const LEASE = `${PREFIX}writer`;
 const ACTIVE = `${PREFIX}active`;
 
-const READ_SOURCE_SCRIPT = `
+const SOURCE_READ_SCRIPT = `
+local function readSource(sourceKey, entriesKey, versionKey)
+  local raw = redis.call('GET', sourceKey)
+  if not raw then return {value=cjson.null, identities={}} end
+  local source = cjson.decode(raw)
+  local assigned = {}
+  local assignedIds = {}
+  for _, player in ipairs(source.participants or {}) do
+    if player.position and player.position ~= cjson.null then
+      table.insert(assigned, {discordUserId=player.discordUserId, position=player.position})
+      assignedIds[player.discordUserId] = true
+    end
+  end
+  local identities = {}
+  for _, rowJson in ipairs(redis.call('HVALS', entriesKey)) do
+    local row = cjson.decode(rowJson)
+    if row.discordUserId and assignedIds[row.discordUserId] then
+      table.insert(identities, {id=row.id, discordUserId=row.discordUserId, battleTag=row.battleTag})
+    end
+  end
+  local minimal = {revision=source.revision, expiresAt=source.expiresAt, participants=assigned,
+    sheetVersion=tonumber(redis.call('GET',versionKey) or '0')}
+  return {value=cjson.encode(minimal), identities=identities}
+end
+`;
+
+const READ_SOURCE_SCRIPT = SOURCE_READ_SCRIPT + `
+local t = redis.call('TIME')
+local source = readSource(KEYS[1], KEYS[2], KEYS[3])
+source.now = tonumber(t[1]) * 1000 + math.floor(tonumber(t[2]) / 1000)
+return cjson.encode(source)
+`;
+
+export const LOAD_ROOM_SCRIPT = SOURCE_READ_SCRIPT + `
 local t = redis.call('TIME')
 local now = tonumber(t[1]) * 1000 + math.floor(tonumber(t[2]) / 1000)
 local raw = redis.call('GET', KEYS[1])
-if not raw then return cjson.encode({now=now, value=cjson.null, identities={}}) end
-local source = cjson.decode(raw)
-local assigned = {}
-local assignedIds = {}
-for _, player in ipairs(source.participants or {}) do
-  if player.position and player.position ~= cjson.null then
-    table.insert(assigned, {discordUserId=player.discordUserId, position=player.position})
-    assignedIds[player.discordUserId] = true
-  end
+if not raw then return cjson.encode({room=cjson.null}) end
+local room = cjson.decode(raw)
+if room.draftSessionId ~= ARGV[1] or room.source.sourceId ~= ARGV[2] then
+  return cjson.encode({routeChanged=true})
 end
-local identities = {}
-for _, rowJson in ipairs(redis.call('HVALS', KEYS[2])) do
-  local row = cjson.decode(rowJson)
-  if row.discordUserId and assignedIds[row.discordUserId] then
-    table.insert(identities, {id=row.id, discordUserId=row.discordUserId, battleTag=row.battleTag})
-  end
-end
-local minimal = {revision=source.revision, expiresAt=source.expiresAt, participants=assigned,
-  sheetVersion=tonumber(redis.call('GET',KEYS[3]) or '0')}
-return cjson.encode({now=now, value=cjson.encode(minimal), identities=identities})
+local history = redis.call('GET', KEYS[2])
+if not history then return cjson.encode({room=cjson.null}) end
+local source = readSource(KEYS[3], KEYS[4], KEYS[5])
+return cjson.encode({room=raw, history=history, value=source.value, identities=source.identities, now=now})
 `;
+
+interface RedisSourceRead {
+  now: number;
+  value: string | null;
+  identities: SourceIdentity[];
+}
+
+interface RedisRoomRead extends RedisSourceRead {
+  room: string | null;
+  history: string;
+  routeChanged?: boolean;
+}
+
+interface RoomRoute {
+  sessionId: string;
+  sourceId: string;
+}
+
+const MAX_ROOM_ROUTE_HINTS = 10;
 
 const SOURCE_MATCH_SCRIPT = `
 local function matchesSource(actualJson, expectedJson, sheetVersion)
@@ -120,6 +161,7 @@ return 'OK'
 
 export class RedisRealtimeStore implements RealtimeStore {
   private readonly writerId = randomUUID();
+  private readonly roomRoutes = new Map<string, RoomRoute>();
   constructor(private readonly redis: Redis) {}
 
   async acquireLease(): Promise<void> {
@@ -165,25 +207,47 @@ export class RedisRealtimeStore implements RealtimeStore {
   async readSource(sourceId: string): Promise<{ source: ReturnType<typeof parseDraftSource>; raw: string | null; now: number }> {
     const reply = JSON.parse(await this.redis.eval<[], string>(READ_SOURCE_SCRIPT, [
       `match-live:v1:${sourceId}`, 'user-sheet:v2:entries', 'user-sheet:v2:version',
-    ], [])) as { now: number; value: string | null; identities: SourceIdentity[] };
+    ], [])) as RedisSourceRead;
     if (!reply.value) return { source: null, raw: null, now: reply.now };
     return { source: parseDraftSource(sourceId, reply.value, Array.isArray(reply.identities) ? reply.identities : []), raw: reply.value, now: reply.now };
   }
 
+  /** @description 키 위치만 기억하고, 상태·명단·시각은 Redis에서 매번 함께 읽는다. */
+  private rememberRoute(room: DraftRoomRecord): RoomRoute {
+    const route = { sessionId: room.draftSessionId, sourceId: room.source.sourceId };
+    this.roomRoutes.delete(room.roomCode);
+    this.roomRoutes.set(room.roomCode, route);
+    if (this.roomRoutes.size > MAX_ROOM_ROUTE_HINTS) this.roomRoutes.delete(this.roomRoutes.keys().next().value!);
+    return route;
+  }
+
   async load(roomCode: string): Promise<RoomBundle | null> {
-    const raw = await this.redis.get<string>(`${ROOM}${roomCode}`);
-    if (!raw) return null;
-    const room = JSON.parse(raw) as DraftRoomRecord;
-    const historyRaw = await this.redis.get<string>(`${HISTORY}${room.draftSessionId}`);
-    if (!historyRaw) return null;
-    const history = JSON.parse(historyRaw) as DraftHistory;
-    let sourceRead;
-    try { sourceRead = await this.readSource(room.source.sourceId); }
-    catch (error) {
-      if (!(error instanceof DraftRuleError)) throw error;
-      sourceRead = { source: null, raw: null, now: Date.now() };
+    for (let attempt = 0; attempt < 2; attempt++) {
+      let route = this.roomRoutes.get(roomCode);
+      if (!route) {
+        const raw = await this.redis.get<string>(`${ROOM}${roomCode}`);
+        if (!raw) return null;
+        route = this.rememberRoute(JSON.parse(raw) as DraftRoomRecord);
+      }
+      const reply = JSON.parse(await this.redis.eval<string[], string>(LOAD_ROOM_SCRIPT, [
+        `${ROOM}${roomCode}`, `${HISTORY}${route.sessionId}`, `match-live:v1:${route.sourceId}`,
+        'user-sheet:v2:entries', 'user-sheet:v2:version',
+      ], [route.sessionId, route.sourceId])) as RedisRoomRead;
+      if (reply.routeChanged) { this.roomRoutes.delete(roomCode); continue; }
+      if (!reply.room) { this.roomRoutes.delete(roomCode); return null; }
+      const room = JSON.parse(reply.room) as DraftRoomRecord;
+      const history = JSON.parse(reply.history) as DraftHistory;
+      this.rememberRoute(room);
+      let source: ReturnType<typeof parseDraftSource>;
+      let sourceRaw = reply.value;
+      try { source = parseDraftSource(room.source.sourceId, sourceRaw, Array.isArray(reply.identities) ? reply.identities : []); }
+      catch (error) {
+        if (!(error instanceof DraftRuleError)) throw error;
+        source = null; sourceRaw = null;
+      }
+      return { room, history, source, sourceRaw, now: reply.now };
     }
-    return { room, history, source: sourceRead.source, sourceRaw: sourceRead.raw, now: sourceRead.now };
+    requireDraft(false, 'CONFLICT', '방 상태가 변경되었습니다. 다시 연결해 주세요.');
   }
 
   async create(room: DraftRoomRecord, history: DraftHistory, expectedSourceRaw: string, requestId: string): Promise<string> {
@@ -194,6 +258,7 @@ export class RedisRealtimeStore implements RealtimeStore {
     ], [this.writerId, JSON.stringify(room), JSON.stringify(history), expectedSourceRaw]);
     if (result.startsWith('RETRY:')) return result.slice(6);
     requireDraft(result === 'OK', result, '방을 만들 수 없습니다. 최신 원본과 서버 상태를 확인해 주세요.');
+    this.rememberRoute(room);
     return room.roomCode;
   }
 

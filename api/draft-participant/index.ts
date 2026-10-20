@@ -42,12 +42,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const result = await call('exchange', { code: body.code, contextHash: contextHash(context) });
       if (typeof result.handle !== 'string' || typeof result.roomCode !== 'string'
         || !/^[A-Z2-9]{10}$/.test(result.roomCode) || typeof result.expiresAt !== 'number') throw new Error('INVALID_RESPONSE');
+      const hasEntry = result.ticket !== undefined || result.ticketExpiresAt !== undefined;
+      if (hasEntry && (typeof result.ticket !== 'string' || !result.ticket || result.ticket.length > 8192
+        || typeof result.ticketExpiresAt !== 'number' || result.ticketExpiresAt <= Date.now()
+        || result.ticketExpiresAt > result.expiresAt || result.ticketExpiresAt > Date.now() + 300_000)) throw new Error('INVALID_RESPONSE');
       const maxAge = Math.max(0, Math.floor((result.expiresAt - Date.now()) / 1000));
       res.setHeader('Set-Cookie', [
         stringifySetCookie({ name: `owkr_draft_participant_${result.roomCode}`, value: result.handle, ...cookieOptions, maxAge }),
         stringifySetCookie({ name: CONTEXT_COOKIE, value: '', ...cookieOptions, maxAge: 0 }),
       ]);
-      return res.status(200).json({ roomCode: result.roomCode });
+      return res.status(200).json({ roomCode: result.roomCode, ...(hasEntry
+        ? { ticket: result.ticket, expiresAt: result.ticketExpiresAt, realtimeUrl: base } : {}) });
     }
     if (body?.action === 'refresh') {
       if (typeof body.roomCode !== 'string' || !/^[A-Z2-9]{10}$/.test(body.roomCode)) return res.status(400).json({ error: '방 코드를 확인해 주세요.' });

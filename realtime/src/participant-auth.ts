@@ -10,6 +10,19 @@ interface ParticipantIdentity {
   expiresAt: number;
 }
 
+interface ParticipantTicket {
+  ticket: string;
+  expiresAt: number;
+}
+
+interface ParticipantExchange {
+  handle: string;
+  roomCode: string;
+  expiresAt: number;
+  ticket: string;
+  ticketExpiresAt: number;
+}
+
 interface OAuthContext {
   roomCode: string;
   contextHash: string;
@@ -80,7 +93,7 @@ export class DraftParticipantAuth {
     return `${this.options.appOrigin}/draft/${context.roomCode}?draft_code=${encodeURIComponent(exchangeCode)}`;
   }
 
-  async exchange(code: string, contextHash: string): Promise<{ handle: string; roomCode: string; expiresAt: number }> {
+  async exchange(code: string, contextHash: string): Promise<ParticipantExchange> {
     requireDraft(/^[\w-]{43}$/.test(code) && /^[a-f0-9]{64}$/.test(contextHash), 'INVALID_EXCHANGE', '교환 코드를 확인해 주세요.');
     const raw = await this.options.engine.store.getTransient(`code:${hash(code)}`, true);
     requireDraft(raw, 'EXCHANGE_EXPIRED', '교환 코드가 만료되었거나 이미 사용되었습니다.');
@@ -92,10 +105,12 @@ export class DraftParticipantAuth {
     const session: ParticipantIdentity = { discordId: identity.discordId, displayName: identity.displayName,
       roomCode: identity.roomCode, expiresAt: bundle.room.expiresAt };
     await this.options.engine.store.putTransient(`session:${hash(handle)}`, JSON.stringify(session), session.expiresAt);
-    return { handle, roomCode: identity.roomCode, expiresAt: session.expiresAt };
+    const entry = this.issueTicket(session, bundle.room.expiresAt);
+    return { handle, roomCode: identity.roomCode, expiresAt: session.expiresAt,
+      ticket: entry.ticket, ticketExpiresAt: entry.expiresAt };
   }
 
-  async refresh(handle: string, roomCode: string): Promise<{ ticket: string; expiresAt: number }> {
+  async refresh(handle: string, roomCode: string): Promise<ParticipantTicket> {
     requireDraft(/^[\w-]{43}$/.test(handle) && /^[A-Z2-9]{10}$/.test(roomCode), 'INVALID_SESSION', '참가자 세션을 확인해 주세요.');
     const raw = await this.options.engine.store.getTransient(`session:${hash(handle)}`);
     requireDraft(raw, 'PARTICIPANT_SESSION_EXPIRED', '참가 인증을 다시 진행해 주세요.');
@@ -103,10 +118,15 @@ export class DraftParticipantAuth {
     requireDraft(session.roomCode === roomCode && session.expiresAt > Date.now(), 'INVALID_SESSION', '이 방의 참가 인증이 필요합니다.');
     const bundle = await this.options.engine.requireRoom(roomCode);
     requireDraft(bundle.source?.participants.some(player => player.discordId === session.discordId), 'NOT_PARTICIPANT', '현재 명단에서 제외되었습니다.');
+    return this.issueTicket(session, bundle.room.expiresAt);
+  }
+
+  private issueTicket(session: ParticipantIdentity, roomExpiresAt: number): ParticipantTicket {
     const now = Math.floor(Date.now() / 1000);
-    const exp = Math.min(now + 300, Math.floor(bundle.room.expiresAt / 1000));
+    const exp = Math.min(now + 300, Math.floor(Math.min(roomExpiresAt, session.expiresAt) / 1000));
+    requireDraft(exp > now, 'PARTICIPANT_SESSION_EXPIRED', '참가 인증을 다시 진행해 주세요.');
     return { ticket: signDraftTicket({ iss: 'owkr-realtime', purpose: 'realtime-entry', sub: session.discordId,
-      displayName: session.displayName, roomCode, scope: 'join', iat: now, exp,
+      displayName: session.displayName, roomCode: session.roomCode, scope: 'join', iat: now, exp,
     }, this.options.privateKey), expiresAt: exp * 1000 };
   }
 }

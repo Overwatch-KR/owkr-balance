@@ -43,4 +43,33 @@ describe('same-site participant session bridge', () => {
     const res = response(); await handler(request({ action: 'refresh', roomCode: 'ROOM234567' }, { cookie: 'owkr_session=administrator-cookie' }), res);
     expect(res.status).toHaveBeenCalledWith(401); expect(fetcher).not.toHaveBeenCalled();
   });
+  it('returns the first short-lived ticket while keeping the recovery handle in an HttpOnly cookie', async () => {
+    configure();
+    const expiresAt = Date.now() + 3_600_000;
+    const ticketExpiresAt = Date.now() + 299_000;
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      handle: 'h'.repeat(43), roomCode: 'ROOM234567', expiresAt, ticket: 'signed-ticket', ticketExpiresAt,
+    }))));
+    const res = response();
+    await handler(request({ action: 'exchange', code: 'c'.repeat(43) }, { cookie: `owkr_draft_oauth_context=${'b'.repeat(43)}` }), res);
+    expect(res.json).toHaveBeenCalledWith({ roomCode: 'ROOM234567', ticket: 'signed-ticket',
+      expiresAt: ticketExpiresAt, realtimeUrl: 'https://draft.example.invalid' });
+    const cookies = (res.setHeader as ReturnType<typeof vi.fn>).mock.calls.find(call => call[0] === 'Set-Cookie')?.[1] as string[];
+    expect(cookies[0]).toContain('HttpOnly');
+    expect(Number(cookies[0].match(/Max-Age=(\d+)/)?.[1])).toBeGreaterThanOrEqual(3599);
+    expect(cookies[1]).toContain('Max-Age=0');
+  });
+  it.each(['expired', 'longer-than-session', 'missing-ticket'])('rejects an invalid first ticket: %s', async kind => {
+    configure();
+    const expiresAt = Date.now() + 100_000;
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      handle: 'h'.repeat(43), roomCode: 'ROOM234567', expiresAt,
+      ticket: kind === 'missing-ticket' ? undefined : 'signed-ticket',
+      ticketExpiresAt: kind === 'expired' ? Date.now() - 1 : expiresAt + 1000,
+    }))));
+    const res = response();
+    await handler(request({ action: 'exchange', code: 'c'.repeat(43) }, { cookie: `owkr_draft_oauth_context=${'b'.repeat(43)}` }), res);
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect((res.setHeader as ReturnType<typeof vi.fn>).mock.calls.some(call => call[0] === 'Set-Cookie')).toBe(false);
+  });
 });

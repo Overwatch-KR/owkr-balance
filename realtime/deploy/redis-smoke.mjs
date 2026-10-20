@@ -1,23 +1,34 @@
 import assert from 'node:assert/strict';
 import { randomUUID, generateKeyPairSync } from 'node:crypto';
 import { performance } from 'node:perf_hooks';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { Redis } from '@upstash/redis';
 import { WebSocket } from 'ws';
 import { RedisRealtimeStore } from '../realtime/src/store.js';
 import { DraftEngine } from '../realtime/src/engine.js';
 import { createRealtimeServer } from '../realtime/src/server.js';
 import { createLocalDraftFixtures } from '../realtime/src/local-fixtures.js';
-import { signDraftTicket } from '../realtime/src/tickets.js';
+import { DraftParticipantAuth } from '../realtime/src/participant-auth.js';
+import { signDraftTicket, verifyDraftTicket } from '../realtime/src/tickets.js';
 import { SOURCE_POSITIONS } from '../realtime/src/source.js';
 
 const namespace = `draft:v1:deploytest:${randomUUID()}:`;
 const redis = new Redis({ url: process.env.UPSTASH_REDIS_REST_URL, token: process.env.UPSTASH_REDIS_REST_TOKEN,
   automaticDeserialization: false, retry: { retries: 0 } });
 const touched = new Set();
+const requestMetrics = new AsyncLocalStorage();
+const countRequest = () => { const metric = requestMetrics.getStore(); if (metric) metric.redisRequests++; };
+const measure = async work => {
+  const metric = { redisRequests: 0 }; const began = performance.now();
+  const value = await requestMetrics.run(metric, work);
+  return { value, elapsedMs: Math.round(performance.now() - began), redisRequests: metric.redisRequests };
+};
+const authentication = [];
+const roomReads = [];
 const key = value => { const mapped = namespace + value; touched.add(mapped); return mapped; };
 const scoped = new Proxy(redis, { get(target, name) {
-  if (name === 'eval') return (script, keys, args) => target.eval(script, keys.map(key), args);
-  if (['set', 'get', 'getdel', 'zrange'].includes(name)) return (first, ...args) => target[name](key(first), ...args);
+  if (name === 'eval') return (script, keys, args) => { countRequest(); return target.eval(script, keys.map(key), args); };
+  if (['set', 'get', 'getdel', 'zrange'].includes(name)) return (first, ...args) => { countRequest(); return target[name](key(first), ...args); };
   throw new Error(`Unscoped Redis operation denied: ${String(name)}`);
 } });
 const fixture = createLocalDraftFixtures();
@@ -94,6 +105,29 @@ try {
   const payload = { sourceId: 'LOCAL23456', commandId: randomUUID() };
   const created = await post('/v1/rooms', payload, adminTicket()); roomCode = created.roomCode;
   assert.equal((await post('/v1/rooms', payload, adminTicket())).roomCode, roomCode);
+  const auth = new DraftParticipantAuth({ engine, appOrigin: origin, publicOrigin: base,
+    clientId: 'synthetic-client', clientSecret: 'synthetic-secret', privateKey: keys.privateKey,
+    fetch: async url => new Response(JSON.stringify(String(url).endsWith('/token')
+      ? { access_token: 'synthetic-access-token', token_type: 'Bearer', scope: 'identify' }
+      : { id: fixture.identities[1].discordUserId })),
+  });
+  for (let index = 0; index < 5; index++) {
+    const contextHash = 'c'.repeat(64);
+    const authorize = new URL(await auth.begin(roomCode, contextHash));
+    const returned = new URL(await auth.callback('synthetic-code', authorize.searchParams.get('state'), 'https://discord.com'));
+    const measured = await measure(async () => {
+      const session = await auth.exchange(returned.searchParams.get('draft_code'), contextHash);
+      const entry = session.ticket ? { ticket: session.ticket } : await auth.refresh(session.handle, roomCode);
+      return { ...entry, requiresImmediateRefresh: !session.ticket };
+    });
+    assert.equal(verifyDraftTicket(measured.value.ticket, keys.publicKey, 'realtime-entry', Date.now()).sub, fixture.identities[1].discordUserId);
+    authentication.push({ elapsedMs: measured.elapsedMs, redisRequests: measured.redisRequests,
+      requiresImmediateRefresh: measured.value.requiresImmediateRefresh });
+  }
+  for (let index = 0; index < 10; index++) {
+    const measured = await measure(() => engine.requireRoom(roomCode));
+    roomReads.push({ elapsedMs: measured.elapsedMs, redisRequests: measured.redisRequests });
+  }
   await Promise.all(fixture.identities.map(connect));
   assert.equal(sockets.length, 10);
   for (const socket of sockets) await send(socket, 'ready.set');
@@ -153,12 +187,36 @@ try {
   assert.equal(recovered.room.timer.status, 'RECOVERY_PAUSED');
   assert.equal(recovered.room.mapResult?.resolutionId, preservedResolution);
   assert.equal(recovered.history.games[0].map.mapId, mapId);
+  const guard = { expectedRoomRevision: recovered.room.revision,
+    expectedHistoryRevision: recovered.history.mapHistoryRevision, expectedSourceRaw: recovered.sourceRaw };
+  await assert.rejects(engine.store.commit(recovered, { ...guard, authExpiresAt: recovered.now - 1 }),
+    error => error.code === 'AUTH_EXPIRED');
+  await assert.rejects(engine.store.commit(recovered, { ...guard, acceptBefore: recovered.now - 1 }),
+    error => error.code === 'BALLOT_CLOSED');
+  const sourceKey = key('match-live:v1:LOCAL23456');
+  const source = JSON.parse(await redis.get(sourceKey));
+  source.revision++;
+  await redis.set(sourceKey, JSON.stringify(source), { keepttl: true });
+  await assert.rejects(engine.store.commit(recovered, guard), error => error.code === 'SOURCE_OUTDATED');
+  const fresh = await engine.requireRoom(roomCode);
+  assert.equal(fresh.source.revision, source.revision);
+  await redis.hdel(key('user-sheet:v2:entries'), fixture.identities[1].id);
+  assert.equal((await engine.store.load(roomCode)).source, null);
+  const historyKey = key(`draft:v1:session:${recovered.history.draftSessionId}`);
+  const savedHistory = await redis.get(historyKey);
+  const savedHistoryExpiry = recovered.history.expiresAt;
+  await redis.del(historyKey);
+  assert.equal(await engine.store.load(roomCode), null);
+  await redis.set(historyKey, savedHistory, { pxat: savedHistoryExpiry });
+  assert.ok(await engine.store.load(roomCode));
   timings.sort((a, b) => a - b);
   console.log(JSON.stringify({ status: 'passed', transport: base, sockets: 10, soakSeconds,
+    authentication, roomReads,
     acknowledgedCommands: timings.length, commandMs: { median: Math.round(timings[Math.floor(timings.length / 2)]),
       p95: Math.round(timings[Math.floor(timings.length * .95)]), max: Math.round(timings.at(-1)) },
-    checks: ['actual Redis Lua', 'isolated namespace', 'idempotent creation', '10 TLS WebSockets', '10 simultaneous locked ballots',
-      '3 second map reveal', 'preference and hero bans', 'game start and finish', 'next game excludes played map', 'fixed expiry', 'revision conflict', 'restart recovery paused', 'sealed resolution preserved'],
+    checks: ['actual Redis Lua', 'isolated namespace', 'idempotent creation', base.startsWith('https:') ? '10 TLS WebSockets' : '10 loopback WebSockets', '10 simultaneous locked ballots',
+      '3 second map reveal', 'preference and hero bans', 'game start and finish', 'next game excludes played map', 'fixed expiry', 'revision conflict', 'restart recovery paused', 'sealed resolution preserved',
+      'expired authentication rejected', 'late ballot rejected', 'stale source write rejected', 'fresh source revision', 'removed identity rejected', 'missing history rejected'],
     rssMiB: Math.round(process.memoryUsage().rss / 1048576) }, null, 2));
 } finally {
   for (const socket of sockets) socket.terminate();

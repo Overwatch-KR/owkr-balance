@@ -53,6 +53,14 @@ describe('participant-specific OAuth and same-site recovery', () => {
     const redirect = new URL(await app.auth.callback('discord-code', app.state, 'https://discord.com'));
     const code = redirect.searchParams.get('draft_code')!;
     const session = await app.auth.exchange(code, contextHash);
+    const firstEntry = verifyDraftTicket(session.ticket, keys.publicKey, 'realtime-entry', Date.now());
+    expect(firstEntry.sub).toBe(app.fixture.identities[1].discordUserId);
+    expect(firstEntry.roomCode).toBe(app.roomCode);
+    expect(firstEntry.scope).toBe('join');
+    expect(firstEntry.iss).toBe('owkr-realtime');
+    expect(firstEntry.exp - firstEntry.iat).toBeLessThanOrEqual(300);
+    expect(session.ticketExpiresAt).toBe(firstEntry.exp * 1000);
+    expect(session.ticketExpiresAt).toBeLessThan(session.expiresAt);
     await expect(app.auth.exchange(code, contextHash)).rejects.toThrow('이미 사용');
     const refreshed = await app.auth.refresh(session.handle, app.roomCode);
     const identity = verifyDraftTicket(refreshed.ticket, keys.publicKey, 'realtime-entry', Date.now());
@@ -98,5 +106,14 @@ describe('participant-specific OAuth and same-site recovery', () => {
     source.participants[1].discordUserId = app.fixture.identities[0].discordUserId; source.revision++;
     app.fixture.store.setSource('LOCAL23456', source);
     await expect(app.auth.refresh(session.handle, app.roomCode)).rejects.toThrow('제외');
+  });
+  it('rechecks membership before issuing the first ticket after the OAuth callback', async () => {
+    const app = await setup();
+    const redirect = new URL(await app.auth.callback('code', app.state, 'https://discord.com'));
+    const source = JSON.parse((await app.fixture.store.readSource('LOCAL23456')).raw!);
+    source.participants[1].discordUserId = app.fixture.identities[0].discordUserId;
+    source.revision++;
+    app.fixture.store.setSource('LOCAL23456', source);
+    await expect(app.auth.exchange(redirect.searchParams.get('draft_code')!, contextHash)).rejects.toThrow('명단');
   });
 });

@@ -4,6 +4,7 @@ import { inspectDraftStreamEvent, type DraftRoomSnapshot, type DraftStreamCursor
 
 export const REALTIME_DRAFT_ENABLED = import.meta.env.VITE_ENABLE_REALTIME_DRAFT === 'true';
 
+interface ParticipantExchangeResponse { roomCode: string; ticket?: string; expiresAt?: number; realtimeUrl?: string }
 interface EntryResponse { ticket: string; expiresAt: number; realtimeUrl: string }
 interface PendingCommand { resolve: () => void; reject: (error: Error) => void; timeout: ReturnType<typeof setTimeout> }
 
@@ -15,9 +16,9 @@ export async function draftRequest<T>(url: string, body: unknown, headers: Recor
   return result;
 }
 
-let exchangePromise: Promise<unknown> | null = null;
+let exchangePromise: Promise<ParticipantExchangeResponse> | null = null;
 
-async function participantEntry(roomCode: string): Promise<EntryResponse> {
+export async function participantEntry(roomCode: string): Promise<EntryResponse> {
   if (import.meta.env.DEV && import.meta.env.VITE_DRAFT_LOCAL_URL && import.meta.env.VITE_DRAFT_LOCAL_USER_ID
     && ['localhost', '127.0.0.1'].includes(window.location.hostname)) {
     const base = new URL(String(import.meta.env.VITE_DRAFT_LOCAL_URL));
@@ -32,9 +33,18 @@ async function participantEntry(roomCode: string): Promise<EntryResponse> {
   if (code) {
     currentUrl.searchParams.delete('draft_code');
     window.history.replaceState({}, '', currentUrl);
-    exchangePromise = draftRequest('/api/draft-participant', { action: 'exchange', code });
+    exchangePromise = draftRequest<ParticipantExchangeResponse>('/api/draft-participant', { action: 'exchange', code });
   }
-  if (exchangePromise) await exchangePromise;
+  const exchanging = exchangePromise;
+  if (exchanging) {
+    try {
+      const entry = await exchanging;
+      if (entry.roomCode === roomCode && typeof entry.ticket === 'string' && entry.ticket
+        && typeof entry.expiresAt === 'number' && entry.expiresAt > Date.now() && typeof entry.realtimeUrl === 'string') {
+        return { ticket: entry.ticket, expiresAt: entry.expiresAt, realtimeUrl: entry.realtimeUrl };
+      }
+    } finally { if (exchangePromise === exchanging) exchangePromise = null; }
+  }
   return draftRequest('/api/draft-participant', { action: 'refresh', roomCode });
 }
 
