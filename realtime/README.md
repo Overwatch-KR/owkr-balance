@@ -1,0 +1,83 @@
+# OWKR 실시간 밴픽 서버
+
+1 vCPU / RAM 1 GB 서버용 별도 Node.js 백엔드다. 기존 Vercel 화면은 유지하며 브라우저의 실시간 연결과 투표를 이 서버가 직접 처리한다. 서버 제공 전에도 로컬 구현·시험·배포 파일 준비가 가능하다. **현재 기본 투표 흐름의 개발 버전이며 명세 P0 전체 출시 완료가 아니다.**
+
+## 현재 범위
+
+- 10인 원본 배정 검증·방 생성 중복 방지·고정 만료, 10인 접속/입력/준비 검사.
+- 맵 → 선호 → 최대 4밴 → 게임 설정 적용 확인 → 실제 시작/종료/중단/미진행 → 같은 방 다음 경기.
+- Redis 원자 저장과 같은 연산의 원본 검사·마감 검사·개인 표/영수증·봉인 표/난수 보존.
+- 별도 RSA 관리자 입장권, 참가자 Discord OAuth, 기존 사이트의 HttpOnly 복구 핸들, 5분 실시간 입장권/연결 중 갱신.
+- 권한별 상태 전달과 streamSeq·스냅샷 복구, 운영자 전원 단절 시 정지, 재시작 복구 대기.
+- 기본 10방·방당 24소켓·전체 240소켓·16 KiB 메시지 제한, 계정당 5회/초 버스트 10회. 최종 확정은 별도 버킷으로 보호한다.
+
+공동 운영자 부여/회수, 서버의 재경기·기명 정정·맵 풀 관리·방 이어가기, 만료 후 `history:close`, 원본 알림 보관함, UI 상세 조작과 수용 시험은 후속 구현이 남아 있다. 순수 도메인 함수가 있는 항목도 서버 명령으로 연결하기 전에는 해당 수용 조건 통과로 간주하지 않는다. 관리 화면은 기본 기능 플래그가 꺼져 있다.
+
+## 로컬 실행
+
+저장소 루트에서:
+
+```sh
+pnpm realtime:local
+```
+
+127.0.0.1:8787에서 실행한다. 운영 환경변수를 읽어 Redis에 연결하지 않는다. 메모리 저장소와 가상 10인·시험 카탈로그·실행할 때 생성한 키만 사용한다. 재시작하면 로컬 상태는 없어진다.
+
+- 시험 원본: `LOCAL23456`
+- 시험 계정: `1000000000000000000` ~ `1000000000000000009`
+- 허용 Origin 기본값: `http://localhost:5173`
+- `POST /__local__/ticket`에 시험 계정과 선택적인 roomCode를 보내 로컬 입장권을 받는다. 이 경로는 local-only 모드에서만 존재한다.
+- 프런트엔드 로컬 연결은 `VITE_DRAFT_LOCAL_URL=http://127.0.0.1:8787`, `VITE_DRAFT_LOCAL_USER_ID=<시험 계정>`을 설정한 개발 서버에서만 동작한다. 운영 빌드에서는 이 경로를 사용하지 않는다.
+
+```sh
+VITE_ENABLE_REALTIME_DRAFT=true VITE_DRAFT_LOCAL_URL=http://127.0.0.1:8787 VITE_DRAFT_LOCAL_USER_ID=1000000000000000000 pnpm dev:frontend
+```
+
+로컬 방은 local ticket → `/v1/rooms`로 만든다. 받은 `/draft/<roomCode>`를 `http://localhost:5173`에서 열면 시험 계정으로 연결한다. 이름을 골라 실제 참가자로 로그인하는 기능은 제공하지 않는다.
+
+## 서버 배포 준비
+
+빌드는 개발 컴퓨터 또는 CI에서 수행한다. 1GB 서버에서 프런트엔드 빌드·이미지 수집·Redis를 실행하지 않는다.
+
+```sh
+pnpm realtime:package
+```
+
+`realtime-dist/`에는 실행 파일, 순수 도메인 코드, 서버 전용 package.json과 잠금 파일, 프로세스 감독 예시만 들어간다. 이미지·기존 프런트엔드 의존성·비밀키·환경변수 파일은 포함하지 않는다. 생성 디렉터리를 서버에 옮기고 그 디렉터리에서 `pnpm install --prod --frozen-lockfile`로 런타임 의존성만 설치한다. Node.js 24 이상이 필요하다.
+
+`deploy/owkr-draft.service`는 Linux systemd 예시다. 계정·실제 Node 경로·배포 경로를 맞춘 뒤 사용한다. 프로세스 하나만 실행하고 rolling overlap 대신 기존 프로세스 종료 후 교체한다. Node 힙 상한 384 MB, 프로세스 전체 상한 768 MB 예시이며 실제 1GB 서버에서 검증한 수치가 아니다. 남은 자원으로 TLS 프록시를 실행한다. 로그는 토큰·OAuth 응답·투표 본문 없이 journal에서 관리하고 호스트의 journal 보존 용량을 제한한다.
+
+TLS 프록시는 공개 HTTPS/WSS를 `127.0.0.1:8787`로 전달하며 WebSocket 업그레이드를 지원해야 한다. `/v1/socket`은 쿼리 토큰 없이 첫 인증 메시지로 인증한다. 외부 직접 노출 전에 요청/연결 속도 제한과 액세스 로그의 쿼리 제거를 설정한다. OAuth 콜백의 인증 코드·state는 프록시 로그에 남기지 않는다.
+
+### 키와 환경
+
+`realtime/.env.example`을 참고해 `/etc/owkr-draft/server.env`를 만든다. 임의 도메인 예시는 실제 도메인으로 바꾼다. 키/환경 파일은 운영 계정만 읽도록 한다.
+
+- Vercel: `DRAFT_ADMIN_PRIVATE_KEY`는 별도 RSA 비밀키. `DRAFT_REALTIME_URL`은 신규 서버의 HTTPS origin. `DRAFT_BRIDGE_SECRET`은 서버 간 인증용 별도 난수 32자 이상. `VITE_ENABLE_REALTIME_DRAFT`는 검증 후에만 true.
+- 신규 서버: 관리자 서명키의 **공개키만** `DRAFT_ADMIN_PUBLIC_KEY_PATH`로 제공한다. 기존 `JWT_SECRET`·관리자 쿠키·관리자 OAuth access token은 복사하지 않는다.
+- 신규 서버의 실시간 입장권은 별도로 생성한 RSA 키 쌍으로 서명한다. Vercel 관리 입장권과 발급자·용도·키를 구분한다.
+- `DRAFT_DISCORD_CLIENT_ID/SECRET`은 참가자 전용 Discord 앱이다. 콜백은 `<DRAFT_PUBLIC_ORIGIN>/auth/discord/callback`로 등록한다.
+- 일반 사이트 `/api/auth/login`은 관리자 전용이며 명단 밖 사용자는 접근을 거절한다. 일반 참가자는 `/draft/:roomCode`에서만 참가자 전용 인증을 시작하고 해당 방 명단의 Discord ID로 대조한다.
+- 참가자 OAuth 콜백은 60초 1회 코드만 기존 사이트로 돌려준다. `/api/draft-participant`가 시작 문맥을 검사해 서버 간 교환 후 **기존 사이트 도메인**의 별도 HttpOnly·Secure 쿠키에 불투명 핸들을 보관한다. 관리자 쿠키는 발급하지 않는다.
+- `DRAFT_CATALOG_PATH`는 `{ "maps": DraftCatalog<DraftMap>, "heroes": DraftCatalog<DraftHero> }` JSON이다. 버전·승인자·검증일·출처·게임 빌드를 기록해야 한다. 수집한 이미지 목록을 승인 카탈로그로 자동 변환하지 않는다.
+
+## 저장과 복구
+
+새 키는 `draft:v1:*`만 사용한다. `match-live:v1:*`와 `user-sheet:v2:entries/version`은 읽기만 한다. Redis 안에서 배정된 10명의 UUID·Discord ID·표시 이름만 추출해 응답하며 유저 시트 전체·특이사항·티어·대기열·공동 편집자 프로필을 신규 서버에 전달하지 않는다. 같은 Redis의 동일 원자 실행 범위가 필요하다. 기존 원본 저장 API나 폴링 정책은 수정하지 않는다. 현재 원본 갱신 감지는 서버의 방별 1초 확인이며 알림 보관함은 아직 없다.
+
+시작 계산이 원본을 읽은 뒤 그 사이 원본 revision·배정·유효기간 또는 유저 시트 버전이 바뀌면 commit Lua가 이를 거절한다. 공동 편집자의 무관한 접속 갱신은 원본 배정 비교에 포함하지 않는다. 투표도 WebSocket 도착 시각과 무관하게 Redis `TIME`을 사용한 원자 저장이 마감보다 앞서야 승인한다. 승인·봉인·실제 시작/종료 시각도 원자 실행 시각으로 기록한다.
+
+writer lease는 `SET NX`와 갱신으로 한 프로세스만 유지한다. Lua가 매 저장 시 현재 lease를 확인하므로 lease를 잃은 프로세스는 쓸 수 없다. 저장소 장애 중에는 입력과 진행을 중지한다. 장애 복구·프로세스 재시작 후에는 `RECOVERY_PAUSED`로 저장하고 운영자 재개 전 자동 추첨하지 않는다. 봉인된 표와 난수는 같은 상태에 저장하므로 재시작해도 재추첨하지 않는다.
+
+방·개인 표·전체 명단은 고정 방 만료에, 최소 게임 기록은 최초 내전 생성 후 24시간에 정리한다. 사용 맵은 실제 시작 기록으로 계산하고 다음 경기에도 유지한다. 방 만료 후 이력 마무리 권한은 아직 연결되지 않았으므로 실제 서버 공개 전 반드시 완료해야 한다.
+
+## 검증
+
+```sh
+pnpm realtime:test
+pnpm check
+```
+
+로컬 메모리 저장소를 이용한 경합·복구 계약과 실제 HTTP/WebSocket 시험은 포함한다. Redis Lua를 실제 Redis에서 실행하는 통합 시험, 실제 Discord OAuth와 제3자 쿠키 차단 환경, 모바일 전체 흐름, 1GB 실서버의 동시 10방 부하는 아직 별도 검증 대상이다. 성능 상한은 보장치가 아니다.
+
+참고: [ws 공식 문서](https://github.com/websockets/ws#readme), [Upstash EVAL](https://upstash.com/docs/redis/commands/scripting/eval), [Discord OAuth2](https://docs.discord.com/developers/topics/oauth2).

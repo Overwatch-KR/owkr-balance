@@ -88,6 +88,14 @@
   ],
   "rewrites": [
     {
+      "source": "/draft/:roomCode",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/draft-control",
+      "destination": "/index.html"
+    },
+    {
       "source": "/participants",
       "destination": "/index.html"
     },

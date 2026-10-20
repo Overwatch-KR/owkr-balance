@@ -1,0 +1,10 @@
+{
+  "name": "owkr-draft-server",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "packageManager": "pnpm@11.9.0",
+  "scripts": { "start": "node --max-old-space-size=384 realtime/src/index.js" },
+  "dependencies": { "@upstash/redis": "1.38.0", "ws": "8.22.0" }
+}

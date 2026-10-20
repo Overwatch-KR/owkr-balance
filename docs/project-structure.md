@@ -23,6 +23,7 @@ Server delivery (`api`) ───→ Domain public API / server stores
 
 ```text
 api/                    Vercel Functions와 서버 저장소 어댑터
+realtime/               별도 서버용 실시간 연결·참가자 인증·Redis 원자 저장·로컬 시험과 배포 준비
 domains/                클라이언트·서버가 공유하는 순수 도메인 계약과 공개 API
 public/                 폰트, 티어, 영웅, 마스코트 정적 자산
 src/                    React 애플리케이션과 브라우저 전용 로직
@@ -92,9 +93,13 @@ domains/scrim/
 ├── server/             서버에서 사용하는 공개 함수
 ├── shared/             양쪽에서 공유하는 모델·계약·상수·시간 규칙
 └── tests/              도메인 계약 검증
+
+domains/draft/
+├── shared/             실시간 준비의 순수 모델·맵/밴·표 봉인·접속/권한 뷰·기명 이력·복구 계약
+└── tests/              규칙 계산·마감·공개 범위·재경기 계획의 계산 시험
 ```
 
-`domains` 내부 구현은 `domain.json`의 `publicApi`에 선언한 진입점으로만 외부에 공개합니다. 프런트엔드에서 도메인을 사용할 때는 긴 상대 경로 대신 `package.json#imports`에 선언한 `#domain/balance`, `#domain/player`, `#domain/scrim`, `#domain/scrim/rules`를 사용합니다. `balance`는 `player`의 공개 모델에만 의존하며, 내전 도메인은 계약·모델용 공개 API와 가벼운 규칙 진입점을 분리합니다.
+`domains` 내부 구현은 `domain.json`의 `publicApi`에 선언한 진입점으로만 외부에 공개합니다. 프런트엔드에서 도메인을 사용할 때는 긴 상대 경로 대신 `package.json#imports`에 선언한 `#domain/balance`, `#domain/player`, `#domain/scrim`, `#domain/scrim/rules`, `#domain/draft`를 사용합니다. `balance`는 `player`의 공개 모델에만 의존하며, 내전 도메인은 계약·모델용 공개 API와 가벼운 규칙 진입점을 분리합니다.
 
 Vercel Functions는 배포 산출물에서 TypeScript `#domain/*` 별칭을 안전하게 추적하지 못할 수 있으므로 예외적으로 `domains/*/shared/public.js` 같은 명시적인 상대 `.js` 경로를 사용합니다. ESLint가 `api/`의 `#domain/*` import와 `src/` 역방향 의존을 차단합니다.
 
@@ -126,6 +131,8 @@ import { useRosterManagement } from '@application/roster/use-roster-management';
 | `/scrims` | 내전 등록·공개 링크·결과·후기 |
 | `/event-participants` | 이벤트 참여 명단 |
 | `/participate/:token` | 로그인 없는 공개 투표·설문 |
+| `/draft/:roomCode` | 해당 방 명단과 Discord 인증으로 입장하는 실시간 내전 참여 |
+| `/draft-control` | 관리자 실시간 밴픽 운영 (기능 플래그 기본 비활성) |
 | `/discord-login-policy` | Discord 로그인 정보 이용 안내 |
 
 관리자 페이지는 `AppNavigationShell` 안의 한 콘텐츠 레이아웃에서 History API로 즉시 이동하며, 새로고침해도 같은 경로를 복원합니다. 유저 시트를 다시 모달 흐름으로 합치지 않습니다.
@@ -141,6 +148,8 @@ import { useRosterManagement } from '@application/roster/use-roster-management';
 - cyan은 주요 동작·현재 위치·실시간 연결, blue/red는 두 팀, emerald는 성공, amber는 경고에 사용합니다.
 
 ## 실시간 공동 작업 경계
+
+신규 실시간 밴픽은 기존 공동 편집을 대체하지 않는다. `src/application/draft`가 메뉴 콘텐츠보다 상위에서 연결을 유지하고 `domains/draft`의 공개 계약을 소비한다. `realtime/`은 기존 원본을 읽기만 하며 `draft:v1:*`에 새 상태를 저장한다. 방·표·최소 경기 이력을 구분하고 원본 검사/시작 저장은 같은 Redis 원자 실행 범위에 둔다. 상세 실행과 남은 출시 조건은 `realtime/README.md`를 따른다.
 
 - 클라이언트는 `use-match-live-share.ts`에서 로컬 변경을 180ms 지연 저장하고 revision 충돌을 처리합니다.
 - 조회는 활동 중 500ms, 30초간 변경이 없으면 1.5초 간격의 적응형 폴링을 사용하며 탭 복귀 시 즉시 확인합니다.

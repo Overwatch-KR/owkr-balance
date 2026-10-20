@@ -51,6 +51,9 @@ import { MatchWorkspaceHeader } from './components/match/match-workspace-header'
 import { EventParticipantsPage } from './components/event/event-participants-page';
 import { ScrimManager } from './components/scrim/scrim-manager';
 import { UserSheetPage } from './components/user-sheet/user-sheet-page';
+import { useAdminDraft } from '@application/draft/use-admin-draft';
+import { REALTIME_DRAFT_ENABLED } from '@application/draft/use-draft-room';
+import { DraftControlPage, DraftOperationBar } from './components/draft/draft-control-page';
 
 interface MatchAppProps {
     csrfToken: string;
@@ -60,7 +63,7 @@ interface MatchAppProps {
     user: AuthUser;
 }
 
-const ADMIN_PAGE_PATHS = ['/scrims', '/user-sheet', '/event-participants'] as const;
+const ADMIN_PAGE_PATHS = ['/scrims', '/user-sheet', '/event-participants', '/draft-control'] as const;
 type AdminPagePath = typeof ADMIN_PAGE_PATHS[number];
 
 const isAdminPagePath = (pathname: string): pathname is AdminPagePath => (
@@ -74,6 +77,7 @@ const MatchApp = ({
     pathname,
     user,
 }: MatchAppProps) => {
+    const draft = useAdminDraft({ userId: user.id, csrfToken });
     const {
         alternatives,
         balanceTeams,
@@ -483,6 +487,7 @@ const MatchApp = ({
                 tabIndex={-1}
                 className="mx-auto min-h-screen max-w-[1600px] scroll-mt-20 px-4 py-6 focus:outline-none md:px-8 md:py-8"
             >
+                {REALTIME_DRAFT_ENABLED && draft.roomCode && <DraftOperationBar controller={draft.controller} roomCode={draft.roomCode} onOpen={() => navigate('/draft-control')} />}
                 {!isAdminPagePath(pathname) ? (
                     pathname === '/participants' ? (
                         <ParticipantWorkspace
@@ -550,6 +555,17 @@ const MatchApp = ({
                                         onLeaveLive={handleLeaveLiveSession}
                                         onStartLive={handleStartLiveSession}
                                     />
+                                    {REALTIME_DRAFT_ENABLED && <div className="border-t border-slate-800 pt-4 text-sm">
+                                        <button type="button" disabled={!result || isResultStale || isLivePublishing || draft.creating || Boolean(draft.roomCode)}
+                                            className="min-h-10 rounded-md border border-cyan-700 px-4 text-cyan-200 disabled:opacity-40"
+                                            onClick={() => { void (async () => {
+                                                const source = liveSession ?? await startLiveSession();
+                                                await draft.createRoom(source.code); navigate('/draft-control');
+                                            })().catch(error => showToast('error', getErrorMessage(error, '실시간 방을 만들지 못했습니다.'))); }}>
+                                            {draft.creating ? '방 생성 중…' : '실시간 밴픽 방 만들기'}
+                                        </button>
+                                        {draft.error && <p className="mt-2 text-xs text-amber-200" role="status">{draft.error}</p>}
+                                    </div>}
                                 </div>
                             </div>
                         </div>
@@ -559,6 +575,7 @@ const MatchApp = ({
                 {pathname === '/scrims' ? (
                     <ScrimManager csrfToken={csrfToken} players={players} userId={user.id} />
                 ) : null}
+                {pathname === '/draft-control' ? <DraftControlPage controller={draft.controller} onMatching={() => navigate('/')} /> : null}
 
                 {pathname === '/user-sheet' ? (
                     <UserSheetPage

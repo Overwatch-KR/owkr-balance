@@ -82,7 +82,7 @@ describe('GET /api/auth/me', () => {
         const request = createRequest();
         const cookie = createSessionCookie(request, {
             avatarUrl: 'https://cdn.discordapp.com/avatars/123/avatar.webp?size=128',
-            id: '123',
+            id: '579176046817968128',
             username: 'discord-admin',
             globalName: '운영자',
         });
@@ -95,7 +95,7 @@ describe('GET /api/auth/me', () => {
             loggedIn: true,
             user: expect.objectContaining({
                 avatarUrl: 'https://cdn.discordapp.com/avatars/123/avatar.webp?size=128',
-                id: '123',
+                id: '579176046817968128',
             }),
         }));
     });

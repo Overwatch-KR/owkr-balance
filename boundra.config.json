@@ -27,6 +27,7 @@
       "**/.turbo/**",
       "**/.claude/worktrees/**",
       "**/dist/**",
+      "**/realtime-dist/**",
       "**/build/**",
       "**/coverage/**",
       "**/target/**"

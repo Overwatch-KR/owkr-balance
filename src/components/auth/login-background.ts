@@ -1,7 +1,7 @@
 export const LOGIN_BACKGROUND_IMAGES = [
-    'background/kiriko.jpg',
-    'background/le-sserafim.jpg',
-    'background/quest-watch.jpg',
+    'background/kiriko.webp',
+    'background/le-sserafim.webp',
+    'background/quest-watch.webp',
 ] as const;
 
 export const LOGIN_BACKGROUND_ROTATION_INTERVAL_MS = 12_000;

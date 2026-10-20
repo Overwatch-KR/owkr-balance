@@ -25,7 +25,7 @@ describe('LoginScreen', () => {
         expect(markup).not.toContain('overflow-x-hidden');
         expect(markup.match(/class="login-background(?: login-background-active)?"/g)).toHaveLength(3);
         expect(markup).toContain(
-            'class="login-background login-background-active" style="background-image:url(/background/le-sserafim.jpg)"',
+            'class="login-background login-background-active" style="background-image:url(/background/le-sserafim.webp)"',
         );
         expect(footerIndex).toBeGreaterThan(markup.indexOf('href="/api/auth/login"'));
         expect(markup.slice(footerIndex)).toContain('href="/discord-login-policy"');
