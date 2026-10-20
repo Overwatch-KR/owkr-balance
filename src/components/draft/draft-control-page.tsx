@@ -4,7 +4,7 @@ import { DraftRoomPanel } from './draft-room-panel';
 
 export function DraftControlPage({ controller, onMatching }: { controller: DraftRoomController; onMatching: () => void }) {
   return <section>
-    <PageHeader title="밴픽 운영" description="기존 대진표의 팀으로 맵과 영웅 밴을 준비합니다. 선수로 배정된 운영자도 같은 화면에서 본인 표를 확정합니다." />
+    <PageHeader title="밴픽 운영" actions={controller.snapshot?.isOperator && <button type="button" className="btn-ghost text-xs" onClick={() => void navigator.clipboard.writeText(`${window.location.origin}/draft/${controller.snapshot!.roomCode}`).catch(() => undefined)}>공유 링크 복사</button>} description="기존 대진표의 팀으로 맵과 영웅 밴을 준비합니다. 선수로 배정된 운영자도 같은 화면에서 본인 표를 확정합니다." />
     {controller.snapshot || controller.error ? <DraftRoomPanel controller={controller} /> : <div className="border-y border-slate-800 py-10 text-sm text-slate-400">
       <p>연결된 실시간 내전 방이 없습니다. 대진표에서 팀을 편성한 뒤 방을 만들어 주세요.</p>
       <button type="button" className="mt-4 min-h-10 rounded-md border border-slate-600 px-4 text-slate-200" onClick={onMatching}>대진표에서 준비</button>

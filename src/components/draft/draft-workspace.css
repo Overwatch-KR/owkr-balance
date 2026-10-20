@@ -1,0 +1,221 @@
+.draft-preview,
+.draft-public-page {
+    padding: 16px 24px;
+    min-height: 100dvh;
+}
+
+.draft-preview-content,
+.draft-public-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.draft-room-selecting {
+    display: flex;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.draft-room-selecting > header {
+    flex-shrink: 0;
+}
+
+.draft-selection {
+    --draft-portrait: clamp(24px, min(calc((100dvw - 540px) / 12), calc((100dvh - 390px) / 7 - 4px)), 64px);
+    --draft-pick: clamp(24px, calc((100dvh - 240px) / 13), 34px);
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 20px;
+    min-width: 0;
+    min-height: 0;
+}
+
+.draft-team-list {
+    min-width: 0;
+    width: calc(var(--draft-pick) * 3 + 38px);
+    border-right: 1px solid #262626;
+    padding-right: 14px;
+}
+
+.draft-nameplates {
+    display: grid;
+    gap: 6px;
+}
+
+.draft-picks {
+    display: grid;
+    grid-template-columns: repeat(3, var(--draft-pick));
+    gap: 3px;
+}
+
+.draft-picks > div > button,
+.draft-picks > div > div[role="img"] {
+    padding: 0;
+    width: var(--draft-pick);
+}
+
+.draft-candidates {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+}
+
+.draft-selection-heading {
+    margin-bottom: 10px;
+}
+
+.draft-role-columns {
+    display: grid;
+    grid-template-columns: repeat(3, max-content);
+    width: max-content;
+    max-width: 100%;
+    align-self: center;
+    gap: clamp(8px, 2dvw, 32px);
+}
+
+.draft-hero-grid {
+    display: grid;
+    grid-template-columns: repeat(4, var(--draft-portrait));
+    gap: 4px;
+}
+
+.draft-hero-grid > button > div {
+    width: var(--draft-portrait);
+    height: var(--draft-portrait);
+}
+
+.draft-hero-grid > button > span:first-of-type {
+    max-width: var(--draft-portrait);
+    padding: 2px 1px;
+    font-size: 9px;
+    line-height: 12px;
+}
+
+.draft-selection-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    margin-top: 12px;
+    padding-top: 8px;
+}
+
+@media (min-width: 1024px) {
+    .draft-preview,
+    .draft-public-page {
+        height: 100dvh;
+    }
+
+    .draft-preview-content,
+    .draft-public-content {
+        height: 100%;
+        min-height: 0;
+    }
+}
+
+@media (max-width: 767px) {
+    .draft-preview,
+    .draft-public-page {
+        padding: 12px;
+    }
+
+    .draft-selection {
+        --draft-portrait: clamp(16px, calc((100dvw - 150px) / 12), 40px);
+        --draft-pick: clamp(14px, calc((100dvw - 240px) / 9), 18px);
+        gap: 8px;
+    }
+
+    .draft-team-list {
+        width: calc(var(--draft-pick) * 3 + 22px);
+        padding-right: 6px;
+    }
+
+    .draft-role-columns {
+        gap: 4px;
+    }
+
+    .draft-hero-grid {
+        gap: 2px;
+    }
+
+    .draft-hero-grid > button > span:first-of-type {
+        display: none;
+    }
+
+    .draft-nameplate {
+        padding: 4px;
+    }
+
+    .draft-nameplate > div:first-child {
+        flex-wrap: wrap;
+        gap: 0;
+    }
+
+    .draft-picks {
+        gap: 1px;
+    }
+
+    .draft-selection-heading > p {
+        font-size: 10px;
+        line-height: 15px;
+    }
+
+    .draft-selection-actions > p {
+        font-size: 10px;
+    }
+}
+
+@media (max-height: 820px) {
+    .draft-hero-grid > button > span:first-of-type {
+        display: none;
+    }
+}
+
+.draft-preview-content:has(.draft-room-selecting) > footer,
+.draft-public-content:has(.draft-room-selecting) > footer {
+    display: none;
+}
+
+.draft-result-roster > div {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 12px;
+    padding-top: 8px;
+}
+
+.draft-result-roster h3 {
+    width: 100%;
+    margin-bottom: 4px;
+    font-size: 12px;
+}
+
+.draft-result-roster > div > div {
+    gap: 4px;
+    padding: 2px 0;
+    border: 0;
+    font-size: 11px;
+}
+
+.draft-operator-dialog [aria-label="운영 제어"] {
+    border: 0;
+    padding-top: 0;
+}
+
+.draft-operator-dialog td {
+    padding-top: 6px;
+    padding-bottom: 6px;
+}
+
+@media (max-width: 767px) {
+    .draft-operator-dialog table {
+        font-size: 10px;
+    }
+
+    .draft-operator-dialog td {
+        padding-right: 4px;
+    }
+}

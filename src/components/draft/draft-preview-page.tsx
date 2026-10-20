@@ -21,6 +21,7 @@ const maps: DraftMap[] = ['kings-row', 'ilios', 'circuit-royal', 'busan'].map((i
 
 function exampleSnapshot(screen: string, heroes: readonly DraftHero[]): DraftRoomSnapshot {
   const now = Date.now();
+  const score = (heroId: string, points: number) => ({ heroId, role: heroes.find(hero => hero.heroId === heroId)!.role, positiveScore: points, preferredDeduction: 0, effectiveScore: points, lobbyVoterCount: 2 });
   const phases: Record<string, DraftPhase> = { map: 'MAP_VOTING', preference: 'HERO_PREFERENCE', ban: 'HERO_VOTING', result: 'HERO_RESOLVED' };
   const phase = phases[screen] ?? 'LOBBY';
   const stageKind = phase === 'MAP_VOTING' ? 'MAP' : phase === 'HERO_PREFERENCE' ? 'PREFERENCE' : phase === 'HERO_VOTING' ? 'BAN' : null;
@@ -37,10 +38,10 @@ function exampleSnapshot(screen: string, heroes: readonly DraftHero[]): DraftRoo
       candidates: maps.slice(0, 3).map(map => ({ map, firstAttackTeam: map.mode === 'CONTROL' ? null : 'A' })), randomPool: maps.slice(3), remainingMapsConfirmed: false, diversityExceptionReason: null, draws: [] },
     mapResult: ['HERO_PREFERENCE', 'HERO_VOTING', 'HERO_RESOLVED'].includes(phase)
       ? { resolutionId: 'example-map', method: 'WEIGHTED', selectedOption: 'kings-row', totals: { 'kings-row': 4, ilios: 3, 'circuit-royal': 2, RANDOM: 1 }, map: maps[0], firstAttackTeam: 'A', draws: [] } : null,
-    heroResult: phase === 'HERO_RESOLVED' ? { resolutionId: 'example-ban', catalogVersion: 'example', firstTeam: 'A', scores: { A: [], B: [] },
-      slots: [], bannedHeroIds: ['ana', 'widowmaker', 'dva', 'sombra'], roleCounts: { TANK: 1, DPS: 2, SUPPORT: 1 }, draws: [] } : null,
+    heroResult: phase === 'HERO_RESOLVED' ? { resolutionId: 'example-ban', catalogVersion: 'example', firstTeam: 'A', scores: { A: [score('ana', 19), score('sombra', 8)], B: [score('widowmaker', 17), score('dva', 12)] },
+      slots: [{ team: 'A', heroId: 'ana', skipped: [] }, { team: 'B', heroId: 'widowmaker', skipped: [] }, { team: 'B', heroId: 'dva', skipped: [] }, { team: 'A', heroId: 'sombra', skipped: [] }], bannedHeroIds: ['ana', 'widowmaker', 'dva', 'sombra'], roleCounts: { TANK: 1, DPS: 2, SUPPORT: 1 }, draws: [] } : null,
     ballots: stageKind ? { self, teammates: stageKind === 'MAP' ? [] : participants.slice(0, 5).map((player, index) => ({
-      ...self, discordId: player.discordId, locked: index > 0, selection: index === 0 ? self.selection : [(['reinhardt', 'genji', 'tracer', 'kiriko', 'juno'])[index]],
+      ...self, discordId: player.discordId, locked: index > 0, selection: index === 0 ? self.selection : stageKind === 'BAN' ? [['ana', 'dva', 'sombra'], ['widowmaker', 'dva', 'ana'], ['genji', 'tracer', 'sombra'], ['dva', 'widowmaker', 'ana'], ['ana', 'sombra', 'genji']][index] : [(['reinhardt', 'genji', 'tracer', 'kiriko', 'juno'])[index]],
     })), confirmedCounts: { A: 4, B: 3 }, mapTotals: stageKind === 'MAP' ? { 'kings-row': 4, ilios: 3, 'circuit-royal': 2, RANDOM: 1 } : null } : null,
     playStatus: 'NOT_STARTED', serverNow: now,
   };
@@ -60,16 +61,16 @@ function DraftPreviewContent({ heroes }: { heroes: readonly DraftHero[] }) {
           self: previous.ballots.self && { ...previous.ballots.self, selection, locked: type === 'ballot.lock' } } }));
       }
     } };
-  return <main className="min-h-screen bg-[#080a0f] px-6 py-6 text-slate-200">
-    <div className="mx-auto max-w-[1500px]">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
+  return <main className="draft-preview app-canvas bg-surface text-slate-200">
+    <div className="draft-preview-content mx-auto w-full max-w-[1500px]">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
         <div><p className="text-xs text-cyan-400">OWKR MATCH CONTROL</p><h1 className="mt-1 text-2xl font-semibold">{screen === 'operator' ? '밴픽 운영' : '실시간 내전 참여'}</h1></div>
         <span className="rounded border border-amber-700 px-3 py-2 text-xs text-amber-300">예제 화면 · 가상 참가자 · 실제 내전 아님</span>
       </div>
-      <nav aria-label="예제 단계" className="mb-6 flex flex-wrap gap-2">{screens.map(([id, label]) => <a key={id} href={`?screen=${id}`}
+      <nav aria-label="예제 단계" className="mb-3 flex flex-wrap gap-2">{screens.map(([id, label]) => <a key={id} href={`?screen=${id}`}
         className={`rounded border px-3 py-2 text-xs ${screen === id ? 'border-cyan-500 text-cyan-200' : 'border-slate-800 text-slate-400'}`}>{label}</a>)}</nav>
       {screen === 'login' ? <DraftParticipantEntry pending={false} error="" login={() => {}} reconnect={() => {}} /> : <DraftRoomPanel controller={controller} />}
-      <footer className="mt-8 text-center text-[10px] text-slate-600">Overwatch © Blizzard Entertainment · 개발용 미리보기</footer>
+      <footer className="mt-2 shrink-0 text-center text-[10px] text-slate-600">Overwatch © Blizzard Entertainment · 개발용 미리보기</footer>
     </div>
   </main>;
 }
@@ -84,6 +85,6 @@ export function DraftPreviewPage() {
       heroId: asset.id, nameKo: asset.name, role: roles[asset.role as keyof typeof roles], active: true,
     }));
   }, staleTime: Infinity });
-  if (!data) return <main className="min-h-screen bg-[#080a0f] p-8 text-slate-200">{error ? error.message : '예제 화면을 준비하고 있습니다.'}</main>;
+  if (!data) return <main className="min-h-screen app-canvas bg-surface p-8 text-slate-200">{error ? error.message : '예제 화면을 준비하고 있습니다.'}</main>;
   return <DraftPreviewContent heroes={data} />;
 }

@@ -462,7 +462,7 @@ const MatchApp = ({
 
     return (
         <MotionConfig reducedMotion="user">
-        <div className="app-canvas min-h-screen text-slate-200 font-sans">
+        <div className={`app-canvas text-slate-200 font-sans ${pathname === '/draft-control' ? 'min-h-[calc(100dvh-5rem)] lg:min-h-screen' : 'min-h-screen'}`}>
             <a
                 href="#main-content"
                 className="fixed left-4 top-3 z-[100] -translate-y-20 rounded-md bg-accent px-3 py-2 text-sm font-semibold text-slate-950 transition-transform focus:translate-y-0"
@@ -485,9 +485,9 @@ const MatchApp = ({
             <main
                 id="main-content"
                 tabIndex={-1}
-                className="mx-auto min-h-screen max-w-[1600px] scroll-mt-20 px-4 py-6 focus:outline-none md:px-8 md:py-8"
+                className={`mx-auto max-w-[1600px] scroll-mt-20 px-4 focus:outline-none md:px-8 ${pathname === '/draft-control' ? 'min-h-0 py-4' : 'min-h-screen py-6 md:py-8'}`}
             >
-                {REALTIME_DRAFT_ENABLED && draft.roomCode && <DraftOperationBar controller={draft.controller} roomCode={draft.roomCode} onOpen={() => navigate('/draft-control')} />}
+                {REALTIME_DRAFT_ENABLED && draft.roomCode && pathname !== '/draft-control' && <DraftOperationBar controller={draft.controller} roomCode={draft.roomCode} onOpen={() => navigate('/draft-control')} />}
                 {!isAdminPagePath(pathname) ? (
                     pathname === '/participants' ? (
                         <ParticipantWorkspace
