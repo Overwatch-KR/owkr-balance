@@ -11,7 +11,7 @@ const keys = generateKeyPairSync('rsa', { modulusLength: 2048,
 const contextHash = createHash('sha256').update('browser-only-context').digest('hex');
 
 async function setup(discordId?: string) {
-  const fixture = createLocalDraftFixtures(); await fixture.store.acquireLease();
+  const fixture = createLocalDraftFixtures(Date.now(), { syntheticCatalogs: true }); await fixture.store.acquireLease();
   const engine = new DraftEngine(fixture.store, fixture.catalogs);
   const now = Math.floor(Date.now() / 1000);
   const roomCode = await engine.createRoom({ iss: 'owkr-vercel', aud: 'owkr-draft', purpose: 'admin-entry',

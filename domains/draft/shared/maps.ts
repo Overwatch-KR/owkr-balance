@@ -42,16 +42,22 @@ function firstAttackTeam(map: DraftMap, random: DraftRandom): DraftTeam | null {
   return map.mode === 'ESCORT' || map.mode === 'HYBRID' ? random.pick(['A', 'B'] as const) : null;
 }
 
-export function createMapCandidates(input: CreateMapCandidatesInput): MapCandidateSnapshot {
-  validateMapCatalog(input.catalog);
-  requireDraft(input.resolutionId.trim(), 'RESOLUTION_ID_REQUIRED', '추첨 식별자가 필요합니다.');
-  const unavailable = new Set([...input.usedCanonicalMapIds, ...input.excludedCanonicalMapIds]);
+export function getEligibleDraftMaps(catalog: DraftCatalog<DraftMap>, usedCanonicalMapIds: readonly string[], excludedCanonicalMapIds: readonly string[] = []): DraftMap[] {
+  validateMapCatalog(catalog);
+  const unavailable = new Set([...usedCanonicalMapIds, ...excludedCanonicalMapIds]);
   const seen = new Set<string>();
-  const pool = input.catalog.entries.filter(map => {
+  const pool = catalog.entries.filter(map => {
     if (!map.active || unavailable.has(map.canonicalMapId) || seen.has(map.canonicalMapId)) return false;
     seen.add(map.canonicalMapId);
     return true;
   }).sort((left, right) => left.mapId.localeCompare(right.mapId));
+  return pool.map(map => ({ ...map }));
+}
+
+export function createMapCandidates(input: CreateMapCandidatesInput): MapCandidateSnapshot {
+  validateMapCatalog(input.catalog);
+  requireDraft(input.resolutionId.trim(), 'RESOLUTION_ID_REQUIRED', '추첨 식별자가 필요합니다.');
+  const pool = getEligibleDraftMaps(input.catalog, input.usedCanonicalMapIds, input.excludedCanonicalMapIds);
   requireDraft(pool.length > 0, 'MAP_POOL_EXHAUSTED', '미사용 맵이 없습니다. 풀 확장·재경기·내전 종료를 선택해 주세요.');
   const reason = input.diversityExceptionReason?.trim() || null;
   const random = new DraftRandom(input.entropy);
@@ -90,7 +96,8 @@ export function createMapCandidates(input: CreateMapCandidatesInput): MapCandida
 
 export interface MapResolution {
   resolutionId: string;
-  method: 'LANDSLIDE' | 'WEIGHTED' | 'ALL_ABSTAINED';
+  method: 'LANDSLIDE' | 'WEIGHTED' | 'ALL_ABSTAINED' | 'POTG';
+  selectedByDiscordId?: string;
   selectedOption: string | null;
   totals: Readonly<Record<string, number>>;
   map: DraftMap;
@@ -152,4 +159,16 @@ export function resolveMapVote(
     firstAttackTeam: visible ? visible.firstAttackTeam : firstAttackTeam(selectedMap, random),
     draws: random.draws,
   };
+}
+
+/** @description 팟지 선택도 동일한 미사용 맵 풀에서 검증하고 호위·혼합의 첫 공격 진영은 기록 가능한 난수로 정한다. */
+export function resolvePotgMap(input: {
+  resolutionId: string; catalog: DraftCatalog<DraftMap>; usedCanonicalMapIds: readonly string[];
+  mapId: string; pickerDiscordId: string; entropy: readonly number[];
+}): MapResolution {
+  const map = getEligibleDraftMaps(input.catalog, input.usedCanonicalMapIds).find(entry => entry.mapId === input.mapId);
+  requireDraft(map, 'MAP_UNAVAILABLE', '사용했거나 선택할 수 없는 맵입니다.');
+  const random = new DraftRandom(input.entropy);
+  return { resolutionId: input.resolutionId, method: 'POTG', selectedOption: map.mapId, totals: {}, map,
+    selectedByDiscordId: input.pickerDiscordId, firstAttackTeam: firstAttackTeam(map, random), draws: random.draws };
 }

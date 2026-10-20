@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { Redis } from '@upstash/redis';
-import { DraftRuleError, requireDraft, type DraftHistory } from '../../domains/draft/shared/public.js';
+import { DRAFT_LIMITS, DraftRuleError, requireDraft, type DraftHistory } from '../../domains/draft/shared/public.js';
 import type { DraftRoomRecord, RealtimeStore, RoomBundle, StoreGuard } from './model.js';
 import { parseDraftSource, type SourceIdentity } from './source.js';
 import { stampAtomicTimes } from './atomic-time.js';
@@ -85,7 +85,11 @@ local function stamp(value)
   end
   return value
 end
-redis.call('SET', KEYS[1], stamp(ARGV[2]), 'PXAT', current.expiresAt)
+local roomJson = ARGV[2]
+if nextRoom.phase == 'MAP_RESOLVED' and nextRoom.timer.deadlineAt == -1 then
+  roomJson = string.gsub(roomJson, '"deadlineAt":%-1', '"deadlineAt":' .. string.format('%.0f',now + ${DRAFT_LIMITS.mapRevealMs}))
+end
+redis.call('SET', KEYS[1], stamp(roomJson), 'PXAT', current.expiresAt)
 redis.call('SET', KEYS[2], stamp(ARGV[3]), 'PXAT', history.expiresAt)
 return 'OK:' .. string.format('%.0f',now)
 `;

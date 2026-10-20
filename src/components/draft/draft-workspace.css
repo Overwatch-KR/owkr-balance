@@ -219,3 +219,7 @@
         padding-right: 4px;
     }
 }
+
+.draft-map-pool > .grid .aspect-video {
+    aspect-ratio: 3 / 1;
+}

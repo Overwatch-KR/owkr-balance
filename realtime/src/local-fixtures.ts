@@ -1,8 +1,9 @@
 import { MemoryRealtimeStore } from './memory-store.js';
+import { DEFAULT_DRAFT_MAP_CATALOG, DEFAULT_DRAFT_HERO_CATALOG } from '../../domains/draft/shared/public.js';
 import { SOURCE_POSITIONS } from './source.js';
 import type { DraftCatalog, DraftHero, DraftMap } from '../../domains/draft/shared/public.js';
 
-export function createLocalDraftFixtures(now = Date.now()) {
+export function createLocalDraftFixtures(now = Date.now(), options: { syntheticCatalogs?: boolean } = {}) {
   const store = new MemoryRealtimeStore();
   const identities = SOURCE_POSITIONS.map((_, index) => ({
     id: `local-sheet-${index}`, discordUserId: `10000000000000000${String(index).padStart(2, '0')}`,
@@ -25,5 +26,5 @@ export function createLocalDraftFixtures(now = Date.now()) {
     heroId: `local-hero-${index}`, nameKo: `시험 영웅 ${index + 1}`,
     role: index < 3 ? 'TANK' : index < 6 ? 'DPS' : 'SUPPORT', active: true,
   })) };
-  return { store, identities, catalogs: { maps, heroes } };
+  return { store, identities, catalogs: options.syntheticCatalogs ? { maps, heroes } : { maps: structuredClone(DEFAULT_DRAFT_MAP_CATALOG), heroes: structuredClone(DEFAULT_DRAFT_HERO_CATALOG) } };
 }

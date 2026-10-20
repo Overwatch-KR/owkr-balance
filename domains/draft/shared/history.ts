@@ -1,6 +1,6 @@
 import {
   DRAFT_LIMITS, requireDraft, type DraftActor, type DraftHero, type DraftMap, type DraftTeam,
-  type PlayStatus, type DraftCatalog,
+  type PlayStatus, type DraftCatalog, type DraftMapSelection,
 } from './model.js';
 import { isDraftOperator, type DraftOperators } from './presence.js';
 import { validateRetainedBans } from './heroes.js';
@@ -15,6 +15,7 @@ export interface MinimalDraftGame {
   firstAttackTeam: DraftTeam | null;
   heroCatalogVersion: string;
   mapCatalogVersion: string;
+  mapSelection?: DraftMapSelection;
   rulesVersion: string;
   bans: readonly DraftHero[];
   playStatus: PlayStatus;

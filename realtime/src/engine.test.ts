@@ -4,9 +4,9 @@ import { createLocalDraftFixtures } from './local-fixtures.js';
 import type { DraftTicket } from './tickets.js';
 import type { RoomBundle, StoreGuard } from './model.js';
 
-async function setup() {
+async function setup(options: { realCatalogs?: boolean } = {}) {
   let time = Date.now();
-  const fixtures = createLocalDraftFixtures(time);
+  const fixtures = createLocalDraftFixtures(time, { syntheticCatalogs: !options.realCatalogs });
   fixtures.store.now = () => time;
   await fixtures.store.acquireLease();
   const engine = new DraftEngine(fixtures.store, fixtures.catalogs);
@@ -140,5 +140,100 @@ describe('local server persisted flow', () => {
     const app = await setup();
     await expect(app.engine.connect({ ...app.ticket(undefined, app.code), sub: '999999999999999999' }, 'outsider')).rejects.toThrow('명단');
     expect(() => parseDraftCommand({ type: 'ballot.lock', epoch: 1, commandId: 'id', selection: 'h0' })).toThrow('선택');
+  });
+});
+
+
+describe('POTG selection with the bundled catalog', () => {
+  async function startPotg() {
+    const app = await setup({ realCatalogs: true }); await app.readyAll();
+    await app.run(0, 'map.configure', { mapMode: 'POTG', pickerDiscordId: app.ids[3] });
+    expect((await app.engine.requireRoom(app.code)).room.progress.every(player => !player.ready)).toBe(true);
+    for (let index = 0; index < 10; index++) await app.run(index, 'ready.set');
+    await app.run(0, 'draft.start'); return app;
+  }
+  async function finish(app: Awaited<ReturnType<typeof setup>>) {
+    await app.lockAll([]); await app.engine.tick(app.code);
+    await app.lockAll(['ana', 'dva', 'genji']); await app.engine.tick(app.code);
+    await app.run(0, 'game.confirmApplied'); await app.run(0, 'game.markStarted'); await app.run(0, 'game.markFinished');
+  }
+  it('allows only the designated player, freezes all players for the same three seconds, then opens preference', async () => {
+    const app = await startPotg();
+    const before = await app.engine.snapshot('c0');
+    expect(before.phase).toBe('MAP_PICKING'); expect(before.availableMaps).toHaveLength(31);
+    expect(before.availableMaps.some(map => map.mapId === 'grimsvotn')).toBe(true);
+    await expect(app.run(0, 'map.pick', { mapId: 'grimsvotn' })).rejects.toThrow('팟지 선수만');
+    await expect(app.run(1, 'map.pick', { mapId: 'grimsvotn' })).rejects.toThrow('팟지 선수만');
+    await expect(app.run(3, 'ballot.lock', { selection: ['grimsvotn'] })).rejects.toThrow('현재 입력');
+    await app.run(3, 'map.pick', { mapId: 'grimsvotn' });
+    const snapshots = await Promise.all(Array.from({ length: 10 }, (_, index) => app.engine.snapshot(`c${index}`)));
+    expect(new Set(snapshots.map(view => view.timer.deadlineAt)).size).toBe(1);
+    expect(snapshots.every(view => view.phase === 'MAP_RESOLVED' && view.ballots === null)).toBe(true);
+    expect(snapshots[0].timer.deadlineAt! - snapshots[0].serverNow).toBe(3000);
+    await expect(app.run(3, 'ballot.lock', { selection: ['ana'] })).rejects.toThrow('현재 입력');
+    await expect(app.run(3, 'map.pick', { mapId: 'kings-row' })).rejects.toThrow('팟지 맵 선택 단계');
+    app.advance(2999); await app.engine.tick(app.code);
+    expect((await app.engine.snapshot('c3')).phase).toBe('MAP_RESOLVED');
+    app.advance(1); await app.engine.tick(app.code);
+    expect((await app.engine.snapshot('c3')).phase).toBe('HERO_PREFERENCE');
+  });
+  it('reuses the same invitation across three games, resetting ready/map/bans while preserving played-map exclusions', async () => {
+    const app = await startPotg(); const original = await app.engine.requireRoom(app.code);
+    for (const [index, mapId] of ['grimsvotn', 'kings-row', 'ilios'].entries()) {
+      if (index > 0) {
+        await app.run(0, 'game.next');
+        const reset = await app.engine.snapshot('c3');
+        expect(reset.roomCode).toBe(app.code); expect(reset.gameIndex).toBe(index + 1);
+        expect(reset.phase).toBe('LOBBY'); expect(reset.readyCount).toBe(0);
+        expect(reset.mapResult).toBeNull(); expect(reset.heroResult).toBeNull();
+        expect(reset.expiresAt).toBe(original.room.expiresAt);
+        for (let player = 0; player < 10; player++) await app.run(player, 'ready.set');
+        await app.run(0, 'draft.start');
+        await expect(app.run(3, 'map.pick', { mapId: 'grimsvotn' })).rejects.toThrow('사용했거나');
+      }
+      await app.run(3, 'map.pick', { mapId }); app.advance(3000); await app.engine.tick(app.code);
+      await finish(app);
+    }
+    const result = await app.engine.requireRoom(app.code);
+    expect(result.history.games.map(game => game.map.mapId)).toEqual(['grimsvotn', 'kings-row', 'ilios']);
+    expect(result.history.games.every(game => game.mapSelection?.pickerDiscordId === app.ids[3])).toBe(true);
+    expect((await app.engine.snapshot('c0')).availableMapCount).toBe(28);
+  });
+  it('checks source and pause state atomically and rejects reassignment outside the lobby', async () => {
+    const app = await startPotg();
+    await expect(app.run(3, 'map.configure', { mapMode: 'VOTE' })).rejects.toThrow('권한');
+    await expect(app.run(0, 'map.configure', { mapMode: 'VOTE' })).rejects.toThrow('준비 단계');
+    await app.run(0, 'draft.pause');
+    await expect(app.run(3, 'map.pick', { mapId: 'grimsvotn' })).rejects.toThrow('팟지 맵 선택 단계');
+    await app.run(0, 'draft.resume');
+    const commit = app.store.commit.bind(app.store);
+    app.store.commit = async (bundle, guard) => {
+      if (guard.expectedSourceRaw) { const source = JSON.parse(guard.expectedSourceRaw); source.revision++; app.store.setSource('LOCAL23456', source); }
+      return commit(bundle, guard);
+    };
+    await expect(app.run(3, 'map.pick', { mapId: 'grimsvotn' })).rejects.toThrow('원본이 변경');
+    expect((await app.engine.requireRoom(app.code)).room.mapResult).toBeNull();
+  });
+  it('starts the full three-second reveal at storage commit even when saving is delayed', async () => {
+    const app = await startPotg(); const commit = app.store.commit.bind(app.store);
+    app.store.commit = async (bundle, guard) => { if (bundle.room.phase === 'MAP_RESOLVED') app.advance(1250); return commit(bundle, guard); };
+    await app.run(3, 'map.pick', { mapId: 'grimsvotn' });
+    const view = await app.engine.snapshot('c0');
+    expect(view.timer.deadlineAt! - view.serverNow).toBe(3000);
+  });
+  it('also holds a voted map for three full seconds after delayed result persistence', async () => {
+    const app = await setup(); await app.readyAll(); await app.run(0, 'draft.start');
+    await app.lockAll([(await app.engine.requireRoom(app.code)).room.candidates!.candidates[0].map.mapId]);
+    const commit = app.store.commit.bind(app.store);
+    app.store.commit = async (bundle, guard) => { if (bundle.room.phase === 'MAP_RESOLVED') app.advance(1250); return commit(bundle, guard); };
+    await app.engine.tick(app.code); const view = await app.engine.snapshot('c0');
+    expect(view.timer.deadlineAt! - view.serverNow).toBe(3000);
+  });
+  it('keeps a retried configuration idempotent after it invalidates previous ready commands', async () => {
+    const app = await setup(); await app.readyAll(); const view = await app.engine.snapshot('c0');
+    const command = parseDraftCommand({ commandId: 'configure-once', type: 'map.configure', epoch: view.epoch, expectedRevision: view.roomRevision, mapMode: 'POTG', pickerDiscordId: app.ids[3] });
+    await app.engine.command('c0', command);
+    expect((await app.engine.command('c0', command)).duplicate).toBe(true);
+    await expect(app.engine.command('c1', parseDraftCommand({ commandId: 'old-ready', type: 'ready.set', epoch: view.epoch, expectedRevision: view.roomRevision, ready: true }))).rejects.toThrow('경기 세대');
   });
 });

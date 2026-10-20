@@ -1,6 +1,8 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
+import { DEFAULT_DRAFT_MAP_CATALOG } from '#domain/draft';
+import { DraftMapPick } from './draft-map-pick';
 import type { DraftRoomSnapshot } from '#domain/draft';
 import { DraftSelection } from './draft-selection';
 import { DraftBanResult } from './draft-ban-result';
@@ -12,7 +14,7 @@ function snapshot(): DraftRoomSnapshot {
     participants: [{ userSheetId: 'self', discordId: 'self', displayName: '하늘', team: 'A', role: 'TANK', slot: 0 },
       { userSheetId: 'ally', discordId: 'ally', displayName: '별빛', team: 'A', role: 'SUPPORT', slot: 1 },
       { userSheetId: 'enemy', discordId: 'enemy', displayName: '상대', team: 'B', role: 'SUPPORT', slot: 1 }],
-    selfDiscordId: 'self', isOperator: false, selfReady: false, readyCount: 0, availableMapCount: 4, inputConnected: true,
+    selfDiscordId: 'self', isOperator: false, selfReady: false, readyCount: 0, availableMapCount: 4, availableMaps: [], mapSelection: { mode: 'VOTE', pickerDiscordId: null }, inputConnected: true,
     heroes: [{ heroId: 'ana', nameKo: '아나', role: 'SUPPORT', active: true }, { heroId: 'dva', nameKo: 'D.Va', role: 'TANK', active: true },
       { heroId: 'sombra', nameKo: '솜브라', role: 'DPS', active: true }], stageKind: 'BAN', candidates: null,
     mapResult: { resolutionId: 'map', method: 'WEIGHTED', selectedOption: 'map', totals: {}, draws: [], firstAttackTeam: 'A',
@@ -59,6 +61,21 @@ describe('draft selection and ban results', () => {
     const markup = render(<DraftBanResult snapshot={view} onCopy={vi.fn()} />);
     expect(markup).toContain('A팀 선택'); expect(markup).toContain('B팀 선택');
     expect(markup).not.toContain('공격 ·'); expect(markup).not.toContain('수비 ·');
+  });
+  it('다른 참가자에게 팟지 확정 버튼을 제공하지 않고 현재 선택자를 안내한다', () => {
+    const view = snapshot(); view.phase = 'MAP_PICKING'; view.availableMaps = DEFAULT_DRAFT_MAP_CATALOG.entries;
+    view.mapSelection = { mode: 'POTG', pickerDiscordId: 'ally' };
+    const markup = render(<DraftMapPick controller={{ snapshot: view, connected: true, pending: false, error: '', command: vi.fn(), reconnect: vi.fn() }} />);
+    expect(markup).toContain('별빛님의 맵 선택을 기다리고 있습니다');
+    expect(markup).not.toContain('이 맵으로 확정');
+    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*aria-label="아틀리스"/);
+  });
+  it('지정 선수에게 미사용 전체 맵 탐색과 확정 기능을 제공한다', () => {
+    const view = snapshot(); view.phase = 'MAP_PICKING'; view.availableMaps = DEFAULT_DRAFT_MAP_CATALOG.entries;
+    view.mapSelection = { mode: 'POTG', pickerDiscordId: 'self' };
+    const markup = render(<DraftMapPick controller={{ snapshot: view, connected: true, pending: false, error: '', command: vi.fn(), reconnect: vi.fn() }} />);
+    expect(markup).toContain('미사용 맵 31개'); expect(markup).toContain('맵 검색'); expect(markup).toContain('다음 맵');
+    expect(markup).toContain('이 맵으로 확정'); expect(markup).toContain('3초');
   });
   it('전원 기권은 가짜 밴 슬롯이나 선택 팀을 만들지 않는다', () => {
     const view = snapshot(); view.heroResult = { ...view.heroResult!, firstTeam: null, slots: [], bannedHeroIds: [] };

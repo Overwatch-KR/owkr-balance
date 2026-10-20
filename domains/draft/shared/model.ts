@@ -1,9 +1,14 @@
 export type DraftTeam = 'A' | 'B';
 export type DraftRole = 'TANK' | 'DPS' | 'SUPPORT';
 export type MapMode = 'CONTROL' | 'HYBRID' | 'ESCORT' | 'PUSH' | 'FLASHPOINT';
-export type DraftPhase = 'LOBBY' | 'MAP_VOTING' | 'MAP_RESOLVED' | 'HERO_PREFERENCE'
+export type DraftPhase = 'LOBBY' | 'MAP_VOTING' | 'MAP_PICKING' | 'MAP_RESOLVED' | 'HERO_PREFERENCE'
   | 'HERO_VOTING' | 'HERO_RESOLVED' | 'COMPLETED';
 export type PlayStatus = 'NOT_STARTED' | 'PLAYING' | 'FINISHED' | 'ABORTED_PLAYED' | 'NOT_PLAYED';
+
+export interface DraftMapSelection {
+  mode: 'VOTE' | 'POTG';
+  pickerDiscordId: string | null;
+}
 
 export interface DraftParticipant {
   userSheetId: string;
@@ -59,6 +64,7 @@ export interface DraftActor {
 
 export const DRAFT_RULES_VERSION = 'owkr-competitive-v1';
 export const DRAFT_LIMITS = {
+  mapRevealMs: 3000,
   roomLifetimeMs: 3 * 60 * 60 * 1000,
   sessionLifetimeMs: 24 * 60 * 60 * 1000,
   minSourceRemainingMs: 10 * 60 * 1000,

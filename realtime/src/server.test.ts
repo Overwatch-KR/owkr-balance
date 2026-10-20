@@ -14,8 +14,8 @@ const origin = 'https://test.example.invalid';
 const cleanup: (() => Promise<void>)[] = [];
 afterEach(async () => { for (const close of cleanup.splice(0)) await close(); });
 
-async function setup() {
-  const fixture = createLocalDraftFixtures();
+async function setup(realCatalogs = false) {
+  const fixture = createLocalDraftFixtures(Date.now(), { syntheticCatalogs: !realCatalogs });
   const engine = new DraftEngine(fixture.store, fixture.catalogs);
   const app = await createRealtimeServer({ engine, allowedOrigin: origin, adminPublicKey: keys.publicKey,
     realtimePrivateKey: keys.privateKey, realtimePublicKey: keys.publicKey, localOnly: false });
@@ -75,8 +75,8 @@ describe('realtime HTTP and WebSocket transport', () => {
     expect(() => verifyDraftTicket(parts.join('.'), keys.publicKey, 'admin-entry', now * 1000)).toThrow('서명');
   });
 
-  it('accepts ten simultaneous final ballots over separate sockets and seals exactly one snapshot', async () => {
-    const app = await setup();
+  it.each(['VOTE', 'POTG'] as const)('handles ten socket participants for %s map selection', async mapMode => {
+    const app = await setup(mapMode === 'POTG');
     const created = await app.post('/v1/rooms', { sourceId: 'LOCAL23456', commandId: 'ten-sockets' });
     const { roomCode } = await created.json() as { roomCode: string };
     const clients = await Promise.all(app.fixture.identities.map(async identity => {
@@ -93,9 +93,9 @@ describe('realtime HTTP and WebSocket transport', () => {
         };
         socket.on('message', listener);
       });
-      const send = async (type: string, index: number, selection: string[] = []) => {
+      const send = async (type: string, index: number, selection: string[] = [], extra: Record<string, unknown> = {}) => {
         const { room } = await app.engine.requireRoom(roomCode);
-        const commandId = `${type.replaceAll('.', '-')}-${index}`;
+        const commandId = `${type.replaceAll('.', '-')}-${index}-${room.revision}`;
         return new Promise<void>((resolve, reject) => {
           const timeout = setTimeout(() => reject(new Error('command timeout')), 3000);
           const listener = (data: import('ws').RawData) => {
@@ -106,15 +106,28 @@ describe('realtime HTTP and WebSocket transport', () => {
           };
           socket.on('message', listener);
           socket.send(JSON.stringify({ type, commandId, epoch: room.epoch, expectedRevision: room.revision,
-            expectedBallotRevision: 0, selection, ready: true }));
+            expectedBallotRevision: 0, selection, ready: true, ...extra }));
         });
       };
       return { socket, send };
     }));
     try {
       for (let index = 0; index < clients.length; index++) await clients[index].send('ready.set', index);
+      if (mapMode === 'POTG') {
+        await clients[0].send('map.configure', 0, [], { mapMode: 'POTG', pickerDiscordId: app.fixture.identities[3].discordUserId });
+        for (let index = 0; index < clients.length; index++) await clients[index].send('ready.set', index);
+      }
       await clients[0].send('draft.start', 0);
       const started = await app.engine.requireRoom(roomCode);
+      if (mapMode === 'POTG') {
+        expect(started.room.phase).toBe('MAP_PICKING');
+        await expect(clients[0].send('map.pick', 0, [], { mapId: 'grimsvotn' })).rejects.toThrow('팟지 선수만');
+        await clients[3].send('map.pick', 3, [], { mapId: 'grimsvotn' });
+        const views = await Promise.all([...app.engine.clients.values()].map(client => app.engine.snapshot(client.connectionId)));
+        expect(views).toHaveLength(10); expect(views.every(view => view.phase === 'MAP_RESOLVED' && view.mapResult?.map.mapId === 'grimsvotn' && view.ballots === null)).toBe(true);
+        expect(new Set(views.map(view => view.timer.deadlineAt)).size).toBe(1);
+        return;
+      }
       const selected = started.room.candidates!.candidates[0].map.mapId;
       await Promise.all(clients.map((client, index) => client.send('ballot.lock', index, [selected])));
       const sealed = await app.engine.requireRoom(roomCode);

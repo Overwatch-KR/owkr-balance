@@ -1,6 +1,6 @@
 import { generateKeyPairSync } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { requireDraft, validateHeroCatalog, validateMapCatalog } from '../../domains/draft/shared/public.js';
+import { DEFAULT_DRAFT_MAP_CATALOG, DEFAULT_DRAFT_HERO_CATALOG, requireDraft, validateHeroCatalog, validateMapCatalog } from '../../domains/draft/shared/public.js';
 import { DraftEngine } from './engine.js';
 import { createLocalDraftFixtures } from './local-fixtures.js';
 import { createRedisRealtimeStore } from './store.js';
@@ -25,7 +25,9 @@ const local = localOnly ? createLocalDraftFixtures() : null;
 const keys = localOnly ? generateKeyPairSync('rsa', { modulusLength: 2048,
   publicKeyEncoding: { type: 'spki', format: 'pem' }, privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
 }) : null;
-const catalogs = local?.catalogs ?? JSON.parse(readFileSync(required('DRAFT_CATALOG_PATH'), 'utf8')) as ReturnType<typeof createLocalDraftFixtures>['catalogs'];
+const catalogs = local?.catalogs ?? (process.env.DRAFT_CATALOG_PATH
+  ? JSON.parse(readFileSync(process.env.DRAFT_CATALOG_PATH, 'utf8')) as ReturnType<typeof createLocalDraftFixtures>['catalogs']
+  : { maps: DEFAULT_DRAFT_MAP_CATALOG, heroes: DEFAULT_DRAFT_HERO_CATALOG });
 validateMapCatalog(catalogs.maps); validateHeroCatalog(catalogs.heroes);
 if (!localOnly) requireDraft(!catalogs.maps.approval.version.startsWith('local-')
   && !catalogs.heroes.approval.version.startsWith('local-'), 'LOCAL_CATALOG_DENIED', '시험 카탈로그를 운영 서버에서 사용할 수 없습니다.');

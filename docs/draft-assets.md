@@ -28,3 +28,9 @@ pnpm assets:overwatch
 2026-10-20 변환 시 전체 PNG·JPEG 151개(중복 영웅 포함) 25,520,197바이트를 WebP 100개 2,944,174바이트로 줄였다(88.5% 감소). 사용처·favicon·검증 기대값을 함께 변경했다.
 
 개발 서버의 `http://localhost:5173/__preview/draft?screen=login`에서 login/lobby/map/preference/ban/result/operator 예제를 확인할 수 있다. 실제 공용 컴포넌트와 가상 참가자를 사용하며 실시간 명령·인증 요청은 보내지 않는다. 이 경로는 개발 모드의 로컬 호스트에서만 열리고 운영 빌드에는 포함되지 않는다. 이미지 수집 목록은 운영용 승인 카탈로그로 쓰지 않는다.
+
+## 실제 맵·영웅 목록 연결 (2026-10-20)
+
+`domains/draft/shared/default-catalog.ts`에 기본 내전 맵 31개와 영웅 54명을 고정했다. 그림스뵈튼은 `grimsvotn`/호위로 포함하고, 기존 맵 투표의 후보 3개+무작위 추첨도 이 31개 풀을 사용한다. 실제 서버와 로컬 실행의 기본 목록이 같으며 `DRAFT_CATALOG_PATH`는 선택적 덮어쓰기다. 카탈로그의 `active`는 이 사이트 내전 풀에서 사용한다는 의미이며 Blizzard의 경쟁전 로테이션을 의미하지 않는다.
+
+새 맵·영웅의 출시 및 역할은 [6월](https://overwatch.blizzard.com/en-us/news/patch-notes/live/2026/06/), [8월](https://overwatch.blizzard.com/en-us/news/patch-notes/live/2026/08/), [10월 공식 패치](https://overwatch.blizzard.com/en-us/news/patch-notes/live/2026/10/)와 시즌 5 발표를 확인했다. 그림스뵈튼·네온 정션·D.Mon·Doctrine을 포함하고 솜브라는 현재 지원 역할로 연결한다. 이름·분류의 색인은 수집 manifest와 출처를 공유하되, 파일은 별도로 고정해 이미지 갱신만으로 운영 중 목록이 바뀌지 않게 했다. `repository-config`는 이 저장소의 내전 설정을 뜻하며 Blizzard의 승인 표기가 아니다.

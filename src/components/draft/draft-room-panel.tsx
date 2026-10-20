@@ -1,5 +1,8 @@
 import './draft-workspace.css';
 import { useEffect, useState } from 'react';
+import { DraftMapSetup } from './draft-map-setup';
+import { DraftMapPick } from './draft-map-pick';
+import { DraftAsset } from './draft-asset';
 import { DraftSelection } from './draft-selection';
 import { DraftOperatorDialog } from './draft-operator-dialog';
 import { DraftBanResult } from './draft-ban-result';
@@ -7,7 +10,7 @@ import type { DraftRoomSnapshot } from '#domain/draft';
 import type { DraftRoomController } from '@application/draft/use-draft-room';
 
 const DRAFT_PHASE_LABELS: Record<DraftRoomSnapshot['phase'], string> = {
-  LOBBY: '팀 확인·준비', MAP_VOTING: '맵 투표', MAP_RESOLVED: '선택 맵 확인',
+  LOBBY: '팀 확인·준비', MAP_VOTING: '맵 투표', MAP_PICKING: '팟지 맵 선택', MAP_RESOLVED: '선택 맵 확인',
   HERO_PREFERENCE: '선호 영웅', HERO_VOTING: '영웅 밴 투표', HERO_RESOLVED: '맵·밴 결과', COMPLETED: '게임 설정 적용 완료',
 };
 const ROLE_LABELS = { TANK: '탱커', DPS: '공격', SUPPORT: '지원' } as const;
@@ -45,6 +48,7 @@ export function DraftRoomPanel({ controller }: { controller: DraftRoomController
   const copyResult = async () => {
     const names = snapshot.heroResult?.bannedHeroIds.map(id => snapshot.heroes.find(hero => hero.heroId === id)?.nameKo ?? id);
     const result = [`OWKR 내전 ${snapshot.gameIndex}경기`, `맵: ${snapshot.mapResult?.map.nameKo ?? '미확정'}`,
+      snapshot.mapResult?.method === 'POTG' ? `팟지 선택: ${snapshot.participants.find(player => player.discordId === snapshot.mapResult?.selectedByDiscordId)?.displayName ?? '지정 선수'}` : '',
       snapshot.mapResult?.firstAttackTeam ? `첫 공격: ${snapshot.mapResult.firstAttackTeam}팀 / 첫 수비: ${snapshot.mapResult.firstAttackTeam === 'A' ? 'B' : 'A'}팀` : '',
       `공통 영웅 밴: ${names?.join(', ') || '선택된 밴 없음'}`,
       ...(['A', 'B'] as const).map(team => `${team}팀 (게임 로비 ${team === 'A' ? 1 : 2}팀): ${snapshot.participants.filter(player => player.team === team).map(player => `${player.displayName}(${ROLE_LABELS[player.role]})`).join(', ')}`),
@@ -52,7 +56,7 @@ export function DraftRoomPanel({ controller }: { controller: DraftRoomController
     try { await navigator.clipboard.writeText(result); setNotice('맵·밴 결과를 복사했습니다.'); }
     catch { setNotice('복사 권한을 확인해 주세요.'); }
   };
-  return <div className={`draft-room-panel ${snapshot.ballots?.self ? 'draft-room-selecting' : 'space-y-5'}`}>
+  return <div className={`draft-room-panel ${snapshot.ballots?.self || snapshot.phase === 'MAP_PICKING' ? 'draft-room-selecting' : 'space-y-5'}`}>
     <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-2">
       <div><p className="text-xs text-slate-500">OWKR MATCH CONTROL · {snapshot.gameIndex}경기</p>
         <h2 className="mt-1 text-xl font-semibold text-white">{DRAFT_PHASE_LABELS[snapshot.phase]}</h2>
@@ -66,9 +70,18 @@ export function DraftRoomPanel({ controller }: { controller: DraftRoomController
       <button type="button" className={`${buttonClass} border-cyan-600 text-cyan-200`} disabled={controlsDisabled || !snapshot.inputConnected || !phaseReady}
         onClick={() => execute('ready.set', { ready: !snapshot.selfReady })}>{snapshot.selfReady ? '준비 완료 · 취소' : '내 준비 완료'}</button>
     </section>}
+    {snapshot.phase === 'LOBBY' && <p className="text-xs text-slate-400">맵 선정: {snapshot.mapSelection.mode === 'VOTE' ? '참가자 투표' : `팟지 · ${snapshot.participants.find(player => player.discordId === snapshot.mapSelection.pickerDiscordId)?.displayName ?? '선수 지정 필요'}`}</p>}
+    {snapshot.phase === 'LOBBY' && snapshot.isOperator && <DraftMapSetup key={snapshot.epoch} controller={controller} />}
+    {snapshot.phase === 'MAP_PICKING' && <DraftMapPick key={`${snapshot.gameId}:${snapshot.epoch}`} controller={controller} />}
+    {snapshot.phase === 'MAP_RESOLVED' && snapshot.mapResult && <section aria-label="확정 맵 확인" className="mx-auto w-full max-w-xl overflow-hidden rounded-md border border-cyan-700 bg-surface-elevated">
+      <div className="max-h-48 overflow-hidden"><DraftAsset kind="maps" id={snapshot.mapResult.map.mapId} name={snapshot.mapResult.map.nameKo} /></div>
+      <div className="p-4"><h3 className="text-lg font-semibold text-white">{snapshot.mapResult.map.nameKo}</h3>
+        <p className="mt-1 text-xs text-slate-400">{snapshot.mapResult.firstAttackTeam ? `첫 공격 ${snapshot.mapResult.firstAttackTeam}팀 · 첫 수비 ${snapshot.mapResult.firstAttackTeam === 'A' ? 'B' : 'A'}팀` : '공격·수비 구분 없음'}</p>
+        <p className="mt-2 text-xs text-cyan-300">모두 같은 3초 확인 시간을 가진 뒤 영웅 선택을 시작합니다.</p></div>
+    </section>}
     {snapshot.ballots?.self && <DraftSelection key={`${snapshot.gameId}:${snapshot.epoch}:${snapshot.stageKind}`} controller={controller} />}
     {snapshot.heroResult && <DraftBanResult key={snapshot.heroResult.resolutionId} snapshot={snapshot} onCopy={() => void copyResult()} />}
-    {!snapshot.ballots?.self && <section aria-label="배정된 팀" className={`grid gap-4 md:grid-cols-2 ${snapshot.heroResult ? 'draft-result-roster' : ''}`}>
+    {!snapshot.ballots?.self && !['MAP_PICKING', 'MAP_RESOLVED'].includes(snapshot.phase) && <section aria-label="배정된 팀" className={`grid gap-4 md:grid-cols-2 ${snapshot.heroResult ? 'draft-result-roster' : ''}`}>
       {(['A', 'B'] as const).map(team => <div key={team} className={`border-t-2 pt-3 ${(snapshot.heroResult && snapshot.mapResult?.firstAttackTeam ? snapshot.mapResult.firstAttackTeam === team : team === 'B') ? 'border-red-500' : 'border-blue-500'}`}>
         <h3 className="mb-2 font-semibold">{snapshot.heroResult && snapshot.mapResult?.firstAttackTeam ? snapshot.mapResult.firstAttackTeam === team ? '공격 · ' : '수비 · ' : ''}{team}팀 · 게임 로비 {team === 'A' ? 1 : 2}팀</h3>
         {snapshot.participants.filter(player => player.team === team).map(player => <div key={player.discordId} className="flex items-center justify-between border-b border-slate-800 py-3 text-sm">
@@ -95,11 +108,11 @@ export function DraftRoomPanel({ controller }: { controller: DraftRoomController
         {snapshot.playStatus === 'PLAYING' && <>
           <button type="button" className={buttonClass} disabled={controlsDisabled} onClick={() => execute('game.markFinished')}>실제 경기 종료</button>
           <button type="button" className={buttonClass} disabled={controlsDisabled} onClick={() => execute('game.markAborted')}>플레이 후 중단</button></>}
-        {['FINISHED', 'ABORTED_PLAYED', 'NOT_PLAYED'].includes(snapshot.playStatus) && <button type="button" className={buttonClass} disabled={controlsDisabled} onClick={() => execute('game.next')}>같은 방 다음 경기</button>}
+        {['FINISHED', 'ABORTED_PLAYED', 'NOT_PLAYED'].includes(snapshot.playStatus) && <button type="button" className={buttonClass} disabled={controlsDisabled} onClick={() => execute('game.next')}>다음 경기 · 준비·맵·밴 초기화</button>}
       </div>
       {snapshot.phase === 'LOBBY' && <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-slate-400">
         <span>미사용 맵 {snapshot.availableMapCount}개</span>
-        {snapshot.availableMapCount > 0 && snapshot.availableMapCount < 4 && <label className="flex min-h-10 items-center gap-2">
+        {snapshot.mapSelection.mode === 'VOTE' && snapshot.availableMapCount > 0 && snapshot.availableMapCount < 4 && <label className="flex min-h-10 items-center gap-2">
           <input type="checkbox" checked={remainingMapsConfirmed} onChange={event => setRemainingMapsConfirmed(event.target.checked)} />남은 맵으로 진행 · 무작위 없음</label>}
         <label className="flex items-center gap-2">모드 다양성 예외 사유 (필요할 때만)
           <input className="min-h-10 rounded border border-slate-700 bg-slate-950 px-2 text-slate-200" maxLength={500}

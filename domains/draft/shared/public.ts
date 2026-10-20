@@ -10,3 +10,4 @@ export * from './streams.js';
 export * from './views.js';
 export * from './lifecycle.js';
 export * from './contracts.js';
+export * from './default-catalog.js';

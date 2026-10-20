@@ -3,7 +3,7 @@ import {
   applyBallotCommand, createDraftHistory, createMapCandidates, DEFAULT_DRAFT_TIMINGS,
   getDraftRoomExpiry, getOperatorParticipantStatuses, getDraftStartBlockers, hasConnectedOperator,
   isConnectionAlive, isDraftOperator, pauseDraftTimer, projectDraftBallots, requireDraft,
-  resolveHeroBans, resolveMapVote, resumeDraftTimer, sealBallotStage, validateDraftSource,
+  getUsedDraftMapIds, getEligibleDraftMaps, resolvePotgMap, resolveHeroBans, resolveMapVote, resumeDraftTimer, sealBallotStage, validateDraftSource,
   type BallotKind, type DraftCatalog, type DraftConnection, type DraftHero,
   type DraftMap, type DraftParticipant, type ParticipantProgress,
   type DraftRoomSnapshot,
@@ -20,13 +20,16 @@ export interface ConnectedDraftClient extends DraftConnection {
 export interface DraftCommand {
   commandId: string;
   type: 'ready.set' | 'draft.start' | 'draft.pause' | 'draft.resume' | 'draft.restart'
-    | 'ballot.save' | 'ballot.lock' | 'game.confirmApplied' | 'game.markStarted'
+    | 'map.configure' | 'map.pick' | 'ballot.save' | 'ballot.lock' | 'game.confirmApplied' | 'game.markStarted'
     | 'game.markFinished' | 'game.markAborted' | 'game.markNotPlayed' | 'game.next';
   epoch: number;
   expectedRevision: number;
   expectedBallotRevision: number;
   selection: string[];
   ready: boolean;
+  mapMode: 'VOTE' | 'POTG';
+  pickerDiscordId: string | null;
+  mapId: string;
   reason: string;
   remainingMapsConfirmed: boolean;
   diversityExceptionReason: string;
@@ -36,7 +39,7 @@ export function parseDraftCommand(value: unknown): DraftCommand {
   requireDraft(value && typeof value === 'object' && !Array.isArray(value), 'INVALID_COMMAND', '명령 형식을 확인해 주세요.');
   const raw = value as Record<string, unknown>;
   const types: readonly string[] = ['ready.set', 'draft.start', 'draft.pause', 'draft.resume', 'draft.restart',
-    'ballot.save', 'ballot.lock', 'game.confirmApplied', 'game.markStarted', 'game.markFinished',
+    'map.configure', 'map.pick', 'ballot.save', 'ballot.lock', 'game.confirmApplied', 'game.markStarted', 'game.markFinished',
     'game.markAborted', 'game.markNotPlayed', 'game.next'];
   requireDraft(typeof raw.commandId === 'string' && /^[\w-]{1,128}$/.test(raw.commandId)
     && typeof raw.type === 'string' && types.includes(raw.type)
@@ -50,9 +53,18 @@ export function parseDraftCommand(value: unknown): DraftCommand {
   requireDraft(raw.reason === undefined || (typeof raw.reason === 'string' && raw.reason.length <= 500), 'INVALID_REASON', '사유는 500자 이내로 입력해 주세요.');
   requireDraft(raw.diversityExceptionReason === undefined || (typeof raw.diversityExceptionReason === 'string'
     && raw.diversityExceptionReason.length <= 500), 'INVALID_REASON', '다양성 예외 사유를 확인해 주세요.');
+  if (raw.type === 'map.configure') {
+    requireDraft(raw.mapMode === 'VOTE' || raw.mapMode === 'POTG', 'INVALID_MAP_MODE', '맵 선정 방식을 확인해 주세요.');
+    requireDraft(raw.mapMode === 'VOTE' || (typeof raw.pickerDiscordId === 'string' && /^\d{17,20}$/.test(raw.pickerDiscordId)),
+      'INVALID_PICKER', '팟지 선수를 지정해 주세요.');
+  }
+  if (raw.type === 'map.pick') requireDraft(typeof raw.mapId === 'string' && raw.mapId.length > 0 && raw.mapId.length <= 100,
+    'INVALID_MAP', '선택한 맵을 확인해 주세요.');
   return {
     commandId: raw.commandId, type: raw.type as DraftCommand['type'], epoch: raw.epoch as number,
     expectedRevision: Number(raw.expectedRevision ?? -1), expectedBallotRevision: Number(raw.expectedBallotRevision ?? -1),
+    mapMode: raw.mapMode === 'POTG' ? 'POTG' : 'VOTE', pickerDiscordId: typeof raw.pickerDiscordId === 'string' ? raw.pickerDiscordId : null,
+    mapId: typeof raw.mapId === 'string' ? raw.mapId : '',
     selection: (raw.selection as string[] | undefined) ?? [], ready: raw.ready === true,
     reason: (raw.reason as string | undefined)?.trim() ?? '', remainingMapsConfirmed: raw.remainingMapsConfirmed === true,
     diversityExceptionReason: (raw.diversityExceptionReason as string | undefined)?.trim() ?? '',
@@ -104,6 +116,7 @@ export class DraftEngine {
       timer: { phase: 'LOBBY', status: 'ACTIVE', deadlineAt: null, remainingMs: null, expiresAt, epoch: 1 },
       progress: emptyProgress(source.participants), presenceHistory: [], mapCatalog: structuredClone(this.catalogs.maps),
       heroCatalog: structuredClone(this.catalogs.heroes), candidates: null, mapResult: null, heroResult: null,
+      mapSelection: { mode: 'VOTE', pickerDiscordId: null },
       preferenceBallots: null, stage: null, receipts: [], audit: [],
     };
     return this.store.create(room, history, raw, commandId);
@@ -174,6 +187,7 @@ export class DraftEngine {
     requireDraft(bundle && bundle.room.expiresAt > bundle.now && bundle.history.expiresAt > bundle.now,
       'ROOM_EXPIRED', '방이 없거나 만료되었습니다.');
     requireDraft(bundle.history.activeRoomId === code, 'INACTIVE_ROOM', '현재 활성 방이 아닙니다.');
+    bundle.room.mapSelection ??= { mode: 'VOTE', pickerDiscordId: null };
     return bundle;
   }
 
@@ -209,9 +223,9 @@ export class DraftEngine {
     const participant = bundle.source?.participants.find(player => player.discordId === client.discordId);
     const operator = isDraftOperator(history.operators, client.discordId);
     requireDraft(operator || participant, 'ROOM_ACCESS_DENIED', '현재 명단 또는 운영 권한을 확인해 주세요.');
-    requireDraft(command.epoch === room.epoch, 'STALE_STAGE', '경기 세대가 변경되었습니다.');
     const ballotCommand = command.type === 'ballot.save' || command.type === 'ballot.lock';
     if (ballotCommand) {
+      requireDraft(command.epoch === room.epoch, 'STALE_STAGE', '경기 세대가 변경되었습니다.');
       validateDraftSource(bundle.source, room.source, now);
       requireDraft(participant && room.stage && room.timer.status === 'ACTIVE', 'BALLOT_CLOSED', '현재 입력할 수 있는 투표가 없습니다.');
       room.stage.inputConnections = this.inputConnections(room.roomCode, now);
@@ -235,7 +249,7 @@ export class DraftEngine {
       return { revision: bundle.room.revision, duplicate: false,
         ballotRevision: accepted.ballot.ballotRevision, acceptedAt: accepted.acceptedAt };
     }
-    requireDraft(command.type === 'ready.set' ? participant && client.input : operator,
+    requireDraft(command.type === 'ready.set' || command.type === 'map.pick' ? participant && client.input : operator,
       'OPERATOR_REQUIRED', '이 작업을 수행할 권한이 없습니다.');
     const body = JSON.stringify(command);
     const receipt = room.receipts.find(item => item.actorId === client.discordId && item.commandId === command.commandId);
@@ -243,10 +257,28 @@ export class DraftEngine {
       requireDraft(receipt.body === body, 'COMMAND_REUSED', '같은 식별자를 다른 명령에 사용할 수 없습니다.');
       return { revision: receipt.revision, duplicate: true };
     }
+    requireDraft(command.epoch === room.epoch, 'STALE_STAGE', '경기 세대가 변경되었습니다.');
     requireDraft(command.expectedRevision === room.revision, 'CONFLICT', '최신 방 상태로 다시 실행해 주세요.');
     requireDraft(room.receipts.length < 2000, 'COMMAND_LIMIT', '방의 명령 한도에 도달했습니다.');
     const guard: Partial<StoreGuard> = { authExpiresAt: client.authExpiresAt };
-    if (command.type === 'ready.set') {
+    if (command.type === 'map.configure') {
+      requireDraft(room.phase === 'LOBBY' && room.timer.status === 'ACTIVE', 'INVALID_PHASE', '준비 단계에서만 맵 방식을 바꿀 수 있습니다.');
+      validateDraftSource(bundle.source, room.source, now);
+      requireDraft(command.mapMode === 'VOTE' || roster(room).some(player => player.discordId === command.pickerDiscordId),
+        'INVALID_PICKER', '현재 명단의 참가자만 팟지 선수로 지정할 수 있습니다.');
+      room.mapSelection = { mode: command.mapMode, pickerDiscordId: command.mapMode === 'POTG' ? command.pickerDiscordId : null };
+      this.reset(room);
+      guard.expectedSourceRaw = bundle.sourceRaw!;
+    } else if (command.type === 'map.pick') {
+      requireDraft(room.phase === 'MAP_PICKING' && room.timer.status === 'ACTIVE' && room.mapSelection.mode === 'POTG',
+        'INVALID_PHASE', '팟지 맵 선택 단계에서만 확정할 수 있습니다.');
+      requireDraft(client.discordId === room.mapSelection.pickerDiscordId, 'PICKER_REQUIRED', '지정된 팟지 선수만 맵을 확정할 수 있습니다.');
+      validateDraftSource(bundle.source, room.source, now);
+      room.mapResult = resolvePotgMap({ resolutionId: `${room.gameId}:${room.epoch}:POTG`, catalog: room.mapCatalog,
+        usedCanonicalMapIds: this.usedMaps(bundle), mapId: command.mapId, pickerDiscordId: client.discordId, entropy: entropy() });
+      room.phase = 'MAP_RESOLVED'; room.timer = { ...room.timer, phase: room.phase, deadlineAt: -1 };
+      guard.expectedSourceRaw = bundle.sourceRaw!;
+    } else if (command.type === 'ready.set') {
       validateDraftSource(bundle.source, room.source, now);
       requireDraft(room.phase === 'LOBBY' && room.timer.status === 'ACTIVE', 'INVALID_PHASE', '준비 단계에서만 준비를 변경할 수 있습니다.');
       room.progress = room.progress.map(item => item.discordId === client.discordId ? { ...item, ready: command.ready } : item);
@@ -260,12 +292,19 @@ export class DraftEngine {
       requireDraft(!blockers.disconnected.length && !blockers.inputRequired.length && !blockers.notReady.length,
         'PARTICIPANTS_NOT_READY', `미접속: ${blockers.disconnected.join(', ') || '없음'} / 입력 연결 필요: ${blockers.inputRequired.join(', ') || '없음'} / 미준비: ${blockers.notReady.join(', ') || '없음'}`);
       room.fixedRoster = structuredClone(bundle.source.participants);
-      room.candidates = createMapCandidates({
-        resolutionId: `${room.gameId}:${room.epoch}:MAP`, catalog: room.mapCatalog,
-        usedCanonicalMapIds: this.usedMaps(bundle), excludedCanonicalMapIds: [], mapHistoryRevision: history.mapHistoryRevision,
-        remainingMapsConfirmed: command.remainingMapsConfirmed, diversityExceptionReason: command.diversityExceptionReason, entropy: entropy(),
-      });
-      this.newStage(room, 'MAP', now);
+      if (room.mapSelection.mode === 'POTG') {
+        requireDraft(roster(room).some(player => player.discordId === room.mapSelection.pickerDiscordId), 'INVALID_PICKER', '팟지 선수를 다시 지정해 주세요.');
+        requireDraft(getEligibleDraftMaps(room.mapCatalog, this.usedMaps(bundle)).length > 0, 'MAP_POOL_EXHAUSTED', '미사용 맵이 없습니다.');
+        room.phase = 'MAP_PICKING'; room.stage = null;
+        room.timer = { ...room.timer, phase: room.phase, deadlineAt: null, remainingMs: null };
+      } else {
+        room.candidates = createMapCandidates({
+          resolutionId: `${room.gameId}:${room.epoch}:MAP`, catalog: room.mapCatalog,
+          usedCanonicalMapIds: this.usedMaps(bundle), excludedCanonicalMapIds: [], mapHistoryRevision: history.mapHistoryRevision,
+          remainingMapsConfirmed: command.remainingMapsConfirmed, diversityExceptionReason: command.diversityExceptionReason, entropy: entropy(),
+        });
+        this.newStage(room, 'MAP', now);
+      }
       guard.expectedSourceRaw = bundle.sourceRaw;
     } else if (command.type === 'draft.pause') {
       requireDraft(command.reason, 'REASON_REQUIRED', '정지 사유를 입력해 주세요.');
@@ -292,6 +331,7 @@ export class DraftEngine {
         gameId: room.gameId, roomId: room.roomCode, roomExpiresAt: room.expiresAt, appliedAt: -1,
         map: structuredClone(room.mapResult.map), firstAttackTeam: room.mapResult.firstAttackTeam,
         heroCatalogVersion: room.heroCatalog.approval.version, mapCatalogVersion: room.mapCatalog.approval.version,
+        mapSelection: structuredClone(room.mapSelection),
         rulesVersion: 'owkr-competitive-v1', bans: room.heroResult.bannedHeroIds.map(id => ({ ...room.heroCatalog.entries.find(hero => hero.heroId === id)! })),
         playStatus: 'NOT_STARTED', startedAt: null, finishedAt: null,
       }];
@@ -328,7 +368,7 @@ export class DraftEngine {
   }
 
   private usedMaps(bundle: RoomBundle): string[] {
-    return [...new Set(bundle.history.games.filter(game => game.startedAt !== null).map(game => game.map.canonicalMapId))];
+    return getUsedDraftMapIds(bundle.history);
   }
 
   private reset(room: DraftRoomRecord): void {
@@ -368,6 +408,7 @@ export class DraftEngine {
       readyCount: room.progress.filter(item => item.ready).length,
       availableMapCount: new Set(room.mapCatalog.entries.filter(map => map.active
         && !this.usedMaps(bundle).includes(map.canonicalMapId)).map(map => map.canonicalMapId)).size,
+      availableMaps: getEligibleDraftMaps(room.mapCatalog, this.usedMaps(bundle)), mapSelection: { ...room.mapSelection },
       heroes: room.heroCatalog.entries.filter(hero => hero.active).map(hero => ({ ...hero })),
       stageKind: room.stage?.kind ?? null,
       participants: roster(room).map(player => ({ ...player })), progress: operator ? this.statuses(bundle, client.discordId) : undefined,
@@ -412,7 +453,7 @@ export class DraftEngine {
       if (stage.kind === 'MAP') {
         room.mapResult = resolveMapVote(room.candidates!, ballots.map(ballot => ballot.selection[0] ?? null), history.mapHistoryRevision, stage.sealed!.entropy);
         room.phase = 'MAP_RESOLVED'; room.stage = null;
-        room.timer = { ...room.timer, phase: room.phase, deadlineAt: now + 3000 };
+        room.timer = { ...room.timer, phase: room.phase, deadlineAt: -1 };
       } else if (stage.kind === 'PREFERENCE') {
         room.preferenceBallots = structuredClone(stage); this.newStage(room, 'BAN', now);
       } else {
