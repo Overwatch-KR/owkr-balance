@@ -1,7 +1,8 @@
 import { createHash, generateKeyPairSync } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { createLocalDraftFixtures } from './local-fixtures.js';
-import { DraftEngine } from './engine.js';
+import { DraftEngine, parseDraftCommand } from './engine.js';
+import { SOURCE_POSITIONS } from './source.js';
 import { DraftParticipantAuth } from './participant-auth.js';
 import { verifyDraftTicket } from './tickets.js';
 
@@ -10,8 +11,15 @@ const keys = generateKeyPairSync('rsa', { modulusLength: 2048,
 });
 const contextHash = createHash('sha256').update('browser-only-context').digest('hex');
 
-async function setup(discordId?: string) {
-  const fixture = createLocalDraftFixtures(Date.now(), { syntheticCatalogs: true }); await fixture.store.acquireLease();
+async function setup(discordId?: string, siteAdminParticipant = false) {
+  const fixture = createLocalDraftFixtures(Date.now(), { syntheticCatalogs: true });
+  if (siteAdminParticipant) {
+    fixture.identities[1].discordUserId = '464712715487805442';
+    fixture.store.setSource('LOCAL23456', { revision: 1, expiresAt: Date.now() + 3 * 60 * 60 * 1000,
+      participants: fixture.identities.map((identity, index) => ({ discordUserId: identity.discordUserId, position: SOURCE_POSITIONS[index] })),
+    });
+  }
+  await fixture.store.acquireLease();
   const engine = new DraftEngine(fixture.store, fixture.catalogs);
   const now = Math.floor(Date.now() / 1000);
   const roomCode = await engine.createRoom({ iss: 'owkr-vercel', aud: 'owkr-draft', purpose: 'admin-entry',
@@ -52,6 +60,25 @@ describe('participant-specific OAuth and same-site recovery', () => {
     expect(identity.scope).toBe('join'); expect(identity.iss).toBe('owkr-realtime');
     await expect(app.auth.refresh(session.handle, 'OTHER23456')).rejects.toThrow('이 방');
   });
+  it('allows a site administrator to participate without granting room operator authority', async () => {
+    const app = await setup(undefined, true);
+    const redirect = new URL(await app.auth.callback('discord-code', app.state, 'https://discord.com'));
+    const session = await app.auth.exchange(redirect.searchParams.get('draft_code')!, contextHash);
+    const refreshed = await app.auth.refresh(session.handle, app.roomCode);
+    const identity = verifyDraftTicket(refreshed.ticket, keys.publicKey, 'realtime-entry', Date.now());
+    await app.engine.connect(identity, 'site-admin-participant');
+    let snapshot = await app.engine.snapshot('site-admin-participant');
+    expect(snapshot.selfDiscordId).toBe('464712715487805442');
+    expect(snapshot.isOperator).toBe(false);
+    expect(snapshot.progress).toBeUndefined();
+    await app.engine.command('site-admin-participant', parseDraftCommand({ type: 'ready.set', commandId: 'participant-ready',
+      epoch: snapshot.epoch, expectedRevision: snapshot.roomRevision, ready: true }));
+    snapshot = await app.engine.snapshot('site-admin-participant');
+    expect(snapshot.selfReady).toBe(true);
+    await expect(app.engine.command('site-admin-participant', parseDraftCommand({ type: 'draft.pause', commandId: 'participant-cannot-control',
+      epoch: snapshot.epoch, expectedRevision: snapshot.roomRevision, reason: '권한 검증' }))).rejects.toThrow('권한');
+  });
+
   it('rejects a wrong browser context without creating a session', async () => {
     const app = await setup();
     const redirect = new URL(await app.auth.callback('discord-code', app.state, 'https://discord.com'));
