@@ -21,7 +21,7 @@ describe('general-site administrator login boundary', () => {
     expect(response.status).toHaveBeenCalledWith(403);
     expect(response.send).toHaveBeenCalledWith(expect.stringContaining('접근 권한이 없습니다'));
     expect(response.send).toHaveBeenCalledWith(expect.stringContaining('공유받은 내전 링크'));
-    const cookies = (response.setHeader as ReturnType<typeof vi.fn>).mock.calls.find(call => call[0] === 'Set-Cookie')?.[1] as string[];
+    const cookies = (response.setHeader as ReturnType<typeof vi.fn>).mock.calls.find((call: readonly unknown[]) => call[0] === 'Set-Cookie')?.[1] as string[];
     expect(cookies.find(cookie => cookie.startsWith('owkr_session='))).toContain('Max-Age=0');
     expect(response.redirect).not.toHaveBeenCalled();
   });
