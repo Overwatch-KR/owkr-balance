@@ -4,7 +4,7 @@
 
 ## 배치
 
-- Ubuntu 서버의 접속 주소와 로그인 계정은 비공개로 관리한다. 서비스 실행 계정은 `owkr`다.
+- Ubuntu 서버의 접속 주소와 배포 계정은 GitHub Actions Secrets `REALTIME_SSH_HOST`·`REALTIME_SSH_USER`에서 관리한다. 서비스 실행 계정은 `owkr`다.
 - 전용 Node.js 24 런타임: `/opt/owkr-runtime/bin/node`. 기존 `/usr/bin/node`와 다른 서비스는 유지한다.
 - 릴리스: `/opt/owkr-draft/releases/<commit>`, 현재 링크 `/opt/owkr-draft/current`.
 - 환경: `/etc/owkr-draft/server.env`, 참가자 Discord 앱: `/etc/owkr-draft/participant-oauth.env`.
@@ -88,3 +88,42 @@ main 병합 커밋 63d2ce1이 Vercel Production에 배포되었고 version.json�
 `redis-smoke.mjs`는 인증 코드 교환→첫 티켓까지의 Redis 요청 수와 시간, 방 조회 10회, 동시 명령 지연을 함께 출력한다. 인증 측정은 Discord 외부 통신을 합성 응답으로 대체하므로 Discord 승인 시간·인터넷·Vercel 왕복은 포함하지 않는다. 같은 서버/같은 Redis/같은 내부 포트의 변경 전후 결과를 비교한다. 내부 시험은 `DRAFT_SMOKE_PORT=8788 DRAFT_SMOKE_URL=http://127.0.0.1:8788`로 격리해 실행할 수 있다. 동시 시험은 같은 포트를 공유할 수 없다.
 
 2026-10-20 23:15 KST 최적화 실행 코드 81a2d16을 Oracle current에 적용했다. Vercel 같은 코드의 main 자동 배포 success/version.json 일치 및 실제 Discord 참가 로그인·준비 저장·새로고침 복구를 확인했다. 최신 수치와 검증 범위는 VERIFICATION.md의 인증·Redis 왕복 최적화 항목을 참고한다.
+
+## main 자동 배포 (2026-10-21)
+
+`.github/workflows/deploy-realtime.yml`은 **원격 `main`에 push된 경우에만** 실행한다. 로컬 커밋만으로는 실행되지 않으며 PR·다른 브랜치·수동 실행 트리거는 없다. 기존 Vercel 배포와 별도로 이 워크플로는 실시간 서버만 배포한다.
+
+1. GitHub의 Ubuntu 실행기에서 Node.js 24 / pnpm 11.9.0으로 `pnpm check`를 통과한다.
+2. `pnpm realtime:package` 후 서버 전용 의존성 3개만 설치하고 실행 코드·`node_modules`·커밋 식별자를 압축한다. 서버에서는 설치·빌드하지 않는다.
+3. 서버 호스트키를 저장소의 `realtime/deploy/known_hosts`와 대조한 SSH 연결로 임시 디렉터리에 전달한다.
+4. SHA-256을 확인하고 `/opt/owkr-draft/releases/<전체 커밋 SHA>`에 준비한다. 기존 서비스가 실행되는 동안 새 패키지의 문법·의존성을 검사한다.
+5. 기존 프로세스 종료 → `current` 링크 원자 교체 → 새 프로세스 시작 순서로 실행한다. GitHub concurrency와 서버 flock으로 중복 배포·writer 중첩을 막으며 진행 중 배포는 취소하지 않는다.
+6. systemd 실행 상태, 내부 `/health/ready`, 공개 HTTPS `/health/ready`가 모두 `ready` / `redis`인지 확인한다. 실패하면 새 프로세스를 중지하고 직전 링크·서비스를 복구한 후 워크플로를 실패 처리한다. 동일 커밋이 이미 정상 실행 중이면 재시작을 생략한다.
+
+서버의 `/etc/owkr-draft` 인증·Redis 환경과 Caddy 설정, 다른 서비스는 변경하지 않는다. 과거 릴리스는 자동 삭제하지 않으므로 디스크 사용량을 확인하며 필요 시 `current`와 직전 릴리스를 제외한 이전 릴리스를 정리한다.
+
+### 저장소에 등록할 값
+
+저장소 **Settings → Secrets and variables → Actions → Secrets → New repository secret**에서 아래 세 개를 등록한다.
+
+| 이름 | 값 |
+| --- | --- |
+| `REALTIME_SSH_HOST` | 운영 서버의 SSH 접속 주소 |
+| `REALTIME_SSH_USER` | 운영 서버의 SSH 로그인 계정 |
+| `REALTIME_SSH_PRIVATE_KEY` | `ubuntu.pem` 파일의 전체 원문. BEGIN/END 줄을 포함한 여러 줄 PEM 문자열 |
+
+**Base64 인코딩하지 않는다.** macOS에서 저장소 루트의 `pbcopy < ubuntu.pem`으로 복사하고 Secret의 Value에 붙여넣는다. 워크플로가 원문을 임시 파일로 작성해 600 권한으로 사용하고 종료 시 삭제한다. 암호문으로 잠긴 키는 지원하지 않으며 현재 제공된 키로 비대화형 접속을 확인했다.
+
+주소와 로그인 계정도 Secret으로만 전달하고 워크플로·문서·호스트키 파일에 실제 값을 기록하지 않는다. Redis·Discord·RSA 설정을 GitHub로 복사할 필요는 없다. 배포 계정의 기존 비밀번호 없는 sudo 권한으로 스크립트를 실행한다.
+
+Actions가 비활성화되어 있으면 저장소 Actions 사용을 켠다. 조직 정책에서 `actions/checkout`, `actions/setup-node`, `pnpm/action-setup` 사용을 허용해야 한다. `GITHUB_TOKEN`에는 기본 읽기 권한만 필요하다.
+
+호스트키는 주소 대신 `owkr-realtime-production` 별칭에 인증된 기존 SSH 연결로 읽은 공개 ED25519 키를 고정했다. 확인한 지문은 `SHA256:yVmNeZ1gfyaJzROz2MP+nt03a1pbse4/ZAyGwGwP/g0`이다. 서버 재설치로 키가 바뀌면 서버 콘솔 등 신뢰할 수 있는 경로에서 새 지문을 확인한 뒤 `known_hosts`를 갱신한다. 워크플로에서 호스트 검증을 끄거나 실행할 때마다 무조건 신뢰하지 않는다.
+
+### 운영 영향과 확인
+
+백엔드 교체 시 잠시 연결이 끊기며 브라우저가 재접속한다. 저장된 방·투표는 Redis에 남고, 진행 중인 방은 기존 서버 복구 정책에 따라 `RECOVERY_PAUSED`가 되므로 운영자가 재개한다. Caddy는 계속 실행된다.
+
+Actions의 **Deploy realtime server** 실행과 요약에서 커밋·결과를 확인한다. 롤백에 성공해도 원래 배포는 실패로 표시된다. 롤백도 실패하면 서버의 `systemctl status owkr-draft`와 journal을 확인하고 이전 릴리스로 복구한다. 배포 SSH가 끊기거나 GitHub 작업이 강제 종료되면 실행 결과를 서버에서 확인한 뒤 재실행한다.
+
+설정 후 이 변경을 포함한 커밋을 `main`에 push하면 최초 자동 배포가 시작된다. 작성 시점에는 운영 프로세스 교체 없이 SSH·sudo·경로·Node 버전·로컬/공개 Redis readiness만 사전 검사했다.

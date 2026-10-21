@@ -91,4 +91,4 @@ pnpm check
 - 경기 종료 기록 후 운영자의 `game.next`로 같은 방·초대 링크·참가자 인증을 유지하며 준비→맵→선호→밴을 다시 진행한다. 이전 준비·후보·맵·밴은 초기화하지만 실제로 시작한 경기의 맵은 계속 제외한다. 맵 사용 기록 초기화 기능은 제공하지 않는다. 미진행으로 기록한 맵은 사용한 맵으로 간주하지 않는다.
 - 방의 고정 3시간 만료는 다음 경기나 재접속으로 연장하지 않는다. 원본 팀이 바뀌면 기존 규칙대로 다시 준비하며 팟지 선수도 현재 명단에서 지정해야 한다.
 
-실제 civilwar.devbot.me 서버 설치·인증 설정·재배포·격리 Redis 부하 시험 절차는 [운영 안내](deploy/OPERATIONS.md)를 참고한다.
+main push 자동 배포의 `REALTIME_SSH_HOST`·`REALTIME_SSH_USER`·`REALTIME_SSH_PRIVATE_KEY` Secret 등록 방법과 실제 civilwar.devbot.me 서버 설치·인증 설정·재배포·격리 Redis 부하 시험 절차는 [운영 안내](deploy/OPERATIONS.md)를 참고한다.

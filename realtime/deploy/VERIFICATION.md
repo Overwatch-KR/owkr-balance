@@ -3,7 +3,7 @@
 ## 설치 결과
 
 - 대상: Ubuntu 24.04, Oracle 1 vCPU / RAM 954 MiB, 기존 Java/Node 서비스와 공유.
-- 공개 API: `https://civilwar.devbot.me`, SSH 접속 주소는 비공개로 관리.
+- 공개 API: `https://civilwar.devbot.me`, SSH 접속 주소는 저장소 Secret으로 관리.
 - Node.js 24.22.0은 `/opt/owkr-runtime`에 별도 설치. 기존 Node.js 20.20.2와 Lavalink 서비스를 유지했다.
 - Caddy 2.11.7 설치, HTTP→HTTPS 전환, WebSocket 전달, 민감 요청 필드 로그 제거, 내부 8787 바인딩.
 - Let's Encrypt 인증서: `civilwar.devbot.me`, 발급 2026-10-20, 만료 2027-01-18. 외부 TLS 체인 검증 성공.

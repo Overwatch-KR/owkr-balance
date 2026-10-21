@@ -1,0 +1,90 @@
+name: Deploy realtime server
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: owkr-realtime-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      DEPLOY_SHA: ${{ github.sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install and verify
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm check
+
+      - name: Package standalone Linux runtime
+        run: |
+          pnpm realtime:package
+          pnpm --dir realtime-dist install --ignore-workspace --prod --frozen-lockfile --ignore-scripts
+          printf '%s\n' "$DEPLOY_SHA" > realtime-dist/.release-sha
+          cd realtime-dist
+          node --input-type=module -e 'await import("ws"); await import("@upstash/redis");'
+          tar -czf "$RUNNER_TEMP/owkr-realtime.tar.gz" .
+
+      - name: Deploy over verified SSH
+        env:
+          DEPLOY_HOST: ${{ secrets.REALTIME_SSH_HOST }}
+          DEPLOY_USER: ${{ secrets.REALTIME_SSH_USER }}
+          REALTIME_SSH_PRIVATE_KEY: ${{ secrets.REALTIME_SSH_PRIVATE_KEY }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          [[ -n "$DEPLOY_HOST" && -n "$DEPLOY_USER" && -n "$REALTIME_SSH_PRIVATE_KEY" ]] || { echo 'Set REALTIME_SSH_HOST, REALTIME_SSH_USER and REALTIME_SSH_PRIVATE_KEY repository secrets.' >&2; exit 1; }
+          [[ "$DEPLOY_HOST" =~ ^[a-zA-Z0-9.-]+$ && "$DEPLOY_USER" =~ ^[a-z_][a-z0-9_-]*$ ]] || { echo 'Invalid SSH host or user secret format.' >&2; exit 1; }
+          ssh_dir="$(mktemp -d "$RUNNER_TEMP/owkr-ssh.XXXXXX")"
+          remote_dir=
+          options=(-i "$ssh_dir/key" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o HostKeyAlias=owkr-realtime-production -o "UserKnownHostsFile=$ssh_dir/known_hosts" -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=4)
+          cleanup() {
+            status=$?
+            trap - EXIT
+            if [[ -n "$remote_dir" ]]; then
+              ssh "${options[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "rm -rf -- '$remote_dir'" || true
+            fi
+            rm -rf -- "$ssh_dir"
+            exit "$status"
+          }
+          trap cleanup EXIT
+          chmod 700 "$ssh_dir"
+          printf '%s\n' "$REALTIME_SSH_PRIVATE_KEY" | tr -d '\r' > "$ssh_dir/key"
+          chmod 600 "$ssh_dir/key"
+          cp realtime/deploy/known_hosts "$ssh_dir/known_hosts"
+          ssh-keygen -y -P '' -f "$ssh_dir/key" > /dev/null
+          ssh-keygen -F owkr-realtime-production -f "$ssh_dir/known_hosts" > /dev/null
+          remote_dir="$(ssh "${options[@]}" "$DEPLOY_USER@$DEPLOY_HOST" 'mktemp -d /tmp/owkr-deploy.XXXXXX')"
+          [[ "$remote_dir" =~ ^/tmp/owkr-deploy\.[[:alnum:]]{6}$ ]]
+          scp "${options[@]}" "$RUNNER_TEMP/owkr-realtime.tar.gz" .github/scripts/deploy-realtime.sh "$DEPLOY_USER@$DEPLOY_HOST:$remote_dir/"
+          checksum="$(sha256sum "$RUNNER_TEMP/owkr-realtime.tar.gz" | cut -d ' ' -f 1)"
+          ssh "${options[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "sudo -n bash '$remote_dir/deploy-realtime.sh' '$remote_dir/owkr-realtime.tar.gz' '$DEPLOY_SHA' '$checksum'"
+
+      - name: Record deployment
+        run: |
+          printf '### Realtime deployment\n\n- Commit: `%s`\n- Endpoint: https://civilwar.devbot.me\n- Local and public Redis readiness passed.\n' "$DEPLOY_SHA" >> "$GITHUB_STEP_SUMMARY"
