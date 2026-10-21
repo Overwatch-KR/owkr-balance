@@ -15,7 +15,7 @@ export interface DraftTimings {
 }
 
 export const DEFAULT_DRAFT_TIMINGS: Readonly<DraftTimings> = {
-  mapVotingSeconds: 20, heroVotingSeconds: 30,
+  mapVotingSeconds: 20, heroVotingSeconds: 40,
 };
 
 export function validateDraftTimings(timings: DraftTimings): void {

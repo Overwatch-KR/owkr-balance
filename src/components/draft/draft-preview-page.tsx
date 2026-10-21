@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { DEFAULT_DRAFT_MAP_CATALOG, DEFAULT_DRAFT_HERO_CATALOG } from '#domain/draft';
+import { DEFAULT_DRAFT_MAP_CATALOG, DEFAULT_DRAFT_HERO_CATALOG, DEFAULT_DRAFT_TIMINGS } from '#domain/draft';
 import type { DraftHero, DraftParticipant, DraftPhase, DraftRoomSnapshot } from '#domain/draft';
 import type { DraftRoomController } from '@application/draft/use-draft-room';
 import { DraftRoomPanel } from './draft-room-panel';
@@ -26,7 +26,7 @@ function exampleSnapshot(screen: string, heroes: readonly DraftHero[]): DraftRoo
     selection: stageKind === 'MAP' ? ['kings-row'] : ['ana', 'widowmaker'] };
   return {
     roomCode: 'EXAMPLE234', gameId: 'example-game', gameIndex: 1, epoch: 1, roomRevision: 1,
-    phase, expiresAt: now + 3600000, timer: { phase, status: 'ACTIVE', deadlineAt: phase === 'MAP_RESOLVED' ? now + 3000 : stageKind ? now + 30000 : null, remainingMs: null, expiresAt: now + 3600000, epoch: 1 },
+    phase, expiresAt: now + 3600000, timer: { phase, status: 'ACTIVE', deadlineAt: phase === 'MAP_RESOLVED' ? now + 3000 : stageKind ? now + (stageKind === 'MAP' ? DEFAULT_DRAFT_TIMINGS.mapVotingSeconds : DEFAULT_DRAFT_TIMINGS.heroVotingSeconds) * 1000 : null, remainingMs: null, expiresAt: now + 3600000, epoch: 1 },
     participants, selfDiscordId: participants[0].discordId, isOperator: screen.startsWith('operator'), selfReady: true, readyCount: screen === 'operator-ready' ? 10 : 8,
     availableMapCount: maps.length, availableMaps: maps, mapSelection: screen.startsWith('potg') ? { mode: 'POTG', pickerDiscordId: participants[screen === 'potg' ? 0 : 1].discordId } : { mode: 'VOTE', pickerDiscordId: null }, inputConnected: true, heroes, stageKind,
     progress: participants.map((player, index) => ({ ...player, connectionStatus: screen === 'operator-ready' ? 'CONNECTED' : index === 8 ? 'DISCONNECTED' : index === 9 ? 'NEVER_JOINED' : 'CONNECTED',

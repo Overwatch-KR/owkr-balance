@@ -148,7 +148,7 @@ describe('local server persisted flow', () => {
     expect(recovered.phase).toBe('HERO_VOTING');
     expect(recovered.epoch).toBe(epoch + 1);
     expect(recovered.timer.status).toBe('RECOVERY_PAUSED');
-    expect(recovered.timer.remainingMs).toBe(30_000);
+    expect(recovered.timer.remainingMs).toBe(40_000);
     expect(recovered.stage?.kind).toBe('BAN');
     expect(recovered.stage?.ballots.every(ballot => !ballot.locked && ballot.selection.length === 0)).toBe(true);
     await app.run(0, 'draft.resume');
