@@ -24,7 +24,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       method: 'POST', headers: { Authorization: `Bearer ${secret}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(payload), signal: AbortSignal.timeout(10_000), redirect: 'error',
     });
-    if (!result.ok) throw new Error('AUTH_FAILED');
+    if (!result.ok) {
+      const failure = await result.json() as { code?: string };
+      throw new Error(failure.code === 'ROOM_CLOSED' ? 'ROOM_CLOSED' : 'AUTH_FAILED');
+    }
     return result.json() as Promise<Record<string, unknown>>;
   };
   const contextHash = (value: string) => createHash('sha256').update(value).digest('hex');
@@ -61,5 +64,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ ...await call('refresh', { roomCode: body.roomCode, handle }), realtimeUrl: base });
     }
     return res.status(400).json({ error: '참가 인증 작업을 확인해 주세요.' });
-  } catch { return res.status(401).json({ error: '참가 인증을 완료하지 못했습니다. 방에서 다시 참여해 주세요.' }); }
+  } catch (error) {
+    if (error instanceof Error && error.message === 'ROOM_CLOSED') return res.status(410).json({
+      code: 'ROOM_CLOSED', error: '종료된 내전입니다. 운영자에게 새 공유 링크를 요청해 주세요.',
+    });
+    return res.status(401).json({ error: '참가 인증을 완료하지 못했습니다. 방에서 다시 참여해 주세요.' });
+  }
 }

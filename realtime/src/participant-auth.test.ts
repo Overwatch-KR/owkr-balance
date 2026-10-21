@@ -70,6 +70,26 @@ describe('participant-specific OAuth and same-site recovery', () => {
     expect(identity.scope).toBe('join'); expect(identity.iss).toBe('owkr-realtime');
     await expect(app.auth.refresh(session.handle, 'OTHER23456')).rejects.toThrow('이 방');
   });
+  it('revokes pending OAuth exchanges and existing recovery sessions when the room closes', async () => {
+    const app = await setup();
+    const redirect = new URL(await app.auth.callback('discord-code', app.state, 'https://discord.com'));
+    const session = await app.auth.exchange(redirect.searchParams.get('draft_code')!, contextHash);
+    const pending = new URL(await app.auth.begin(app.roomCode, contextHash));
+    const pendingRedirect = new URL(await app.auth.callback('discord-code', pending.searchParams.get('state')!, 'https://discord.com'));
+    const unfinished = new URL(await app.auth.begin(app.roomCode, contextHash));
+    const now = Math.floor(Date.now() / 1000);
+    await app.engine.connect({ iss: 'owkr-realtime', aud: 'owkr-draft', purpose: 'realtime-entry',
+      sub: app.fixture.identities[0].discordUserId, displayName: '운영자', roomCode: app.roomCode, scope: 'join',
+      jti: 'close-ticket', iat: now, exp: now + 60 }, 'operator');
+    const { room } = await app.engine.requireRoom(app.roomCode);
+    await app.engine.command('operator', parseDraftCommand({ type: 'room.close', commandId: 'close-auth',
+      epoch: room.epoch, expectedRevision: room.revision, reason: '내전 종료' }));
+    await expect(app.auth.begin(app.roomCode, contextHash)).rejects.toMatchObject({ code: 'ROOM_CLOSED' });
+    await expect(app.auth.refresh(session.handle, app.roomCode)).rejects.toMatchObject({ code: 'ROOM_CLOSED' });
+    await expect(app.auth.exchange(pendingRedirect.searchParams.get('draft_code')!, contextHash)).rejects.toMatchObject({ code: 'ROOM_CLOSED' });
+    const denied = new URL(await app.auth.callback('discord-code', unfinished.searchParams.get('state')!, 'https://discord.com'));
+    expect(denied.searchParams.get('draft_error')).toBe('ROOM_CLOSED');
+  });
   it('allows a site administrator to participate without granting room operator authority', async () => {
     const app = await setup(undefined, true);
     const redirect = new URL(await app.auth.callback('discord-code', app.state, 'https://discord.com'));

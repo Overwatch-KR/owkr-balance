@@ -5,7 +5,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { Redis } from '@upstash/redis';
 import { WebSocket } from 'ws';
 import { RedisRealtimeStore } from '../realtime/src/store.js';
-import { DraftEngine } from '../realtime/src/engine.js';
+import { DraftEngine, parseDraftCommand } from '../realtime/src/engine.js';
 import { createRealtimeServer } from '../realtime/src/server.js';
 import { createLocalDraftFixtures } from '../realtime/src/local-fixtures.js';
 import { DraftParticipantAuth } from '../realtime/src/participant-auth.js';
@@ -207,6 +207,50 @@ try {
   assert.equal(await engine.store.load(roomCode), null);
   await redis.set(historyKey, savedHistory, { pxat: savedHistoryExpiry });
   assert.ok(await engine.store.load(roomCode));
+  const now = Math.floor(Date.now() / 1000);
+  const closeTicket = verifyDraftTicket(signDraftTicket({ iss: 'owkr-realtime', purpose: 'realtime-entry',
+    sub: fixture.identities[0].discordUserId, displayName: 'synthetic operator', roomCode,
+    scope: 'join', iat: now, exp: now + 60 }, keys.privateKey), keys.publicKey, 'realtime-entry', Date.now());
+  await engine.connect(closeTicket, 'close-operator');
+  const beforeClose = await engine.requireRoom(roomCode);
+  await engine.command('close-operator', parseDraftCommand({ type: 'room.close', commandId: randomUUID(),
+    epoch: beforeClose.room.epoch, expectedRevision: beforeClose.room.revision, reason: 'isolated closure verification' }));
+  const closed = await engine.store.load(roomCode);
+  assert.equal(closed.room.timer.status, 'CANCELLED');
+  assert.equal(closed.history.activeRoomId, null);
+  assert.deepEqual(closed.history.games, beforeClose.history.games);
+  assert.deepEqual(await engine.store.listActiveRooms(), []);
+  await assert.rejects(engine.requireRoom(roomCode), error => error.code === 'ROOM_CLOSED');
+  await assert.rejects(engine.store.commit(beforeClose, { expectedRoomRevision: beforeClose.room.revision,
+    expectedHistoryRevision: beforeClose.history.mapHistoryRevision }), error => error.code === 'ROOM_CLOSED');
+  await engine.disconnect('close-operator');
+  await redis.hset(key('user-sheet:v2:entries'), Object.fromEntries(fixture.identities.map(identity => [identity.id, JSON.stringify(identity)])));
+  for (const legacy of [false, true]) {
+    const idleCode = await engine.createRoom(verifyDraftTicket(adminTicket(), keys.publicKey, 'admin-entry', Date.now()), 'LOCAL23456', randomUUID());
+    await engine.connect({ ...closeTicket, roomCode: idleCode }, 'idle-operator');
+    const initial = await engine.requireRoom(idleCode);
+    await engine.command('idle-operator', parseDraftCommand({ type: 'ready.set', commandId: randomUUID(), epoch: initial.room.epoch,
+      expectedRevision: initial.room.revision, ready: true }));
+    const recent = await engine.requireRoom(idleCode);
+    assert.ok(recent.room.lastActivityAt >= initial.room.lastActivityAt);
+    const premature = structuredClone(recent); premature.room.revision++; premature.room.timer.status = 'CANCELLED';
+    premature.history.activeRoomId = null; premature.history.mapHistoryRevision++;
+    await assert.rejects(engine.store.commit(premature, { expectedRoomRevision: recent.room.revision,
+      expectedHistoryRevision: recent.history.mapHistoryRevision, idleForMs: 7200000 }), error => error.code === 'ROOM_NOT_IDLE');
+    const aged = structuredClone(recent.room);
+    aged.createdAt = Date.now() - 7202000; aged.lastActivityAt = Date.now() - 7201000;
+    if (legacy) { delete aged.lastActivityAt; aged.audit = aged.audit.map(entry => ({ ...entry, at: aged.createdAt })); }
+    await redis.set(key(`draft:v1:room:${idleCode}`), JSON.stringify(aged), { pxat: aged.expiresAt });
+    const delayed = await engine.store.load(idleCode); delayed.room.lastActivityAt = -1;
+    await assert.rejects(engine.store.commit(delayed, { expectedRoomRevision: delayed.room.revision,
+      expectedHistoryRevision: delayed.history.mapHistoryRevision }), error => error.code === 'ROOM_CLOSED');
+    await engine.tick(idleCode);
+    const idleClosed = await engine.store.load(idleCode);
+    assert.equal(idleClosed.room.timer.status, 'CANCELLED');
+    assert.equal(idleClosed.room.audit.at(-1).action, 'room.close.idle');
+    assert.deepEqual(await engine.store.listActiveRooms(), []);
+    await engine.disconnect('idle-operator');
+  }
   timings.sort((a, b) => a - b);
   console.log(JSON.stringify({ status: 'passed', transport: base, sockets: 10, soakSeconds,
     authentication, roomReads,
@@ -214,7 +258,7 @@ try {
       p95: Math.round(timings[Math.floor(timings.length * .95)]), max: Math.round(timings.at(-1)) },
     checks: ['actual Redis Lua', 'isolated namespace', 'idempotent creation', base.startsWith('https:') ? '10 TLS WebSockets' : '10 loopback WebSockets', '10 simultaneous locked ballots',
       '3 second map reveal', 'hero bans without preference', 'game start and finish', 'next game excludes played map', 'fixed expiry', 'revision conflict', 'restart recovery paused', 'sealed resolution preserved',
-      'expired authentication rejected', 'late ballot rejected', 'stale source write rejected', 'fresh source revision', 'removed identity rejected', 'missing history rejected'],
+      'expired authentication rejected', 'late ballot rejected', 'stale source write rejected', 'fresh source revision', 'removed identity rejected', 'missing history rejected', 'room closure persisted', 'closed room removed from active index', 'game history retained', 'stale writes cannot reopen closed room', 'idle activity timestamp persisted', 'premature idle closure rejected', 'idle boundary commands rejected', 'modern and legacy idle rooms closed'],
     rssMiB: Math.round(process.memoryUsage().rss / 1048576) }, null, 2));
 } finally {
   for (const socket of sockets) socket.terminate();

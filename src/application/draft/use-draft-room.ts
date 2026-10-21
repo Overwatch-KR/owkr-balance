@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { DRAFT_CONNECTION_REPLACED_CLOSE_CODE, inspectDraftStreamEvent, type DraftRoomSnapshot, type DraftStreamCursor, type DraftStreamEnvelope } from '#domain/draft';
+import { DRAFT_CONNECTION_REPLACED_CLOSE_CODE, DRAFT_ROOM_CLOSED_CLOSE_CODE, inspectDraftStreamEvent, type DraftRoomSnapshot, type DraftStreamCursor, type DraftStreamEnvelope } from '#domain/draft';
 
 export const REALTIME_DRAFT_ENABLED = import.meta.env.VITE_ENABLE_REALTIME_DRAFT === 'true';
 
@@ -11,8 +11,8 @@ interface PendingCommand { resolve: () => void; reject: (error: Error) => void; 
 export async function draftRequest<T>(url: string, body: unknown, headers: Record<string, string> = {}): Promise<T> {
   const response = await fetch(url, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', ...headers },
     body: JSON.stringify(body), signal: AbortSignal.timeout(12_000) });
-  const result = await response.json() as T & { error?: string; message?: string };
-  if (!response.ok) throw new Error(result.error ?? result.message ?? '요청을 완료하지 못했습니다.');
+  const result = await response.json() as T & { error?: string; message?: string; code?: string };
+  if (!response.ok) throw Object.assign(new Error(result.error ?? result.message ?? '요청을 완료하지 못했습니다.'), { code: result.code });
   return result;
 }
 
@@ -59,6 +59,7 @@ export interface DraftRoomController {
   snapshot: DraftRoomSnapshot | null;
   connected: boolean;
   connectionReplaced?: boolean;
+  roomClosed?: boolean;
   reconnecting?: boolean;
   pending: boolean;
   error: string;
@@ -81,17 +82,21 @@ export function useDraftRoom(options: {
   const snapshotRef = useRef<DraftRoomSnapshot | null>(null);
   const ballotRevisionRef = useRef(0);
   const pendingRef = useRef(new Map<string, PendingCommand>());
+  const closedRoomCodeRef = useRef<string | null>(null);
   const [connected, setConnected] = useState(false);
   const [connectionReplaced, setConnectionReplaced] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
   const [attempt, setAttempt] = useState(0);
   const [reconnecting, setReconnecting] = useState(false);
+  const [roomClosed, setRoomClosed] = useState(false);
 
   useEffect(() => {
     if (!roomCode) return;
     let disposed = false;
     let superseded = false;
+    let closed = false;
+    setRoomClosed(false);
     let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
     let renewalTimer: ReturnType<typeof setTimeout> | undefined;
     let failures = 0;
@@ -109,32 +114,51 @@ export function useDraftRoom(options: {
       const message = '다른 창에서 이 내전에 연결해 이 창의 연결을 종료했습니다. 자동 재접속은 중지되었습니다.';
       setError(message); failPending(message);
     };
+    const markClosed = () => {
+      closed = true;
+      closedRoomCodeRef.current = roomCode;
+      clearTimeout(renewalTimer); clearTimeout(reconnectTimer);
+      setRoomClosed(true); setConnected(false); setConnectionReplaced(false); setReconnecting(false);
+      const message = '종료된 내전입니다. 운영자에게 새 공유 링크를 요청해 주세요.';
+      setError(message); failPending(message);
+      snapshotRef.current = null;
+      queryClient.removeQueries({ queryKey, exact: true });
+    };
     const renew = async (socket: WebSocket) => {
       try {
         const response = await entry();
-        if (disposed || superseded || socket !== socketRef.current || socket.readyState !== WebSocket.OPEN) return;
+        if (disposed || superseded || closed || socket !== socketRef.current || socket.readyState !== WebSocket.OPEN) return;
         socket.send(JSON.stringify({ type: 'auth.renew', ticket: response.ticket }));
         renewalTimer = setTimeout(() => void renew(socket), Math.max(1000, response.expiresAt - Date.now() - 30_000));
-      } catch (failure) { if (!disposed && !superseded) { setError(failure instanceof Error ? failure.message : '인증 갱신에 실패했습니다.'); socket.close(); } }
+      } catch (failure) {
+        if (!disposed && !superseded && !closed) {
+          if (failure instanceof Error && 'code' in failure && failure.code === 'ROOM_CLOSED') markClosed();
+          else setError(failure instanceof Error ? failure.message : '인증 갱신에 실패했습니다.');
+          socket.close();
+        }
+      }
     };
     const connect = async () => {
       setReconnecting(true);
       try {
         const response = await entry();
-        if (disposed) return;
+        if (disposed || closed) return;
         const endpoint = new URL('/v1/socket', response.realtimeUrl);
         endpoint.protocol = endpoint.protocol === 'https:' ? 'wss:' : 'ws:';
         const socket = new WebSocket(endpoint);
         socketRef.current = socket;
         cursor = null; awaitingSnapshot = true;
         socket.onopen = () => {
-          if (!disposed) socket.send(JSON.stringify({ type: 'auth', ticket: response.ticket }));
+          if (disposed || closed || superseded) { socket.close(); return; }
+          socket.send(JSON.stringify({ type: 'auth', ticket: response.ticket }));
           renewalTimer = setTimeout(() => void renew(socket), Math.max(1000, response.expiresAt - Date.now() - 30_000));
         };
         socket.onmessage = event => {
           if (disposed || socket !== socketRef.current) return;
           try {
             const message = JSON.parse(String(event.data)) as Record<string, unknown>;
+            if (closed) return;
+            if (message.type === 'room.closed' || message.code === 'ROOM_CLOSED') { markClosed(); socket.close(); return; }
             if (message.type === 'connection.replaced') { markReplaced(); return; }
             if (superseded) return;
             if (message.type === 'room.snapshot' || message.type === 'room.updated') {
@@ -181,6 +205,7 @@ export function useDraftRoom(options: {
         socket.onclose = event => {
           clearTimeout(renewalTimer);
           if (disposed || socket !== socketRef.current) return;
+          if (closed || event.code === DRAFT_ROOM_CLOSED_CLOSE_CODE) { markClosed(); return; }
           if (superseded || event.code === DRAFT_CONNECTION_REPLACED_CLOSE_CODE) { markReplaced(); return; }
           setConnected(false); setReconnecting(true); failPending('연결이 끊겨 저장 여부를 다시 확인해야 합니다.');
           reconnectTimer = setTimeout(() => void connect(), Math.min(15_000, 1000 * 2 ** failures++) + Math.random() * 300);
@@ -188,6 +213,7 @@ export function useDraftRoom(options: {
         socket.onerror = () => socket.close();
       } catch (failure) {
         if (disposed) return;
+        if (failure instanceof Error && 'code' in failure && failure.code === 'ROOM_CLOSED') { markClosed(); return; }
         setConnected(false); setReconnecting(false); setError(failure instanceof Error ? failure.message : '참가 인증이 필요합니다.');
       }
     };
@@ -216,5 +242,7 @@ export function useDraftRoom(options: {
         expectedBallotRevision: ballotRevisionRef.current, ...values }));
     });
   }, [connected]);
-  return { snapshot: query.data ?? null, connected, connectionReplaced, reconnecting, pending, error, reconnect: () => { setConnectionReplaced(false); setError(''); setAttempt(value => value + 1); }, command };
+  const currentRoomClosed = roomClosed && (roomCode === null || closedRoomCodeRef.current === roomCode);
+  return { snapshot: query.data ?? null, connected, connectionReplaced, roomClosed: currentRoomClosed, reconnecting, pending, error,
+    reconnect: () => { if (roomClosed) return; setConnectionReplaced(false); setError(''); setAttempt(value => value + 1); }, command };
 }

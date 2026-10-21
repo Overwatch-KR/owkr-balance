@@ -1,7 +1,8 @@
-import { requireDraft, type DraftHistory } from '../../domains/draft/shared/public.js';
+import { DRAFT_LIMITS, requireDraft, type DraftHistory } from '../../domains/draft/shared/public.js';
 import type { DraftRoomRecord, RealtimeStore, RoomBundle, StoreGuard } from './model.js';
 import { parseDraftSource, type SourceIdentity } from './source.js';
 import { stampAtomicTimes } from './atomic-time.js';
+import { getLastDraftActivityAt } from './room-lifecycle.js';
 
 /** @description 명시적 로컬 시험 전용 저장소이며 원격 Redis에 접근하지 않는다. */
 export class MemoryRealtimeStore implements RealtimeStore {
@@ -40,7 +41,7 @@ export class MemoryRealtimeStore implements RealtimeStore {
     return receipt.roomCode;
   }
   async listActiveRooms(): Promise<string[]> {
-    return [...this.rooms.values()].filter(room => room.expiresAt > this.now()).map(room => room.roomCode);
+    return [...this.rooms.values()].filter(room => room.expiresAt > this.now() && room.timer.status !== 'CANCELLED').map(room => room.roomCode);
   }
   async readSource(sourceId: string): Promise<{ source: ReturnType<typeof parseDraftSource>; raw: string | null; now: number }> {
     const raw = this.sources.get(sourceId) ?? null;
@@ -73,6 +74,11 @@ export class MemoryRealtimeStore implements RealtimeStore {
     const history = this.histories.get(bundle.history.draftSessionId);
     const now = this.now();
     requireDraft(current && history && now < current.expiresAt && now < history.expiresAt, 'ROOM_EXPIRED', '방이 만료되었습니다.');
+    requireDraft(current.timer.status !== 'CANCELLED', 'ROOM_CLOSED', '종료된 내전입니다.');
+    requireDraft(bundle.room.lastActivityAt !== -1 || bundle.room.timer.status === 'CANCELLED'
+      || now < getLastDraftActivityAt(current) + DRAFT_LIMITS.roomIdleMs, 'ROOM_CLOSED', '2시간 이상 유휴 상태여서 종료된 내전입니다.');
+    requireDraft(guard.idleForMs === undefined || now >= getLastDraftActivityAt(current) + guard.idleForMs,
+      'ROOM_NOT_IDLE', '최근 활동이 있어 자동 종료하지 않습니다.');
     requireDraft(current.revision === guard.expectedRoomRevision && history.mapHistoryRevision === guard.expectedHistoryRevision,
       'CONFLICT', '상태가 변경되었습니다.');
     requireDraft(!guard.authExpiresAt || now < guard.authExpiresAt, 'AUTH_EXPIRED', '입장권이 만료되었습니다.');

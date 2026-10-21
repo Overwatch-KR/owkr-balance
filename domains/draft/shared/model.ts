@@ -66,6 +66,7 @@ export const DRAFT_RULES_VERSION = 'owkr-map-ban-v2';
 export const DRAFT_LIMITS = {
   mapRevealMs: 3000,
   roomLifetimeMs: 3 * 60 * 60 * 1000,
+  roomIdleMs: 2 * 60 * 60 * 1000,
   sessionLifetimeMs: 24 * 60 * 60 * 1000,
   minSourceRemainingMs: 10 * 60 * 1000,
   presenceTimeoutMs: 45_000,

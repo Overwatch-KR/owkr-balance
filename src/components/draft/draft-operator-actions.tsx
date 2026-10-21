@@ -18,6 +18,7 @@ export function DraftOperatorActions({ controller, execute }: { controller: Draf
   const startBlocked = progress.length !== 10 || problems.length > 0 || snapshot.availableMapCount === 0 || pickerMissing || (remainingConfirmation && !remainingMapsConfirmed);
   const disabled = !controller.connected || controller.pending || (action?.type === 'draft.start' && startBlocked)
     || (action?.requiresActive && snapshot.timer.status !== 'ACTIVE');
+  if (!snapshot.isOperator || controller.roomClosed) return null;
   return <section className="draft-operator-actions" aria-label="다음 운영 작업">
     <div className="draft-operator-action-row"><div className="min-w-0">
       <p className="text-xs font-semibold text-cyan-300">운영자 · 다음 작업</p>
@@ -36,5 +37,12 @@ export function DraftOperatorActions({ controller, execute }: { controller: Draf
       <details><summary className="cursor-pointer py-2">고급 맵 설정 · 모드 다양성 예외</summary><label className="mt-1 block">예외 사유 (필요할 때만)
         <input className="form-control mt-1" maxLength={500} disabled={!controller.connected || controller.pending} value={diversityExceptionReason} onChange={event => setDiversityExceptionReason(event.target.value)} /></label></details>
     </div>}
+    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-800 pt-3">
+      <p className="text-xs text-slate-500">{snapshot.playStatus === 'PLAYING' ? '진행 중인 경기의 종료 또는 중단을 먼저 기록해 주세요.' : '방을 닫으면 모든 연결과 공유 링크 참여가 종료됩니다.'} 2시간 동안 조작이 없으면 자동 종료됩니다.</p>
+      <button type="button" className="btn-ghost text-xs text-red-300" disabled={!controller.connected || controller.pending || snapshot.playStatus === 'PLAYING'}
+        onClick={() => {
+          if (window.confirm('내전을 종료하고 밴픽방을 닫을까요? 모든 참가자의 연결이 종료되고 이 공유 링크는 다시 사용할 수 없습니다. 경기 기록과 원본 팀 편성은 유지됩니다.')) execute('room.close', { reason: '운영자 내전 종료' });
+        }}>내전 종료·방 닫기</button>
+    </div>
   </section>;
 }

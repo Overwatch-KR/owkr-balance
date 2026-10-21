@@ -1,6 +1,6 @@
 import { randomBytes, randomUUID, randomInt } from 'node:crypto';
 import {
-  applyBallotCommand, createDraftHistory, createMapCandidates, DEFAULT_DRAFT_TIMINGS, DRAFT_RULES_VERSION,
+  applyBallotCommand, createDraftHistory, createMapCandidates, DEFAULT_DRAFT_TIMINGS, DRAFT_RULES_VERSION, DRAFT_LIMITS,
   getDraftRoomExpiry, getOperatorParticipantStatuses, getDraftStartBlockers, hasConnectedOperator,
   isConnectionAlive, isDraftOperator, pauseDraftTimer, projectDraftBallots, requireDraft,
   getUsedDraftMapIds, getEligibleDraftMaps, resolvePotgMap, resolveHeroBans, resolveMapVote, resumeDraftTimer, sealBallotStage, validateDraftSource,
@@ -10,6 +10,7 @@ import {
 } from '../../domains/draft/shared/public.js';
 import type { DraftRoomRecord, RealtimeStore, RoomBundle, StoreGuard } from './model.js';
 import type { DraftTicket } from './tickets.js';
+import { getLastDraftActivityAt } from './room-lifecycle.js';
 
 export interface ConnectedDraftClient extends DraftConnection {
   roomCode: string;
@@ -21,7 +22,7 @@ export interface DraftCommand {
   commandId: string;
   type: 'ready.set' | 'draft.start' | 'draft.pause' | 'draft.resume' | 'draft.restart'
     | 'map.configure' | 'map.pick' | 'ballot.save' | 'ballot.lock' | 'game.confirmApplied' | 'game.markStarted'
-    | 'game.markFinished' | 'game.markAborted' | 'game.markNotPlayed' | 'game.next';
+    | 'game.markFinished' | 'game.markAborted' | 'game.markNotPlayed' | 'game.next' | 'room.close';
   epoch: number;
   expectedRevision: number;
   expectedBallotRevision: number;
@@ -40,7 +41,7 @@ export function parseDraftCommand(value: unknown): DraftCommand {
   const raw = value as Record<string, unknown>;
   const types: readonly string[] = ['ready.set', 'draft.start', 'draft.pause', 'draft.resume', 'draft.restart',
     'map.configure', 'map.pick', 'ballot.save', 'ballot.lock', 'game.confirmApplied', 'game.markStarted', 'game.markFinished',
-    'game.markAborted', 'game.markNotPlayed', 'game.next'];
+    'game.markAborted', 'game.markNotPlayed', 'game.next', 'room.close'];
   requireDraft(typeof raw.commandId === 'string' && /^[\w-]{1,128}$/.test(raw.commandId)
     && typeof raw.type === 'string' && types.includes(raw.type)
     && Number.isSafeInteger(raw.epoch) && Number(raw.epoch) > 0,
@@ -87,6 +88,7 @@ export class DraftEngine {
   readonly clients = new Map<string, ConnectedDraftClient>();
   private chain: Promise<unknown> = Promise.resolve();
   private recoveryUntilByRoom = new Map<string, number>();
+  private closedRooms = new Set<string>();
   constructor(
     readonly store: RealtimeStore,
     private readonly catalogs: { maps: DraftCatalog<DraftMap>; heroes: DraftCatalog<DraftHero> },
@@ -102,7 +104,7 @@ export class DraftEngine {
     requireDraft(ticket.purpose === 'admin-entry' && ticket.scope === 'create', 'OPERATOR_REQUIRED', '방 생성용 운영자 입장권이 필요합니다.');
     requireDraft(/^[A-Z2-9]{10}$/.test(sourceId) && /^[\w-]{1,128}$/.test(commandId), 'INVALID_COMMAND', '원본 코드와 요청 식별자를 확인해 주세요.');
     const previous = await this.store.findCreate(ticket.sub, commandId, sourceId);
-    if (previous) return previous;
+    if (previous) { await this.requireRoom(previous); return previous; }
     const { source, raw, now } = await this.store.readSource(sourceId);
     requireDraft(source && raw, 'SOURCE_EXPIRED', '유효한 원본 공동 작업이 필요합니다.');
     validateDraftSource(source, source, now);
@@ -111,7 +113,7 @@ export class DraftEngine {
     const expiresAt = getDraftRoomExpiry(now, source.expiresAt, history.expiresAt);
     history.activeRoomId = code;
     const room: DraftRoomRecord = {
-      roomCode: code, draftSessionId: history.draftSessionId, createdAt: now, expiresAt, revision: 0,
+      roomCode: code, draftSessionId: history.draftSessionId, createdAt: now, lastActivityAt: now, expiresAt, revision: 0,
       source, fixedRoster: null, gameId: randomUUID(), gameIndex: 1, epoch: 1, phase: 'LOBBY',
       timer: { phase: 'LOBBY', status: 'ACTIVE', deadlineAt: null, remainingMs: null, expiresAt, epoch: 1 },
       progress: emptyProgress(source.participants), presenceHistory: [], mapCatalog: structuredClone(this.catalogs.maps),
@@ -161,7 +163,7 @@ export class DraftEngine {
     if (!client) return;
     this.clients.delete(connectionId);
     const bundle = await this.store.load(client.roomCode);
-    if (!bundle) return;
+    if (!bundle || bundle.room.timer.status === 'CANCELLED') return;
     const live = this.roomConnections(client.roomCode).filter(item => item.discordId === client.discordId && isConnectionAlive(item, bundle.now));
     if (live.length === 0) {
       bundle.room.presenceHistory = bundle.room.presenceHistory.map(entry => entry.discordId === client.discordId
@@ -184,13 +186,34 @@ export class DraftEngine {
       .map(client => [client.discordId, client.connectionId]));
   }
 
-  async requireRoom(code: string): Promise<RoomBundle> {
+  async requireRoom(code: string, allowClosed = false): Promise<RoomBundle> {
     const bundle = await this.store.load(code);
     requireDraft(bundle && bundle.room.expiresAt > bundle.now && bundle.history.expiresAt > bundle.now,
       'ROOM_EXPIRED', '방이 없거나 만료되었습니다.');
-    requireDraft(bundle.history.activeRoomId === code, 'INACTIVE_ROOM', '현재 활성 방이 아닙니다.');
+    await this.closeIfIdle(bundle);
+    requireDraft(allowClosed || bundle.room.timer.status !== 'CANCELLED', 'ROOM_CLOSED', '종료된 내전입니다. 운영자에게 새 공유 링크를 요청해 주세요.');
+    requireDraft((allowClosed && bundle.room.timer.status === 'CANCELLED') || bundle.history.activeRoomId === code, 'INACTIVE_ROOM', '현재 활성 방이 아닙니다.');
     bundle.room.mapSelection ??= { mode: 'VOTE', pickerDiscordId: null };
     return bundle;
+  }
+
+  drainClosedRooms(): string[] {
+    const codes = [...this.closedRooms]; this.closedRooms.clear(); return codes;
+  }
+
+  private async closeIfIdle(bundle: RoomBundle): Promise<boolean> {
+    const { room, history, now } = bundle;
+    if (room.timer.status === 'CANCELLED') return true;
+    if (now < getLastDraftActivityAt(room) + DRAFT_LIMITS.roomIdleMs) return false;
+    const expectedHistoryRevision = history.mapHistoryRevision;
+    room.timer = { ...room.timer, status: 'CANCELLED', deadlineAt: null, remainingMs: null };
+    if (room.stage?.status === 'OPEN') room.stage.status = 'PAUSED';
+    history.activeRoomId = null; history.mapHistoryRevision++;
+    room.audit = [...room.audit, { actorId: 'system', action: 'room.close.idle', at: now,
+      reason: '2시간 이상 사용자 조작 없음', revision: room.revision + 1 }];
+    await this.save(bundle, { expectedHistoryRevision, idleForMs: DRAFT_LIMITS.roomIdleMs });
+    this.closedRooms.add(room.roomCode);
+    return true;
   }
 
   private async save(bundle: RoomBundle, extra: Partial<StoreGuard> = {}): Promise<void> {
@@ -219,7 +242,7 @@ export class DraftEngine {
   async command(connectionId: string, command: DraftCommand): Promise<{ revision: number; duplicate: boolean; ballotRevision?: number; acceptedAt?: number }> {
     const client = this.clients.get(connectionId);
     requireDraft(client && !client.closed, 'AUTH_REQUIRED', '먼저 방에 연결해 주세요.');
-    const bundle = await this.requireRoom(client.roomCode);
+    const bundle = await this.requireRoom(client.roomCode, command.type === 'room.close');
     const { room, history, now } = bundle;
     requireDraft(isConnectionAlive(client, now), 'AUTH_EXPIRED', '입장권 또는 연결을 갱신해 주세요.');
     const participant = bundle.source?.participants.find(player => player.discordId === client.discordId);
@@ -239,6 +262,7 @@ export class DraftEngine {
       if (result.duplicate) return { revision: room.revision, duplicate: true,
         ballotRevision: result.receipt.ballot.ballotRevision, acceptedAt: result.receipt.acceptedAt };
       room.stage = result.stage;
+      room.lastActivityAt = -1;
       room.stage.receipts[room.stage.receipts.length - 1].acceptedAt = -1;
       // 최종 표 저장과 10인 확정 봉인을 같은 commit 안에 넣는다.
       if (room.stage.ballots.every(ballot => ballot.locked)) {
@@ -260,10 +284,18 @@ export class DraftEngine {
       return { revision: receipt.revision, duplicate: true };
     }
     requireDraft(command.epoch === room.epoch, 'STALE_STAGE', '경기 세대가 변경되었습니다.');
+    requireDraft(room.timer.status !== 'CANCELLED', 'ROOM_CLOSED', '종료된 내전입니다.');
     requireDraft(command.expectedRevision === room.revision, 'CONFLICT', '최신 방 상태로 다시 실행해 주세요.');
     requireDraft(room.receipts.length < 2000, 'COMMAND_LIMIT', '방의 명령 한도에 도달했습니다.');
     const guard: Partial<StoreGuard> = { authExpiresAt: client.authExpiresAt };
-    if (command.type === 'map.configure') {
+    if (command.type === 'room.close') {
+      requireDraft(command.reason, 'REASON_REQUIRED', '방을 종료할 사유가 필요합니다.');
+      requireDraft(!history.games.some(game => game.playStatus === 'PLAYING'), 'GAME_NOT_CLOSED', '진행 중인 경기의 종료 또는 중단을 먼저 기록해 주세요.');
+      room.timer = { ...room.timer, status: 'CANCELLED', deadlineAt: null, remainingMs: null };
+      if (room.stage?.status === 'OPEN') room.stage.status = 'PAUSED';
+      guard.expectedHistoryRevision = history.mapHistoryRevision;
+      history.activeRoomId = null; history.mapHistoryRevision++;
+    } else if (command.type === 'map.configure') {
       requireDraft(room.phase === 'LOBBY' && room.timer.status === 'ACTIVE', 'INVALID_PHASE', '준비 단계에서만 맵 방식을 바꿀 수 있습니다.');
       validateDraftSource(bundle.source, room.source, now);
       requireDraft(command.mapMode === 'VOTE' || roster(room).some(player => player.discordId === command.pickerDiscordId),
@@ -365,6 +397,7 @@ export class DraftEngine {
     }
     room.receipts = [...room.receipts, { actorId: client.discordId, commandId: command.commandId, body, revision: room.revision + 1 }];
     room.audit = [...room.audit, { actorId: client.discordId, action: command.type, at: now, reason: command.reason, revision: room.revision + 1 }];
+    room.lastActivityAt = -1;
     await this.save(bundle, guard);
     return { revision: room.revision, duplicate: false };
   }
@@ -424,7 +457,9 @@ export class DraftEngine {
   }
 
   async tick(code: string): Promise<void> {
-    const bundle = await this.requireRoom(code);
+    const bundle = await this.store.load(code);
+    if (!bundle || bundle.room.expiresAt <= bundle.now || bundle.history.expiresAt <= bundle.now) return;
+    if (await this.closeIfIdle(bundle)) return;
     const { room, history, now } = bundle;
     if (!bundle.source || bundle.source.revision !== room.source.revision || bundle.source.rosterHash !== room.source.rosterHash) {
       if (room.timer.status === 'ROSTER_CHANGED') return;
@@ -471,7 +506,9 @@ export class DraftEngine {
 
   async recover(): Promise<void> {
     for (const code of await this.store.listActiveRooms()) {
-      const bundle = await this.requireRoom(code);
+      const bundle = await this.store.load(code);
+      if (!bundle || bundle.room.expiresAt <= bundle.now || bundle.history.expiresAt <= bundle.now) continue;
+      if (await this.closeIfIdle(bundle)) continue;
       this.recoveryUntilByRoom.set(code, bundle.now + 45_000);
       if ((bundle.room.phase as string) === 'HERO_PREFERENCE') {
         const status = bundle.room.timer.status;

@@ -22,6 +22,12 @@ describe('same-site participant session bridge', () => {
     await handler(request({ action: 'start', roomCode: 'ROOM234567' }, { origin: 'https://attacker.invalid' }), res);
     expect(res.status).toHaveBeenCalledWith(403); expect(fetcher).not.toHaveBeenCalled();
   });
+  it('returns only the safe closed-room code instead of upstream private error text', async () => {
+    configure(); vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ code: 'ROOM_CLOSED', message: 'private upstream details' }), { status: 400 })));
+    const res = response(); await handler(request({ action: 'start', roomCode: 'ROOM234567' }), res);
+    expect(res.status).toHaveBeenCalledWith(410);
+    expect(res.json).toHaveBeenCalledWith({ code: 'ROOM_CLOSED', error: '종료된 내전입니다. 운영자에게 새 공유 링크를 요청해 주세요.' });
+  });
   it('sets an HttpOnly browser context while exposing only the Discord redirect', async () => {
     configure(); vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ redirect: 'https://discord.com/oauth2/authorize?state=abc' }))));
     const res = response(); await handler(request({ action: 'start', roomCode: 'ROOM234567' }), res);

@@ -18,6 +18,11 @@ export function useAdminDraft({ userId, csrfToken }: { userId: string; csrfToken
   const requestId = useRef<string | null>(null);
   const controller = useDraftRoom({ roomCode, mode: 'admin', userId, csrfToken });
   useEffect(() => {
+    if (controller.roomClosed) {
+      setRoomCode(null); requestId.current = null;
+      try { localStorage.removeItem(`owkr:draft:v1:${userId}`); } catch { /* 종료 상태는 저장소와 무관하게 반영한다. */ }
+      return;
+    }
     if (!controller.snapshot) return;
     try { localStorage.setItem(`owkr:draft:v1:${userId}`, JSON.stringify({ code: controller.snapshot.roomCode, expiresAt: controller.snapshot.expiresAt })); }
     catch { /* 연결 복원용 코드 저장 실패는 현재 방을 종료하지 않는다. */ }
@@ -26,7 +31,7 @@ export function useAdminDraft({ userId, csrfToken }: { userId: string; csrfToken
       try { localStorage.removeItem(`owkr:draft:v1:${userId}`); } catch { /* 저장소 접근이 거절되어도 만료한다. */ }
     }, Math.max(0, controller.snapshot.expiresAt - Date.now()));
     return () => clearTimeout(timer);
-  }, [controller.snapshot, userId]);
+  }, [controller.snapshot, controller.roomClosed, userId]);
   const createRoom = useCallback(async (sourceId: string): Promise<void> => {
     if (!REALTIME_DRAFT_ENABLED) throw new Error('실시간 밴픽 기능이 아직 공개되지 않았습니다.');
     setCreating(true); setError('');

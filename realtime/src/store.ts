@@ -107,6 +107,21 @@ if not raw or not historyRaw then return 'ROOM_EXPIRED' end
 local current = cjson.decode(raw)
 local history = cjson.decode(historyRaw)
 local guard = cjson.decode(ARGV[4])
+if current.timer.status == 'CANCELLED' then return 'ROOM_CLOSED' end
+local function getLastActivity()
+  local lastActivity = tonumber(current.lastActivityAt)
+  if not lastActivity then
+    lastActivity = current.createdAt
+    for _, entry in ipairs(current.audit or {}) do lastActivity = math.max(lastActivity, entry.at) end
+    if current.stage and current.stage ~= cjson.null then
+      for _, receipt in ipairs(current.stage.receipts or {}) do lastActivity = math.max(lastActivity, receipt.acceptedAt) end
+    end
+  end
+  return lastActivity
+end
+if guard.idleForMs then
+  if now < getLastActivity() + guard.idleForMs then return 'ROOM_NOT_IDLE' end
+end
 if tonumber(current.revision) ~= guard.expectedRoomRevision or tonumber(history.mapHistoryRevision) ~= guard.expectedHistoryRevision then return 'CONFLICT' end
 if now >= current.expiresAt or now >= history.expiresAt then return 'ROOM_EXPIRED' end
 if guard.authExpiresAt and now >= guard.authExpiresAt then return 'AUTH_EXPIRED' end
@@ -119,9 +134,10 @@ if guard.expectedSourceRaw then
 end
 local nextRoom = cjson.decode(ARGV[2])
 local nextHistory = cjson.decode(ARGV[3])
+if nextRoom.lastActivityAt == -1 and nextRoom.timer.status ~= 'CANCELLED' and now >= getLastActivity() + ${DRAFT_LIMITS.roomIdleMs} then return 'ROOM_CLOSED' end
 if nextRoom.expiresAt ~= current.expiresAt or nextHistory.expiresAt ~= history.expiresAt then return 'EXPIRY_CHANGED' end
 local function stamp(value)
-  for _, field in ipairs({'acceptedAt','sealedAt','startedAt','finishedAt','appliedAt'}) do
+  for _, field in ipairs({'acceptedAt','sealedAt','startedAt','finishedAt','appliedAt','lastActivityAt'}) do
     value = string.gsub(value, '"' .. field .. '":%-1', '"' .. field .. '":' .. string.format('%.0f',now))
   end
   return value
@@ -132,6 +148,7 @@ if nextRoom.phase == 'MAP_RESOLVED' and nextRoom.timer.deadlineAt == -1 then
 end
 redis.call('SET', KEYS[1], stamp(roomJson), 'PXAT', current.expiresAt)
 redis.call('SET', KEYS[2], stamp(ARGV[3]), 'PXAT', history.expiresAt)
+if nextRoom.timer.status == 'CANCELLED' then redis.call('ZREM', KEYS[6], nextRoom.roomCode) end
 return 'OK:' .. string.format('%.0f',now)
 `;
 
@@ -266,7 +283,7 @@ export class RedisRealtimeStore implements RealtimeStore {
     const result = await this.redis.eval<string[], string>(COMMIT_DRAFT_SCRIPT, [
       `${ROOM}${bundle.room.roomCode}`, `${HISTORY}${bundle.history.draftSessionId}`,
       `match-live:v1:${bundle.room.source.sourceId}`, LEASE,
-      'user-sheet:v2:version',
+      'user-sheet:v2:version', ACTIVE,
     ], [this.writerId, JSON.stringify(bundle.room), JSON.stringify(bundle.history), JSON.stringify(guard)]);
     requireDraft(result.startsWith('OK:'), result, '변경을 저장하지 못했습니다. 최신 상태를 확인해 주세요.');
     stampAtomicTimes(bundle, Number(result.slice(3)));

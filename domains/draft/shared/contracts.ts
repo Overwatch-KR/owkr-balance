@@ -7,6 +7,7 @@ import type { OperatorParticipantStatus } from './presence.js';
 import type { ParticipantBallotView } from './views.js';
 
 export const DRAFT_CONNECTION_REPLACED_CLOSE_CODE = 4001;
+export const DRAFT_ROOM_CLOSED_CLOSE_CODE = 4002;
 
 export interface DraftRoomSnapshot {
   roomCode: string;

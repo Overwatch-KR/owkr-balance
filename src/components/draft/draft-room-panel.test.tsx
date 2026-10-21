@@ -222,6 +222,23 @@ describe('draft selection and ban results', () => {
     expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>밴픽 시작/);
   });
 
+  it('운영자에게만 방 닫기를 표시하고 경기 진행 중에는 종료 기록을 요구한다', () => {
+    const view = snapshot(); view.isOperator = true;
+    const controller = { snapshot: view, connected: true, pending: false, error: '', command: vi.fn(), reconnect: vi.fn() };
+    let markup = render(<DraftOperatorActions controller={controller} execute={vi.fn()} />);
+    expect(markup).toContain('내전 종료·방 닫기');
+    expect(markup).not.toMatch(/<button[^>]*disabled=""[^>]*>내전 종료·방 닫기/);
+    view.playStatus = 'PLAYING';
+    markup = render(<DraftOperatorActions controller={controller} execute={vi.fn()} />);
+    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>내전 종료·방 닫기/);
+    expect(markup).toContain('종료 또는 중단을 먼저 기록');
+    view.isOperator = false;
+    expect(render(<DraftOperatorActions controller={controller} execute={vi.fn()} />)).not.toContain('내전 종료·방 닫기');
+    markup = render(<DraftRoomPanel controller={{ ...controller, roomClosed: true }} />);
+    expect(markup).toContain('종료된 내전입니다');
+    expect(markup).not.toContain('영웅 밴 투표'); expect(markup).not.toContain('다시 연결');
+  });
+
   it('연결 문제를 우선 안내하고 이전 저장 알림을 숨긴다', () => {
     const controller = { snapshot: snapshot(), connected: false, reconnecting: true, pending: false, error: '', command: vi.fn(), reconnect: vi.fn() };
     let markup = render(<DraftConnectionStatus controller={controller} notice="지난 저장 알림" />);

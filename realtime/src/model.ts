@@ -14,6 +14,7 @@ export interface DraftRoomRecord {
   roomCode: string;
   draftSessionId: string;
   createdAt: number;
+  lastActivityAt?: number;
   expiresAt: number;
   revision: number;
   source: DraftSource;
@@ -51,6 +52,7 @@ export interface StoreGuard {
   acceptBefore?: number;
   acceptAtOrAfter?: number;
   authExpiresAt?: number;
+  idleForMs?: number;
 }
 
 export interface RealtimeStore {

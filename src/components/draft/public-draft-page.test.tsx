@@ -30,6 +30,12 @@ describe('participant authentication feedback', () => {
     expect(markup).not.toContain('Discord로 다시 인증');
     expect(useDraftRoom).toHaveBeenCalledWith({ roomCode: null, mode: 'participant' });
   });
+  it('shows a closed room message without login or reconnect controls', () => {
+    const markup = render('/draft/ABCDEF2345?draft_error=ROOM_CLOSED');
+    expect(markup).toContain('종료된 내전입니다');
+    expect(markup).not.toContain('Discord로');
+    expect(markup).not.toContain('다시 연결');
+  });
   it('does not show upstream or arbitrary query text as an error', () => {
     const markup = render('/draft/ABCDEF2345?draft_error=private-upstream-details');
     expect(markup).not.toContain('private-upstream-details');

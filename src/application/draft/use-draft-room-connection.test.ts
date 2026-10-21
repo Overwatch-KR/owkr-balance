@@ -24,7 +24,7 @@ function ConnectionHarness() {
   return null;
 }
 
-async function setup() {
+async function setup(failureCode?: string) {
   vi.useFakeTimers();
   const sockets: FakeSocket[] = [];
   class FakeSocket {
@@ -40,12 +40,12 @@ async function setup() {
   }
   vi.stubGlobal('WebSocket', FakeSocket);
   vi.stubGlobal('window', { location: { href: 'https://site.invalid/draft/ROOM234567', hostname: 'site.invalid' } });
-  const fetcher = vi.fn(async () => ({ ok: true, json: async () => ({ ticket: 'ticket', expiresAt: Date.now() + 300000, realtimeUrl: 'https://draft.invalid' }) }));
+  const fetcher = vi.fn(async () => ({ ok: !failureCode, json: async () => failureCode ? { code: failureCode, error: '종료된 내전입니다.' } : ({ ticket: 'ticket', expiresAt: Date.now() + 300000, realtimeUrl: 'https://draft.invalid' }) }));
   vi.stubGlobal('fetch', fetcher);
   ConnectionHarness();
   for (const effect of harness.effects.splice(0)) { const dispose = effect(); if (dispose) cleanup.push(dispose); }
   await vi.advanceTimersByTimeAsync(0);
-  sockets[0].onopen?.();
+  sockets[0]?.onopen?.();
   return { sockets, fetcher };
 }
 
@@ -78,6 +78,23 @@ describe('draft connection replacement recovery', () => {
     app.sockets[0].onclose?.({ code: DRAFT_CONNECTION_REPLACED_CLOSE_CODE });
     await vi.advanceTimersByTimeAsync(360000);
     expect(app.fetcher).toHaveBeenCalledTimes(1);
+  });
+  it.each(['event', 'close-code', 'rejection'])('stops reconnect, ticket renewal and late updates after room closure via %s', async mode => {
+    const app = await setup();
+    if (mode === 'event') app.sockets[0].onmessage?.({ data: JSON.stringify({ type: 'room.closed' }) });
+    if (mode === 'rejection') app.sockets[0].onmessage?.({ data: JSON.stringify({ type: 'command.rejected', code: 'ROOM_CLOSED', message: '종료된 방입니다.' }) });
+    app.sockets[0].onclose?.({ code: mode === 'close-code' ? 4002 : 1006 });
+    app.sockets[0].onmessage?.({ data: JSON.stringify({ type: 'room.snapshot', streamId: 'late', streamSeq: 1,
+      epoch: 1, roomRevision: 2, payload: { epoch: 1, stageKind: null } }) });
+    await vi.advanceTimersByTimeAsync(360000);
+    expect(app.sockets).toHaveLength(1); expect(app.fetcher).toHaveBeenCalledTimes(1);
+    expect(harness.queryClient.setQueryData).not.toHaveBeenCalled();
+  });
+  it('recognizes a closed room during initial HTTP session recovery without opening a socket', async () => {
+    const app = await setup('ROOM_CLOSED');
+    await vi.advanceTimersByTimeAsync(360000);
+    expect(app.sockets).toHaveLength(0); expect(app.fetcher).toHaveBeenCalledTimes(1);
+    expect(harness.setters[6]).toHaveBeenCalledWith(true);
   });
   it('continues automatic recovery for an ordinary connection failure', async () => {
     const app = await setup();

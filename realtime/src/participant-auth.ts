@@ -76,7 +76,7 @@ export class DraftParticipantAuth {
       requireDraft(code.length > 0 && code.length <= 1024, 'INVALID_OAUTH_CALLBACK', 'Discord 인증 응답을 확인해 주세요.');
       return await this.authenticate(code, context);
     } catch (error) {
-      const allowed = ['NOT_PARTICIPANT', 'AUTH_CANCELLED', 'OAUTH_STATE_EXPIRED', 'ROOM_EXPIRED', 'INACTIVE_ROOM'];
+      const allowed = ['NOT_PARTICIPANT', 'AUTH_CANCELLED', 'OAUTH_STATE_EXPIRED', 'ROOM_EXPIRED', 'INACTIVE_ROOM', 'ROOM_CLOSED'];
       const reason = error instanceof DraftRuleError && allowed.includes(error.code) ? error.code : 'AUTH_FAILED';
       const redirect = new URL(`/draft/${roomCode ?? 'auth-error'}`, this.options.appOrigin);
       redirect.searchParams.set('draft_error', reason);

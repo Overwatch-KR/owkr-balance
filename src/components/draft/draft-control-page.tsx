@@ -5,6 +5,7 @@ import { DraftRoomPanel } from './draft-room-panel';
 export function DraftControlPage({ controller, onMatching }: { controller: DraftRoomController; onMatching: () => void }) {
   return <section>
     {!controller.snapshot && <PageHeader title="밴픽 운영" description="대진표에서 팀을 편성한 뒤 실시간 내전 방을 만들어 주세요." />}
+    {controller.roomClosed && <button type="button" className="btn-ghost mb-3 text-sm" onClick={onMatching}>대진표에서 새 내전 준비</button>}
     {controller.snapshot || controller.error ? <DraftRoomPanel controller={controller} admin /> : <div className="border-y border-slate-800 py-10 text-sm text-slate-400">
       <p>연결된 실시간 내전 방이 없습니다. 대진표에서 팀을 편성한 뒤 방을 만들어 주세요.</p>
       <button type="button" className="mt-4 min-h-10 rounded-md border border-slate-600 px-4 text-slate-200" onClick={onMatching}>대진표에서 준비</button>
@@ -13,6 +14,7 @@ export function DraftControlPage({ controller, onMatching }: { controller: Draft
 }
 
 export function DraftOperationBar({ controller, roomCode, onOpen }: { controller: DraftRoomController; roomCode: string; onOpen: () => void }) {
+  if (controller.roomClosed) return null;
   const snapshot = controller.snapshot;
   const problems = snapshot?.progress?.filter(player => player.connectionStatus !== 'CONNECTED' || !player.inputConnected
     || (snapshot.phase === 'LOBBY' && !player.ready)).map(player => player.displayName);

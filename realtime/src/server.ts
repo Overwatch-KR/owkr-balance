@@ -1,7 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { WebSocket, WebSocketServer } from 'ws';
-import { DRAFT_CONNECTION_REPLACED_CLOSE_CODE, DraftRuleError, requireDraft, emitDraftStreamEvent, type DraftStreamCursor } from '../../domains/draft/shared/public.js';
+import { DRAFT_CONNECTION_REPLACED_CLOSE_CODE, DRAFT_ROOM_CLOSED_CLOSE_CODE, DraftRuleError, requireDraft, emitDraftStreamEvent, type DraftStreamCursor } from '../../domains/draft/shared/public.js';
 import { DraftEngine, parseDraftCommand } from './engine.js';
 import { signDraftTicket, verifyDraftTicket } from './tickets.js';
 import type { RoomBundle } from './model.js';
@@ -164,10 +164,25 @@ export async function createRealtimeServer(options: RealtimeServerOptions) {
     socket.send(JSON.stringify({ type: force ? 'room.snapshot' : 'room.updated', ...result.envelope }));
   }
 
+  function closeRoomSockets(code: string): void {
+    for (const [id, client] of engine.clients) {
+      if (client.roomCode !== code) continue;
+      const socket = sockets.get(id);
+      if (socket?.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'room.closed' }));
+        socket.close(DRAFT_ROOM_CLOSED_CLOSE_CODE, 'room closed');
+        const timeout = setTimeout(() => socket.terminate(), 1000); timeout.unref();
+        socket.once('close', () => clearTimeout(timeout));
+      }
+    }
+  }
+
   async function publishRoom(code: string, forceConnectionId?: string): Promise<void> {
     const clients = [...engine.clients].filter(([, client]) => client.roomCode === code);
     if (clients.length === 0) return;
-    const bundle = await engine.requireRoom(code);
+    const bundle = await engine.store.load(code);
+    if (bundle?.room.timer.status === 'CANCELLED') { closeRoomSockets(code); return; }
+    if (!bundle) return;
     for (const [id] of clients) {
       try { await publish(id, id === forceConnectionId, bundle); }
       catch { sockets.get(id)?.close(1008, 'room access ended'); }
@@ -249,10 +264,12 @@ export async function createRealtimeServer(options: RealtimeServerOptions) {
           bucket[field]--; rates.set(rateKey, bucket);
           const result = await engine.command(id, command);
           socket.send(JSON.stringify({ type: 'command.ack', commandId: command.commandId, ...result }));
-          await publishRoom(client.roomCode);
+          if (command.type === 'room.close') closeRoomSockets(client.roomCode);
+          else await publishRoom(client.roomCode);
         } catch (error) {
           if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: 'command.rejected', commandId, ...errorBody(error) }));
-          if (!joined) socket.close(1008, 'authentication failed');
+          if (error instanceof DraftRuleError && error.code === 'ROOM_CLOSED') socket.close(DRAFT_ROOM_CLOSED_CLOSE_CODE, 'room closed');
+          else if (!joined) socket.close(1008, 'authentication failed');
         }
       }).finally(() => { pendingMessages--; });
     });
@@ -284,12 +301,14 @@ export async function createRealtimeServer(options: RealtimeServerOptions) {
           if (!healthy) await engine.recover();
           lastLeaseAt = Date.now(); healthy = true;
         }
+        for (const code of engine.drainClosedRooms()) closeRoomSockets(code);
         for (const [id, client] of engine.clients) {
           const socket = sockets.get(id);
           if (client.authExpiresAt <= Date.now() || Date.now() - client.lastResponseAt >= 45_000) socket?.terminate();
           else if (Date.now() - client.lastResponseAt >= 20_000) socket?.ping();
         }
         for (const code of await engine.store.listActiveRooms()) { await engine.tick(code); await publishRoom(code); }
+        for (const code of engine.drainClosedRooms()) closeRoomSockets(code);
         for (const [key, bucket] of rates) if (Date.now() - bucket.updatedAt > 60_000) rates.delete(key);
       } catch {
         healthy = false;

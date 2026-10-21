@@ -86,7 +86,7 @@ describe('local server persisted flow', () => {
     expect(await app.store.listActiveRooms()).toEqual([app.code]);
     await expect(app.engine.createRoom(app.ticket(), 'OTHER23456', 'create-1')).rejects.toThrow('다른 원본');
     app.advance(171 * 60_000);
-    expect(await app.engine.createRoom(app.ticket(), 'LOCAL23456', 'create-1')).toBe(app.code);
+    await expect(app.engine.createRoom(app.ticket(), 'LOCAL23456', 'create-1')).rejects.toMatchObject({ code: 'ROOM_CLOSED' });
   });
 
   it('blocks starting with nine ready participants, including an unready playing operator', async () => {
@@ -342,5 +342,163 @@ describe('POTG selection with the bundled catalog', () => {
     await app.engine.command('c0', command);
     expect((await app.engine.command('c0', command)).duplicate).toBe(true);
     await expect(app.engine.command('c1', parseDraftCommand({ commandId: 'old-ready', type: 'ready.set', epoch: view.epoch, expectedRevision: view.roomRevision, ready: true }))).rejects.toThrow('경기 세대');
+  });
+});
+
+
+describe('closing a draft room', () => {
+  const closeType = 'room.close' as DraftCommand['type'];
+  it('lets an operator close a room even after the source roster disappears and releases its active slot', async () => {
+    const app = await setup(); await app.readyAll();
+    const before = (await app.store.load(app.code))!;
+    app.store.setSource('LOCAL23456', null);
+    await app.run(0, closeType);
+    const closed = (await app.store.load(app.code))!;
+    expect(closed.room.timer).toMatchObject({ status: 'CANCELLED', deadlineAt: null, remainingMs: null });
+    expect(closed.history.activeRoomId).toBeNull();
+    expect(closed.room.expiresAt).toBe(before.room.expiresAt);
+    expect(closed.history.games).toEqual(before.history.games);
+    expect(closed.room.audit.at(-1)).toMatchObject({ actorId: app.ids[0], action: 'room.close', reason: '시험' });
+    expect(await app.store.listActiveRooms()).not.toContain(app.code);
+    await expect(app.engine.requireRoom(app.code)).rejects.toMatchObject({ code: 'ROOM_CLOSED' });
+    await expect(app.engine.connect(app.ticket(app.ids[1], app.code), 'late')).rejects.toMatchObject({ code: 'ROOM_CLOSED' });
+    await expect(app.engine.renew(app.ticket(app.ids[1], app.code), 'c1')).rejects.toMatchObject({ code: 'ROOM_CLOSED' });
+    await expect(app.run(1, 'ready.set')).rejects.toMatchObject({ code: 'ROOM_CLOSED' });
+    await expect(app.engine.createRoom(app.ticket(), 'LOCAL23456', 'create-1')).rejects.toMatchObject({ code: 'ROOM_CLOSED' });
+    await app.engine.disconnect('c1');
+    expect((await app.store.load(app.code))!.room.timer.status).toBe('CANCELLED');
+    const fresh = new DraftEngine(app.store, app.catalogs);
+    await fresh.recover();
+    await expect(fresh.requireRoom(app.code)).rejects.toMatchObject({ code: 'ROOM_CLOSED' });
+  });
+  it('rejects participants, stale revisions and missing closure reasons without changing the room', async () => {
+    const app = await setup(); await app.readyAll();
+    await expect(app.run(1, closeType)).rejects.toMatchObject({ code: 'OPERATOR_REQUIRED' });
+    await expect(app.run(0, closeType, { expectedRevision: -1 })).rejects.toMatchObject({ code: 'CONFLICT' });
+    await expect(app.run(0, closeType, { reason: '' })).rejects.toMatchObject({ code: 'REASON_REQUIRED' });
+    expect((await app.engine.requireRoom(app.code)).room.timer.status).toBe('ACTIVE');
+  });
+  it('does not reopen a closed room through stale stored writes and permits a new independent room', async () => {
+    const app = await setup(); await app.readyAll();
+    const stale = (await app.store.load(app.code))!;
+    await app.run(0, closeType);
+    await expect(app.store.commit(stale, { expectedRoomRevision: stale.room.revision,
+      expectedHistoryRevision: stale.history.mapHistoryRevision })).rejects.toMatchObject({ code: 'ROOM_CLOSED' });
+    const newCode = await app.engine.createRoom(app.ticket(), 'LOCAL23456', 'new-room');
+    expect(newCode).not.toBe(app.code);
+    expect(await app.store.listActiveRooms()).toEqual([newCode]);
+  });
+  it('requires a playing game to finish first and preserves recorded game and map history', async () => {
+    const app = await setup(); await app.readyAll(); await app.run(0, 'draft.start');
+    await app.lockAll([]); await app.engine.tick(app.code); app.advance(3000); await app.engine.tick(app.code);
+    await app.lockAll([]); await app.engine.tick(app.code); await app.run(0, 'game.confirmApplied');
+    await app.run(0, 'game.markStarted');
+    await expect(app.run(0, closeType)).rejects.toMatchObject({ code: 'GAME_NOT_CLOSED' });
+    await app.run(0, 'game.markFinished');
+    const before = (await app.store.load(app.code))!;
+    await app.run(0, closeType);
+    expect((await app.store.load(app.code))!.history.games).toEqual(before.history.games);
+  });
+  it('acknowledges the exact close command retry without accepting a different command', async () => {
+    const app = await setup(); await app.readyAll();
+    const { room } = await app.engine.requireRoom(app.code);
+    const command = parseDraftCommand({ type: closeType, commandId: 'close-retry', epoch: room.epoch,
+      expectedRevision: room.revision, reason: '내전 종료' });
+    const first = await app.engine.command('c0', command);
+    expect(await app.engine.command('c0', command)).toEqual({ revision: first.revision, duplicate: true });
+    await expect(app.engine.command('c0', { ...command, commandId: 'another-close' })).rejects.toMatchObject({ code: 'ROOM_CLOSED' });
+  });
+});
+
+
+describe('automatic idle room closure', () => {
+  const idleMs = 2 * 60 * 60 * 1000;
+  it('closes exactly at two idle hours and preserves history and fixed expiration', async () => {
+    const app = await setup();
+    const before = (await app.store.load(app.code))!;
+    app.advance(idleMs - 1); await app.engine.tick(app.code);
+    expect((await app.store.load(app.code))!.room.timer.status).toBe('ACTIVE');
+    app.advance(1); await app.engine.tick(app.code);
+    const closed = (await app.store.load(app.code))!;
+    expect(closed.room.timer.status).toBe('CANCELLED');
+    expect(closed.history.activeRoomId).toBeNull();
+    expect(closed.history.games).toEqual(before.history.games);
+    expect(closed.room.expiresAt).toBe(before.room.expiresAt);
+    expect(closed.room.audit.at(-1)).toMatchObject({ actorId: 'system', action: 'room.close.idle' });
+    expect(await app.store.listActiveRooms()).toEqual([]);
+    await app.engine.tick(app.code);
+    expect((await app.store.load(app.code))!.room.audit).toHaveLength(1);
+  });
+  it('renews idle time on an accepted command but not reads, reconnects or ticket renewal', async () => {
+    const app = await setup(); await app.readyAll();
+    app.advance(30 * 60_000); await app.connect(0); await app.run(0, 'ready.set', { ready: false });
+    const active = (await app.store.load(app.code))!;
+    expect(active.room).toHaveProperty('lastActivityAt', active.now);
+    app.advance(idleMs - 1); await app.connect(0);
+    await app.engine.renew(app.ticket(app.ids[0], app.code), 'c0');
+    await app.engine.snapshot('c0'); await app.engine.tick(app.code);
+    expect((await app.store.load(app.code))!.room).toHaveProperty('lastActivityAt', active.now);
+    app.advance(1); await app.engine.tick(app.code);
+    expect((await app.store.load(app.code))!.room.timer.status).toBe('CANCELLED');
+  });
+  it('does not extend idle time for replayed commands or source changes', async () => {
+    const app = await setup(); await app.connect(0);
+    const { room } = await app.engine.requireRoom(app.code);
+    const command = parseDraftCommand({ type: 'ready.set', commandId: 'idle-retry', epoch: room.epoch,
+      expectedRevision: room.revision, ready: true });
+    await app.engine.command('c0', command);
+    app.advance(60 * 60_000); await app.connect(0);
+    expect((await app.engine.command('c0', command)).duplicate).toBe(true);
+    app.store.setSource('LOCAL23456', null); await app.engine.tick(app.code);
+    expect((await app.store.load(app.code))!.room.timer.status).toBe('ROSTER_CHANGED');
+    app.advance(60 * 60_000); await app.engine.tick(app.code);
+    expect((await app.store.load(app.code))!.room.timer.status).toBe('CANCELLED');
+  });
+  it('closes idle rooms during recovery and before issuing fresh access without resurrecting them', async () => {
+    const app = await setup(); app.advance(idleMs);
+    await expect(app.engine.connect(app.ticket(app.ids[0], app.code), 'late')).rejects.toMatchObject({ code: 'ROOM_CLOSED' });
+    const other = await setup(); other.advance(idleMs);
+    const engine = new DraftEngine(other.store, other.catalogs); await engine.recover();
+    expect((await other.store.load(other.code))!.room.timer.status).toBe('CANCELLED');
+    expect(await other.store.listActiveRooms()).toEqual([]);
+  });
+  it('uses stored command history for legacy rooms without a last activity field', async () => {
+    const app = await setup(); await app.connect(0);
+    app.advance(30 * 60_000); await app.connect(0); await app.run(0, 'ready.set');
+    const legacy = (await app.store.load(app.code))!;
+    delete (legacy.room as typeof legacy.room & { lastActivityAt?: number }).lastActivityAt;
+    const revision = legacy.room.revision++;
+    await app.store.commit(legacy, { expectedRoomRevision: revision, expectedHistoryRevision: legacy.history.mapHistoryRevision });
+    app.advance(idleMs - 1); await app.engine.tick(app.code);
+    expect((await app.store.load(app.code))!.room.timer.status).toBe('ACTIVE');
+    app.advance(1); await app.engine.tick(app.code);
+    expect((await app.store.load(app.code))!.room.timer.status).toBe('CANCELLED');
+  });
+  it('rejects activity that reaches storage at the idle boundary instead of reviving the room', async () => {
+    const app = await setup(); await app.connect(0); app.advance(idleMs - 1); await app.connect(0);
+    const commit = app.store.commit.bind(app.store);
+    app.store.commit = async (bundle, guard) => { app.advance(1); return commit(bundle, guard); };
+    await expect(app.run(0, 'ready.set')).rejects.toMatchObject({ code: 'ROOM_CLOSED' });
+    await app.engine.tick(app.code);
+    expect((await app.store.load(app.code))!.room.timer.status).toBe('CANCELLED');
+  });
+  it('stamps ballot activity at the accepted storage time', async () => {
+    const app = await setup(); await app.readyAll(); await app.run(0, 'draft.start');
+    const commit = app.store.commit.bind(app.store);
+    app.store.commit = async (bundle, guard) => { app.advance(250); return commit(bundle, guard); };
+    const ack = await app.run(0, 'ballot.save');
+    const bundle = (await app.store.load(app.code))!;
+    expect(bundle.room).toHaveProperty('lastActivityAt', ack.acceptedAt);
+    expect(bundle.room).toHaveProperty('lastActivityAt', bundle.now);
+  });
+  it('also closes forgotten playing rooms without fabricating a game finish record', async () => {
+    const app = await setup(); await app.readyAll(); await app.run(0, 'draft.start');
+    await app.lockAll([]); await app.engine.tick(app.code); app.advance(3000); await app.engine.tick(app.code);
+    await app.lockAll([]); await app.engine.tick(app.code); await app.run(0, 'game.confirmApplied'); await app.run(0, 'game.markStarted');
+    const before = (await app.store.load(app.code))!;
+    app.advance(idleMs); await app.engine.tick(app.code);
+    const closed = (await app.store.load(app.code))!;
+    expect(closed.room.timer.status).toBe('CANCELLED');
+    expect(closed.history.games).toEqual(before.history.games);
   });
 });

@@ -107,6 +107,40 @@ describe('realtime HTTP and WebSocket transport', () => {
     } finally { for (const socket of sockets) socket.terminate(); }
   });
 
+  it.each(['manual', 'idle'] as const)('closes every socket and keeps service healthy after %s closure', async mode => {
+    const app = await setup();
+    const created = await app.post('/v1/rooms', { sourceId: 'LOCAL23456', commandId: 'close-room-test' });
+    const { roomCode } = await created.json() as { roomCode: string };
+    const sockets: WebSocket[] = [];
+    try {
+      for (const identity of app.fixture.identities.slice(0, 2)) {
+        const now = Math.floor(Date.now() / 1000);
+        const ticket = signDraftTicket({ iss: 'owkr-realtime', purpose: 'realtime-entry', sub: identity.discordUserId,
+          displayName: '시험', roomCode, scope: 'join', iat: now, exp: now + 300 }, keys.privateKey);
+        const socket = new WebSocket(`${app.base.replace('http:', 'ws:')}/v1/socket`, { origin }); sockets.push(socket);
+        await new Promise<void>((resolve, reject) => {
+          socket.once('error', reject); socket.once('open', () => socket.send(JSON.stringify({ type: 'auth', ticket })));
+          socket.once('message', data => JSON.parse(data.toString()).type === 'room.snapshot' ? resolve() : reject(new Error(data.toString())));
+        });
+      }
+      const messages = sockets.map(() => [] as string[]);
+      sockets.forEach((socket, index) => socket.on('message', data => messages[index].push(JSON.parse(data.toString()).type)));
+      const closed = sockets.map(socket => new Promise<number>(resolve => socket.once('close', resolve)));
+      const { room } = await app.engine.requireRoom(roomCode);
+      if (mode === 'manual') sockets[0].send(JSON.stringify({ type: 'room.close', commandId: 'close-actual', epoch: room.epoch,
+        expectedRevision: room.revision, reason: '내전 종료' }));
+      else app.fixture.store.now = () => Date.now() + 2 * 60 * 60 * 1000;
+      expect(await Promise.all(closed)).toEqual([4002, 4002]);
+      expect(messages[0].slice(mode === 'manual' ? -2 : -1)).toEqual(mode === 'manual' ? ['command.ack', 'room.closed'] : ['room.closed']);
+      expect(messages[1]).toContain('room.closed');
+      expect(await app.fixture.store.listActiveRooms()).toEqual([]);
+      const denied = await app.post('/v1/entry', {}, app.ticket(roomCode));
+      expect(denied.status).toBe(400); expect(await denied.json()).toMatchObject({ code: 'ROOM_CLOSED' });
+      await new Promise(resolve => setTimeout(resolve, 1100));
+      expect((await fetch(`${app.base}/health/ready`)).status).toBe(200);
+    } finally { for (const socket of sockets) socket.terminate(); }
+  }, 8000);
+
   it('keeps authenticated arrivals and the writer lease alive while commands wait', async () => {
     const app = await setup();
     const created = await app.post('/v1/rooms', { sourceId: 'LOCAL23456', commandId: 'queued-auth' });

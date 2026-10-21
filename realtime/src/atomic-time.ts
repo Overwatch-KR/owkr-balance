@@ -7,6 +7,7 @@ export function stampAtomicTimes(bundle: RoomBundle, now: number): void {
     bundle.room.timer.deadlineAt = now + DRAFT_LIMITS.mapRevealMs;
   }
   const stamp = <T>(value: T): T => JSON.parse(JSON.stringify(value)
+    .replaceAll('"lastActivityAt":-1', `"lastActivityAt":${now}`)
     .replaceAll('"acceptedAt":-1', `"acceptedAt":${now}`)
     .replaceAll('"sealedAt":-1', `"sealedAt":${now}`)
     .replaceAll('"startedAt":-1', `"startedAt":${now}`)

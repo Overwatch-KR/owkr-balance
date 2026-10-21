@@ -10,6 +10,7 @@ import { DraftBanResult } from './draft-ban-result';
 import { DraftRoomHeader } from './draft-room-header';
 import { DraftConnectionStatus } from './draft-connection-status';
 import { DraftOperatorActions } from './draft-operator-actions';
+import { DraftClosedRoom } from './draft-closed-room';
 import type { DraftRoomController } from '@application/draft/use-draft-room';
 
 const ROLE_LABELS = { TANK: '탱커', DPS: '공격', SUPPORT: '지원' } as const;
@@ -22,6 +23,7 @@ export function DraftRoomPanel({ controller, admin = false }: { controller: Draf
   const execute = (type: string, values?: Record<string, unknown>) => {
     setNotice(''); void controller.command(type, values).catch(error => setNotice(error instanceof Error ? error.message : '진행하지 못했습니다.'));
   };
+  if (controller.roomClosed) return <DraftClosedRoom />;
   if (!snapshot) return <div className="border-y border-slate-800 py-6"><DraftConnectionStatus controller={controller} /></div>;
   const self = snapshot.participants.find(player => player.discordId === snapshot.selfDiscordId);
   const controlsDisabled = !controller.connected || controller.pending;
