@@ -72,7 +72,7 @@ export function DraftSelection({ controller, onNotice }: { controller: DraftRoom
       <div className="draft-nameplates">{team.map(player => {
         const isSelf = player.discordId === snapshot.selfDiscordId;
         const ballot = isSelf ? { ...self, selection, locked: confirmed } : snapshot.ballots?.teammates.find(entry => entry.discordId === player.discordId);
-        const ranks = isBan ? [2, 1, 0] : [0];
+        const ranks = isBan ? [0, 1, 2] : [0];
         return <div key={player.discordId} aria-label={`${player.displayName}${isSelf ? ' 내 선택' : ' 선택 현황'}`}
           className={`draft-nameplate ${isSelf ? 'draft-nameplate-self' : ''} min-w-0 rounded-md border ${isSelf ? 'border-cyan-500/60 bg-cyan-500/[0.06]' : 'border-slate-800 bg-surface-elevated'}`}>
           <div className="flex items-center justify-between gap-2"><p className="draft-player-name truncate font-semibold text-slate-100">{player.displayName}{isSelf && <span className="ml-1.5 text-[10px] text-cyan-300">나</span>}</p>

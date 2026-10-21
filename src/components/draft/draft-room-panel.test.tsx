@@ -38,11 +38,14 @@ function render(content: React.ReactNode) {
 }
 
 describe('draft selection and ban results', () => {
-  it('본인과 팀원의 이름 아래에 3,2,1순위 초상화를 각자의 표대로 표시한다', () => {
+  it('본인과 팀원의 이름 아래에 1,2,3순위 초상화를 각자의 표대로 표시한다', () => {
     const markup = render(<DraftSelection controller={{ snapshot: snapshot(), connected: true, pending: false, error: '', command: vi.fn(), reconnect: vi.fn() }} />);
     const self = markup.slice(markup.indexOf('aria-label="하늘 내 선택"'), markup.indexOf('aria-label="별빛 선택 현황"'));
-    expect(self.indexOf('src="/hero/test/sombra.webp"')).toBeLessThan(self.indexOf('src="/hero/test/dva.webp"'));
-    expect(self.indexOf('src="/hero/test/dva.webp"')).toBeLessThan(self.indexOf('src="/hero/test/ana.webp"'));
+    expect(self.indexOf('src="/hero/test/ana.webp"')).toBeLessThan(self.indexOf('src="/hero/test/dva.webp"'));
+    expect(self.indexOf('src="/hero/test/dva.webp"')).toBeLessThan(self.indexOf('src="/hero/test/sombra.webp"'));
+    const ally = markup.slice(markup.indexOf('aria-label="별빛 선택 현황"'), markup.indexOf('class="draft-candidates"'));
+    expect(ally.indexOf('aria-label="별빛 1순위: D.Va"')).toBeLessThan(ally.indexOf('aria-label="별빛 2순위: 솜브라"'));
+    expect(ally.indexOf('aria-label="별빛 2순위: 솜브라"')).toBeLessThan(ally.indexOf('aria-label="별빛 3순위: 아나"'));
     expect(self).not.toMatch(/>\s*[123]\s*<\//);
     expect(markup).toContain('aria-label="별빛 3순위: 아나"');
     expect(markup).not.toContain('상대 선택 현황');

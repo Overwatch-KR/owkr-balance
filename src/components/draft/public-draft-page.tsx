@@ -43,7 +43,7 @@ export function PublicDraftPage() {
         <p className="mt-3 text-sm text-slate-400">공유받은 내전 링크를 다시 열어 주세요. 링크가 없거나 방이 만료되었다면 운영자에게 새 링크를 요청해 주세요.</p>
       </section> : controller.snapshot
         ? <DraftRoomPanel controller={controller} />
-        : <DraftParticipantEntry pending={pending} error={error || controller.error} login={login} authFailure={authFailure} reconnect={() => { setAuthFailure(''); controller.reconnect(); }} />}
+        : <DraftParticipantEntry pending={pending} error={error || (controller.error === 'Discord로 참여해 주세요.' ? '' : controller.error)} login={login} authFailure={authFailure} reconnect={() => { setAuthFailure(''); controller.reconnect(); }} />}
       <footer className="mt-2 shrink-0 text-center text-[10px] text-slate-600">Overwatch © Blizzard Entertainment</footer>
     </div>
   </main>;
