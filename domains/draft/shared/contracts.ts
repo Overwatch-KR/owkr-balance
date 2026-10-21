@@ -1,4 +1,4 @@
-import type { BallotKind } from './ballots.js';
+import type { BallotKind, BallotStage } from './ballots.js';
 import type { HeroResolution } from './heroes.js';
 import type { DraftTimer } from './lifecycle.js';
 import type { MapCandidateSnapshot, MapResolution } from './maps.js';
@@ -29,6 +29,7 @@ export interface DraftRoomSnapshot {
   inputConnected: boolean;
   heroes: readonly DraftHero[];
   stageKind: BallotKind | null;
+  stageStatus?: BallotStage['status'];
   candidates: MapCandidateSnapshot | null;
   mapResult: MapResolution | null;
   heroResult: HeroResolution | null;

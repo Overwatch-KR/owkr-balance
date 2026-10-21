@@ -11,19 +11,17 @@ export interface DraftTimer {
 
 export interface DraftTimings {
   mapVotingSeconds: number;
-  preferenceSeconds: number;
   heroVotingSeconds: number;
 }
 
 export const DEFAULT_DRAFT_TIMINGS: Readonly<DraftTimings> = {
-  mapVotingSeconds: 20, preferenceSeconds: 10, heroVotingSeconds: 30,
+  mapVotingSeconds: 20, heroVotingSeconds: 30,
 };
 
 export function validateDraftTimings(timings: DraftTimings): void {
   requireDraft(Number.isInteger(timings.mapVotingSeconds) && timings.mapVotingSeconds >= 10 && timings.mapVotingSeconds <= 60
-    && Number.isInteger(timings.preferenceSeconds) && timings.preferenceSeconds >= 5 && timings.preferenceSeconds <= 30
     && Number.isInteger(timings.heroVotingSeconds) && timings.heroVotingSeconds >= 10 && timings.heroVotingSeconds <= 90,
-  'INVALID_TIMINGS', '맵 10~60초·선호 5~30초·밴 10~90초 범위를 확인해 주세요.');
+  'INVALID_TIMINGS', '맵 10~60초·밴 10~90초 범위를 확인해 주세요.');
 }
 
 export function pauseDraftTimer(timer: DraftTimer, now: number, recovery = false): DraftTimer {

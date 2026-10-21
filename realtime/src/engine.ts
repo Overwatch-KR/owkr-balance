@@ -1,6 +1,6 @@
 import { randomBytes, randomUUID, randomInt } from 'node:crypto';
 import {
-  applyBallotCommand, createDraftHistory, createMapCandidates, DEFAULT_DRAFT_TIMINGS,
+  applyBallotCommand, createDraftHistory, createMapCandidates, DEFAULT_DRAFT_TIMINGS, DRAFT_RULES_VERSION,
   getDraftRoomExpiry, getOperatorParticipantStatuses, getDraftStartBlockers, hasConnectedOperator,
   isConnectionAlive, isDraftOperator, pauseDraftTimer, projectDraftBallots, requireDraft,
   getUsedDraftMapIds, getEligibleDraftMaps, resolvePotgMap, resolveHeroBans, resolveMapVote, resumeDraftTimer, sealBallotStage, validateDraftSource,
@@ -117,7 +117,7 @@ export class DraftEngine {
       progress: emptyProgress(source.participants), presenceHistory: [], mapCatalog: structuredClone(this.catalogs.maps),
       heroCatalog: structuredClone(this.catalogs.heroes), candidates: null, mapResult: null, heroResult: null,
       mapSelection: { mode: 'VOTE', pickerDiscordId: null },
-      preferenceBallots: null, stage: null, receipts: [], audit: [],
+      stage: null, receipts: [], audit: [],
     };
     return this.store.create(room, history, raw, commandId);
   }
@@ -201,8 +201,8 @@ export class DraftEngine {
 
   private newStage(room: DraftRoomRecord, kind: BallotKind, now: number): void {
     const seconds = kind === 'MAP' ? DEFAULT_DRAFT_TIMINGS.mapVotingSeconds
-      : kind === 'PREFERENCE' ? DEFAULT_DRAFT_TIMINGS.preferenceSeconds : DEFAULT_DRAFT_TIMINGS.heroVotingSeconds;
-    room.phase = kind === 'MAP' ? 'MAP_VOTING' : kind === 'PREFERENCE' ? 'HERO_PREFERENCE' : 'HERO_VOTING';
+      : DEFAULT_DRAFT_TIMINGS.heroVotingSeconds;
+    room.phase = kind === 'MAP' ? 'MAP_VOTING' : 'HERO_VOTING';
     const deadlineAt = now + seconds * 1000;
     room.stage = {
       roomId: room.roomCode, gameId: room.gameId, epoch: room.epoch, kind, status: 'OPEN', deadlineAt,
@@ -334,7 +334,7 @@ export class DraftEngine {
         map: structuredClone(room.mapResult.map), firstAttackTeam: room.mapResult.firstAttackTeam,
         heroCatalogVersion: room.heroCatalog.approval.version, mapCatalogVersion: room.mapCatalog.approval.version,
         mapSelection: structuredClone(room.mapSelection),
-        rulesVersion: 'owkr-competitive-v1', bans: room.heroResult.bannedHeroIds.map(id => ({ ...room.heroCatalog.entries.find(hero => hero.heroId === id)! })),
+        rulesVersion: DRAFT_RULES_VERSION, bans: room.heroResult.bannedHeroIds.map(id => ({ ...room.heroCatalog.entries.find(hero => hero.heroId === id)! })),
         playStatus: 'NOT_STARTED', startedAt: null, finishedAt: null,
       }];
       room.phase = 'COMPLETED'; room.timer = { ...room.timer, phase: 'COMPLETED', deadlineAt: null };
@@ -375,7 +375,7 @@ export class DraftEngine {
 
   private reset(room: DraftRoomRecord): void {
     room.epoch++; room.phase = 'LOBBY'; room.fixedRoster = null;
-    room.stage = null; room.preferenceBallots = null; room.candidates = null; room.mapResult = null; room.heroResult = null;
+    room.stage = null; room.candidates = null; room.mapResult = null; room.heroResult = null;
     room.progress = emptyProgress(room.source.participants);
     room.timer = { phase: 'LOBBY', status: 'ACTIVE', deadlineAt: null, remainingMs: null, expiresAt: room.expiresAt, epoch: room.epoch };
   }
@@ -413,7 +413,7 @@ export class DraftEngine {
         && !this.usedMaps(bundle).includes(map.canonicalMapId)).map(map => map.canonicalMapId)).size,
       availableMaps: getEligibleDraftMaps(room.mapCatalog, this.usedMaps(bundle)), mapSelection: { ...room.mapSelection },
       heroes: room.heroCatalog.entries.filter(hero => hero.active).map(hero => ({ ...hero })),
-      stageKind: room.stage?.kind ?? null,
+      stageKind: room.stage?.kind ?? null, stageStatus: room.stage?.status,
       participants: roster(room).map(player => ({ ...player })), progress: operator ? this.statuses(bundle, client.discordId) : undefined,
       inputConnected: client.input, candidates: room.candidates, mapResult: room.mapResult, heroResult: room.heroResult,
       ballots: room.stage && bundle.source?.rosterHash === room.source.rosterHash ? projectDraftBallots({ viewerId: client.discordId, operators: history.operators,
@@ -457,19 +457,15 @@ export class DraftEngine {
         room.mapResult = resolveMapVote(room.candidates!, ballots.map(ballot => ballot.selection[0] ?? null), history.mapHistoryRevision, stage.sealed!.entropy);
         room.phase = 'MAP_RESOLVED'; room.stage = null;
         room.timer = { ...room.timer, phase: room.phase, deadlineAt: -1 };
-      } else if (stage.kind === 'PREFERENCE') {
-        room.preferenceBallots = structuredClone(stage); this.newStage(room, 'BAN', now);
       } else {
         room.heroResult = resolveHeroBans({ resolutionId: stage.sealed!.resolutionId, catalog: room.heroCatalog,
-          participants: roster(room), ballots: ballots.map(ballot => ({ discordId: ballot.discordId, ranking: ballot.selection,
-            preferredHeroId: room.preferenceBallots?.sealed?.ballots.find(preferred => preferred.discordId === ballot.discordId)?.selection[0] ?? null,
-          })), entropy: stage.sealed!.entropy });
+          participants: roster(room), ballots: ballots.map(ballot => ({ discordId: ballot.discordId, ranking: ballot.selection })), entropy: stage.sealed!.entropy });
         room.phase = 'HERO_RESOLVED'; room.stage = null; room.timer = { ...room.timer, phase: room.phase, deadlineAt: null };
       }
       await this.save(bundle); return;
     }
     if (room.phase === 'MAP_RESOLVED' && room.timer.deadlineAt !== null && now >= room.timer.deadlineAt) {
-      this.newStage(room, 'PREFERENCE', now); await this.save(bundle);
+      this.newStage(room, 'BAN', now); await this.save(bundle);
     }
   }
 
@@ -477,6 +473,14 @@ export class DraftEngine {
     for (const code of await this.store.listActiveRooms()) {
       const bundle = await this.requireRoom(code);
       this.recoveryUntilByRoom.set(code, bundle.now + 45_000);
+      if ((bundle.room.phase as string) === 'HERO_PREFERENCE') {
+        const status = bundle.room.timer.status;
+        bundle.room.epoch++;
+        this.newStage(bundle.room, 'BAN', bundle.now);
+        if (['CANCELLED', 'EXPIRED', 'ROSTER_CHANGED'].includes(status)) {
+          bundle.room.timer = { ...bundle.room.timer, status, deadlineAt: null };
+        }
+      }
       if (bundle.room.phase !== 'LOBBY' && bundle.room.phase !== 'COMPLETED') {
         bundle.room.timer = pauseDraftTimer(bundle.room.timer, bundle.now, true);
         if (bundle.room.stage?.status === 'OPEN') bundle.room.stage.status = 'PAUSED';

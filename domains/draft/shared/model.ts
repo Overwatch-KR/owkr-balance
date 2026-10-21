@@ -1,7 +1,7 @@
 export type DraftTeam = 'A' | 'B';
 export type DraftRole = 'TANK' | 'DPS' | 'SUPPORT';
 export type MapMode = 'CONTROL' | 'HYBRID' | 'ESCORT' | 'PUSH' | 'FLASHPOINT';
-export type DraftPhase = 'LOBBY' | 'MAP_VOTING' | 'MAP_PICKING' | 'MAP_RESOLVED' | 'HERO_PREFERENCE'
+export type DraftPhase = 'LOBBY' | 'MAP_VOTING' | 'MAP_PICKING' | 'MAP_RESOLVED'
   | 'HERO_VOTING' | 'HERO_RESOLVED' | 'COMPLETED';
 export type PlayStatus = 'NOT_STARTED' | 'PLAYING' | 'FINISHED' | 'ABORTED_PLAYED' | 'NOT_PLAYED';
 
@@ -62,7 +62,7 @@ export interface DraftActor {
   displayName: string;
 }
 
-export const DRAFT_RULES_VERSION = 'owkr-competitive-v1';
+export const DRAFT_RULES_VERSION = 'owkr-map-ban-v2';
 export const DRAFT_LIMITS = {
   mapRevealMs: 3000,
   roomLifetimeMs: 3 * 60 * 60 * 1000,
@@ -72,7 +72,6 @@ export const DRAFT_LIMITS = {
   maxBans: 4,
   maxTeamBans: 2,
   maxRoleBans: 2,
-  preferenceDeduction: 3,
   rankPoints: [7, 5, 3],
 } as const;
 

@@ -31,7 +31,6 @@ export interface DraftRoomRecord {
   candidates: MapCandidateSnapshot | null;
   mapResult: MapResolution | null;
   heroResult: HeroResolution | null;
-  preferenceBallots: BallotStage | null;
   stage: BallotStage | null;
   receipts: readonly RoomReceipt[];
   audit: readonly { actorId: string; action: string; at: number; reason: string; revision: number }[];

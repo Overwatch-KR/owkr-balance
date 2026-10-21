@@ -154,8 +154,6 @@ try {
   };
   const reveal = await waitForPhase('MAP_RESOLVED');
   assert.ok(reveal.room.timer.deadlineAt > reveal.now && reveal.room.timer.deadlineAt <= reveal.now + 3000);
-  await waitForPhase('HERO_PREFERENCE');
-  await Promise.all(sockets.map(socket => send(socket, 'ballot.lock')));
   await waitForPhase('HERO_VOTING');
   const selection = ['TANK', 'DPS', 'SUPPORT'].map(role => fixture.catalogs.heroes.entries.find(hero => hero.role === role && hero.active).heroId);
   await Promise.all(sockets.map(socket => send(socket, 'ballot.lock', selection)));
@@ -215,7 +213,7 @@ try {
     acknowledgedCommands: timings.length, commandMs: { median: Math.round(timings[Math.floor(timings.length / 2)]),
       p95: Math.round(timings[Math.floor(timings.length * .95)]), max: Math.round(timings.at(-1)) },
     checks: ['actual Redis Lua', 'isolated namespace', 'idempotent creation', base.startsWith('https:') ? '10 TLS WebSockets' : '10 loopback WebSockets', '10 simultaneous locked ballots',
-      '3 second map reveal', 'preference and hero bans', 'game start and finish', 'next game excludes played map', 'fixed expiry', 'revision conflict', 'restart recovery paused', 'sealed resolution preserved',
+      '3 second map reveal', 'hero bans without preference', 'game start and finish', 'next game excludes played map', 'fixed expiry', 'revision conflict', 'restart recovery paused', 'sealed resolution preserved',
       'expired authentication rejected', 'late ballot rejected', 'stale source write rejected', 'fresh source revision', 'removed identity rejected', 'missing history rejected'],
     rssMiB: Math.round(process.memoryUsage().rss / 1048576) }, null, 2));
 } finally {

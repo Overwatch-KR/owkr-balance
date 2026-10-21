@@ -15,14 +15,36 @@ function command(overrides: Partial<BallotCommand> = {}): BallotCommand {
 const operators = { ownerId: players[0].discordId, coOperatorId: players[5].discordId, operatorRevision: 1 };
 
 describe('ballot atomic calculation contract', () => {
-  it('replaces final selection and locks it together before a delayed draft arrives', () => {
-    const original = stage();
-    const saved = applyBallotCommand(original, command(), connection, NOW).stage;
-    const locked = applyBallotCommand(saved, command({ commandId: 'lock', expectedBallotRevision: 1,
-      selection: ['h2', 'h1'], lock: true }), connection, NOW + 1).stage;
-    expect(locked.ballots[0]).toMatchObject({ selection: ['h2', 'h1'], locked: true, ballotRevision: 2 });
-    expect(() => applyBallotCommand(locked, command({ commandId: 'late', expectedBallotRevision: 1 }), connection, NOW + 2)).toThrow('확정');
+  it('keeps map confirmation immutable before a delayed draft arrives', () => {
+    const original = stage('MAP');
+    const saved = applyBallotCommand(original, command({ kind: 'MAP' }), connection, NOW).stage;
+    const locked = applyBallotCommand(saved, command({ kind: 'MAP', commandId: 'lock', expectedBallotRevision: 1,
+      selection: ['h1'], lock: true }), connection, NOW + 1).stage;
+    expect(locked.ballots[0]).toMatchObject({ selection: ['h1'], locked: true, ballotRevision: 2 });
+    expect(() => applyBallotCommand(locked, command({ kind: 'MAP', commandId: 'late', expectedBallotRevision: 1 }), connection, NOW + 2)).toThrow('확정');
     expect(original.ballots[0].selection).toEqual([]);
+  });
+  it('unreadies a three-pick ballot when cleared and readies its updated third pick', () => {
+    const request = command({ selection: ['h0', 'h1', 'h2'], lock: false });
+    const result = applyBallotCommand(stage(), request, connection, NOW);
+    expect(result.receipt.ballot).toMatchObject({ locked: true, selection: ['h0', 'h1', 'h2'] });
+    expect(applyBallotCommand(result.stage, request, connection, NOW + 1).duplicate).toBe(true);
+    const removed = applyBallotCommand(result.stage, command({ commandId: 'remove', expectedBallotRevision: 1,
+      selection: ['h0', '', 'h2'] }), connection, NOW + 1).stage;
+    expect(removed.ballots[0]).toMatchObject({ locked: false, selection: ['h0', '', 'h2'] });
+    const refilled = applyBallotCommand(removed, command({ commandId: 'refill', expectedBallotRevision: 2,
+      selection: ['h0', 'h2', 'h1'] }), connection, NOW + 2).stage;
+    expect(refilled.ballots[0]).toMatchObject({ locked: true, selection: ['h0', 'h2', 'h1'] });
+    const sealed = sealBallotStage(refilled, 'closed', NOW + 20_000, rolls);
+    expect(() => applyBallotCommand(sealed, command({ commandId: 'late-edit', expectedBallotRevision: 3, selection: [] }), connection, NOW + 20_000)).toThrow('마감');
+  });
+  it('keeps two bans editable until the participant explicitly confirms', () => {
+    const saved = applyBallotCommand(stage(), command({ selection: ['h0', 'h1'] }), connection, NOW).stage;
+    expect(saved.ballots[0].locked).toBe(false);
+    const cleared = applyBallotCommand(saved, command({ commandId: 'clear', expectedBallotRevision: 1, selection: [] }), connection, NOW + 1).stage;
+    expect(cleared.ballots[0]).toMatchObject({ locked: false, selection: [] });
+    const locked = applyBallotCommand(cleared, command({ commandId: 'confirm', expectedBallotRevision: 2, selection: ['h0', 'h1'], lock: true }), connection, NOW + 2).stage;
+    expect(locked.ballots[0]).toMatchObject({ locked: true, selection: ['h0', 'h1'] });
   });
   it('reuses receipts for the same command and rejects different content', () => {
     const result = applyBallotCommand(stage(), command(), connection, NOW);

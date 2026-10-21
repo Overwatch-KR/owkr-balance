@@ -30,7 +30,7 @@ async function setup(options: { realCatalogs?: boolean } = {}) {
 }
 
 describe('local server persisted flow', () => {
-  it('completes ten-person map/preference/ban flow and records played maps across games', async () => {
+  it('completes ten-person map/ban flow and records played maps across games', async () => {
     const app = await setup();
     await app.readyAll();
     await app.run(0, 'draft.start');
@@ -41,8 +41,6 @@ describe('local server persisted flow', () => {
     expect((await app.engine.requireRoom(app.code)).room.stage?.status).toBe('SEALED');
     await app.engine.tick(app.code);
     app.advance(3000); await app.engine.tick(app.code);
-    expect((await app.engine.requireRoom(app.code)).room.phase).toBe('HERO_PREFERENCE');
-    await app.lockAll([]); await app.engine.tick(app.code);
     expect((await app.engine.requireRoom(app.code)).room.phase).toBe('HERO_VOTING');
     await app.lockAll(['local-hero-0', 'local-hero-3', 'local-hero-6']); await app.engine.tick(app.code);
     bundle = await app.engine.requireRoom(app.code);
@@ -59,6 +57,27 @@ describe('local server persisted flow', () => {
     bundle = await app.engine.requireRoom(app.code);
     expect(bundle.room.candidates!.eligiblePool.some(map => map.mapId === mapId)).toBe(false);
     expect(bundle.room.expiresAt).toBe((await app.store.readSource('LOCAL23456')).source!.expiresAt);
+  });
+
+  it('automatically confirms ten three-pick saves and seals the stage without confirm commands', async () => {
+    const app = await setup(); await app.readyAll(); await app.run(0, 'draft.start');
+    await app.lockAll([]); await app.engine.tick(app.code);
+    app.advance(3000); await app.engine.tick(app.code);
+    const selection = ['local-hero-0', 'local-hero-3', 'local-hero-6'];
+    await app.run(0, 'ballot.save', { selection });
+    expect((await app.engine.snapshot('c0')).ballots?.self?.locked).toBe(true);
+    await app.run(0, 'ballot.save', { selection: [selection[0], '', selection[2]] });
+    expect((await app.engine.snapshot('c0')).ballots?.self?.locked).toBe(false);
+    await app.run(0, 'ballot.save', { selection: [...selection].reverse() });
+    expect((await app.engine.snapshot('c0')).ballots?.self).toMatchObject({ locked: true, selection: [...selection].reverse() });
+    for (let index = 1; index < 10; index++) await app.run(index, 'ballot.save', { selection });
+    const { room } = await app.engine.requireRoom(app.code);
+    expect(room.stage?.status).toBe('SEALED');
+    expect((await app.engine.snapshot('c0')).stageStatus).toBe('SEALED');
+    await expect(app.run(0, 'ballot.save', { selection: [] })).rejects.toThrow('마감');
+    expect(room.stage?.sealed?.ballots.every(ballot => ballot.locked)).toBe(true);
+    await app.engine.tick(app.code);
+    expect((await app.engine.requireRoom(app.code)).room.phase).toBe('HERO_RESOLVED');
   });
 
   it('returns one room for a retried create request', async () => {
@@ -111,6 +130,30 @@ describe('local server persisted flow', () => {
     await app.run(0, 'draft.resume'); await app.engine.tick(app.code);
     bundle = await app.engine.requireRoom(app.code);
     expect(bundle.room.phase).toBe('MAP_RESOLVED');
+  });
+
+  it('recovers a persisted legacy preference stage into an empty paused ban vote', async () => {
+    const app = await setup(); await app.readyAll(); await app.run(0, 'draft.start');
+    await app.lockAll([]); await app.engine.tick(app.code);
+    app.advance(3000); await app.engine.tick(app.code);
+    const bundle = await app.engine.requireRoom(app.code);
+    const epoch = bundle.room.epoch;
+    Object.assign(bundle.room, { phase: 'HERO_PREFERENCE' });
+    Object.assign(bundle.room.timer, { phase: 'HERO_PREFERENCE' });
+    Object.assign(bundle.room.stage!, { kind: 'PREFERENCE', ballots: bundle.room.stage!.ballots.map(ballot => ({ ...ballot, selection: ['local-hero-0'], locked: true })) });
+    const revision = bundle.room.revision++;
+    await app.store.commit(bundle, { expectedRoomRevision: revision, expectedHistoryRevision: bundle.history.mapHistoryRevision });
+    await app.engine.recover();
+    const recovered = (await app.engine.requireRoom(app.code)).room;
+    expect(recovered.phase).toBe('HERO_VOTING');
+    expect(recovered.epoch).toBe(epoch + 1);
+    expect(recovered.timer.status).toBe('RECOVERY_PAUSED');
+    expect(recovered.timer.remainingMs).toBe(30_000);
+    expect(recovered.stage?.kind).toBe('BAN');
+    expect(recovered.stage?.ballots.every(ballot => !ballot.locked && ballot.selection.length === 0)).toBe(true);
+    await app.run(0, 'draft.resume');
+    await app.lockAll(['local-hero-0']); await app.engine.tick(app.code);
+    expect((await app.engine.requireRoom(app.code)).room.heroResult?.scores.A[0].effectiveScore).toBe(35);
   });
 
   it('replaces the old connection while preserving readiness, ballots and operator presence', async () => {
@@ -218,11 +261,10 @@ describe('POTG selection with the bundled catalog', () => {
     await app.run(0, 'draft.start'); return app;
   }
   async function finish(app: Awaited<ReturnType<typeof setup>>) {
-    await app.lockAll([]); await app.engine.tick(app.code);
     await app.lockAll(['ana', 'dva', 'genji']); await app.engine.tick(app.code);
     await app.run(0, 'game.confirmApplied'); await app.run(0, 'game.markStarted'); await app.run(0, 'game.markFinished');
   }
-  it('allows only the designated player, freezes all players for the same three seconds, then opens preference', async () => {
+  it('allows only the designated player, freezes all players for the same three seconds, then opens bans', async () => {
     const app = await startPotg();
     const before = await app.engine.snapshot('c0');
     expect(before.phase).toBe('MAP_PICKING'); expect(before.availableMaps).toHaveLength(31);
@@ -240,7 +282,7 @@ describe('POTG selection with the bundled catalog', () => {
     app.advance(2999); await app.engine.tick(app.code);
     expect((await app.engine.snapshot('c3')).phase).toBe('MAP_RESOLVED');
     app.advance(1); await app.engine.tick(app.code);
-    expect((await app.engine.snapshot('c3')).phase).toBe('HERO_PREFERENCE');
+    expect((await app.engine.snapshot('c3')).phase).toBe('HERO_VOTING');
   });
   it('reuses the same invitation across three games, resetting ready/map/bans while preserving played-map exclusions', async () => {
     const app = await startPotg(); const original = await app.engine.requireRoom(app.code);

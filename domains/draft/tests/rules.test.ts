@@ -9,9 +9,9 @@ function candidates(overrides: Partial<Parameters<typeof createMapCandidates>[0]
   return createMapCandidates({ resolutionId: 'map-result', catalog: maps, usedCanonicalMapIds: [],
     excludedCanonicalMapIds: [], mapHistoryRevision: 2, entropy: rolls, ...overrides });
 }
-function bans(overrides: Record<number, { ranking?: string[]; preferredHeroId?: string | null }> = {}) {
+function bans(overrides: Record<number, { ranking?: string[] }> = {}) {
   return resolveHeroBans({ resolutionId: 'hero-result', catalog: heroes, participants: players, entropy: rolls,
-    ballots: players.map((player, index) => ({ discordId: player.discordId, ranking: [], preferredHeroId: null, ...overrides[index] })),
+    ballots: players.map((player, index) => ({ discordId: player.discordId, ranking: [], ...overrides[index] })),
   });
 }
 
@@ -108,22 +108,24 @@ describe('map candidate and vote rules', () => {
 });
 
 describe('competitive hero ban rules', () => {
-  it('uses 7/5/3 and subtracts a duplicate preference only once, including abstaining voters', () => {
-    const result = bans({ 0: { ranking: ['h0', 'h3', 'h6'] }, 1: { preferredHeroId: 'h0' }, 2: { preferredHeroId: 'h0' } });
-    expect(result.scores.A.find(score => score.heroId === 'h0')).toMatchObject({ positiveScore: 7, preferredDeduction: 3, effectiveScore: 4, lobbyVoterCount: 1 });
-    expect(result.scores.A.find(score => score.heroId === 'h3')?.positiveScore).toBe(5);
-    expect(result.scores.A.find(score => score.heroId === 'h6')?.positiveScore).toBe(3);
+  it('sums 7/5/3 without a preference deduction', () => {
+    const result = bans({ 0: { ranking: ['h0', 'h3', 'h6'] }, 1: { ranking: ['h0'] } });
+    expect(result.scores.A.find(score => score.heroId === 'h0')).toMatchObject({ positiveScore: 14, effectiveScore: 14, lobbyVoterCount: 2 });
+    expect(result.scores.A.find(score => score.heroId === 'h3')?.effectiveScore).toBe(5);
+    expect(result.scores.A.find(score => score.heroId === 'h6')?.effectiveScore).toBe(3);
   });
-  it('does not deduct from the opposing team or create candidates from preferences alone', () => {
-    const result = bans({ 0: { preferredHeroId: 'h0' }, 5: { ranking: ['h0'] } });
-    expect(result.scores.A).toEqual([]);
-    expect(result.scores.B[0].effectiveScore).toBe(7);
-  });
-  it('excludes zero effective score and allows at most two bans for a voting team', () => {
-    const result = bans({ 0: { ranking: ['h0', 'h3', 'h6'], preferredHeroId: 'h6' } });
+  it('keeps abstaining teams empty and gives a voting team at most two bans', () => {
+    const result = bans({ 0: { ranking: ['h0', 'h3', 'h6'] } });
+    expect(result.scores.A).toHaveLength(3);
+    expect(result.scores.B).toEqual([]);
     expect(result.bannedHeroIds).toHaveLength(2);
-    expect(result.bannedHeroIds).not.toContain('h6');
     expect(result.slots.filter(slot => slot.team === 'B').every(slot => slot.heroId === null)).toBe(true);
+  });
+  it('preserves third-rank points when the second rank is empty', () => {
+    const result = bans({ 0: { ranking: ['h0', '', 'h6'] } });
+    expect(result.scores.A.map(score => [score.heroId, score.effectiveScore])).toEqual([['h0', 7], ['h6', 3]]);
+    expect(bans({ 0: { ranking: ['', '', 'h6'] } }).scores.A[0].effectiveScore).toBe(3);
+    expect(bans({ 0: { ranking: ['', '', ''] } }).bannedHeroIds).toEqual([]);
   });
   it('uses the higher maximum to choose F and processes F/S/S/F', () => {
     const result = bans({ 0: { ranking: ['h0', 'h3'] }, 5: { ranking: ['h6', 'h4'] }, 6: { ranking: ['h6'] } });
@@ -139,11 +141,11 @@ describe('competitive hero ban rules', () => {
     expect(result.slots.flatMap(slot => slot.skipped).some(skip => skip.reason === 'ROLE_LIMIT')).toBe(true);
   });
   it('uses lobby voter count after effective score ties', () => {
-    const result = bans({ 0: { ranking: ['h0', 'h3'], preferredHeroId: 'h3' }, 1: { ranking: ['h4', 'h5', 'h6'] },
-      2: { ranking: ['h7', 'h8', 'h3'] }, 5: { ranking: ['h3'] } });
+    const result = bans({ 0: { ranking: ['h0', 'h3'] }, 1: { ranking: ['h4', 'h5', 'h6'] },
+      2: { ranking: ['h7', 'h8'] }, 5: { ranking: ['h3'] } });
     const tied = result.scores.A.filter(score => score.effectiveScore === 5);
     expect(tied[0].heroId).toBe('h3');
-    expect(tied[0].lobbyVoterCount).toBe(3);
+    expect(tied[0].lobbyVoterCount).toBe(2);
   });
   it('keeps deterministic tie decisions with the same saved entropy', () => {
     const votes = { 0: { ranking: ['h0'] }, 1: { ranking: ['h3'] }, 5: { ranking: ['h6'] } };

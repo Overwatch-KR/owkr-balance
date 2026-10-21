@@ -29,10 +29,10 @@ export function PublicDraftPage() {
   };
   return <main className="draft-public-page app-canvas bg-surface text-slate-200">
     <div className="draft-public-content mx-auto w-full max-w-[1500px]">
-      <header className="mb-3 flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-3">
+      {!controller.snapshot && <header className="mb-3 flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-3">
         <div><p className="text-xs text-cyan-400">OWKR MATCH CONTROL</p><h1 className="mt-1 text-2xl font-semibold text-white">실시간 내전 참여</h1></div>
         <p className="text-xs text-slate-500">공유 링크로 참여 · 참가자 전원 마이크 필수</p>
-      </header>
+      </header>}
       {!validCode ? <section className="mx-auto max-w-lg border-y border-slate-700 py-10 text-center">
         <h2 className="text-xl font-semibold text-white">참가 인증을 다시 시작해 주세요</h2>
         <p className="mt-3 text-sm text-amber-200" role="alert">인증 요청이 만료되었거나 유효한 내전 공유 링크를 확인할 수 없습니다.</p>

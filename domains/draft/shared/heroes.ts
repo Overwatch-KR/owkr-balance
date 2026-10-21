@@ -8,7 +8,6 @@ import { validateDraftRoster } from './roster.js';
 
 export interface SealedHeroBallot {
   discordId: string;
-  preferredHeroId: string | null;
   ranking: readonly string[];
 }
 
@@ -16,7 +15,6 @@ export interface HeroScore {
   heroId: string;
   role: DraftRole;
   positiveScore: number;
-  preferredDeduction: number;
   effectiveScore: number;
   lobbyVoterCount: number;
 }
@@ -38,7 +36,7 @@ export interface HeroResolution {
   draws: readonly number[];
 }
 
-/** @description 선호는 팀별 1회만 차감하고 슬롯 F/S/S/F에 중복·역할 제한을 적용한다. */
+/** @description 순위별 7/5/3점을 합산하고 슬롯 F/S/S/F에 중복·역할 제한을 적용한다. */
 export function resolveHeroBans(input: {
   resolutionId: string;
   catalog: DraftCatalog<DraftHero>;
@@ -55,32 +53,31 @@ export function resolveHeroBans(input: {
     'BALLOT_COUNT', '중복 없는 10명의 봉인된 표가 필요합니다.');
   for (const ballot of input.ballots) {
     requireDraft(participants.has(ballot.discordId), 'NOT_PARTICIPANT', '현재 명단의 표만 집계할 수 있습니다.');
-    requireDraft(ballot.ranking.length <= 3 && new Set(ballot.ranking).size === ballot.ranking.length,
+    const selectedIds = ballot.ranking.filter(Boolean);
+    requireDraft(ballot.ranking.length <= 3 && new Set(selectedIds).size === selectedIds.length,
       'INVALID_RANKING', '서로 다른 영웅을 최대 3명 선택해 주세요.');
-    requireDraft(ballot.ranking.every(id => heroes.has(id))
-      && (ballot.preferredHeroId === null || heroes.has(ballot.preferredHeroId)),
+    requireDraft(ballot.ranking.every(id => id === '' || heroes.has(id)),
     'INVALID_HERO', '비활성 또는 알 수 없는 영웅입니다.');
   }
   const voters = new Map<string, number>();
   for (const ballot of input.ballots) {
-    for (const heroId of ballot.ranking) voters.set(heroId, (voters.get(heroId) ?? 0) + 1);
+    for (const heroId of ballot.ranking.filter(Boolean)) voters.set(heroId, (voters.get(heroId) ?? 0) + 1);
   }
   const random = new DraftRandom(input.entropy);
   const scores: Record<DraftTeam, HeroScore[]> = { A: [], B: [] };
   for (const team of ['A', 'B'] as const) {
     const ballots = input.ballots.filter(ballot => participants.get(ballot.discordId)!.team === team);
-    const preferred = new Set(ballots.map(ballot => ballot.preferredHeroId));
     const positiveScores = new Map<string, number>();
     for (const ballot of ballots) {
       ballot.ranking.forEach((heroId, index) => {
+        if (!heroId) return;
         positiveScores.set(heroId, (positiveScores.get(heroId) ?? 0) + DRAFT_LIMITS.rankPoints[index]);
       });
     }
     const sorted = [...positiveScores].map(([heroId, positiveScore]): HeroScore => {
-      const preferredDeduction = preferred.has(heroId) ? DRAFT_LIMITS.preferenceDeduction : 0;
       return {
-        heroId, role: heroes.get(heroId)!.role, positiveScore, preferredDeduction,
-        effectiveScore: Math.max(0, positiveScore - preferredDeduction),
+        heroId, role: heroes.get(heroId)!.role, positiveScore,
+        effectiveScore: positiveScore,
         lobbyVoterCount: voters.get(heroId) ?? 0,
       };
     }).sort((left, right) => right.effectiveScore - left.effectiveScore
