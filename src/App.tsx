@@ -557,7 +557,7 @@ const MatchApp = ({
                                         onStartLive={handleStartLiveSession}
                                     />
                                     {REALTIME_DRAFT_ENABLED && <div className="border-t border-slate-800 pt-4 text-sm">
-                                        <button type="button" disabled={!result || isResultStale || isLivePublishing || draft.creating || Boolean(draft.roomCode)}
+                                        <button type="button" disabled={!result || isResultStale || draft.creating || Boolean(draft.roomCode)}
                                             className="min-h-10 rounded-md border border-cyan-700 px-4 text-cyan-200 disabled:opacity-40"
                                             onClick={() => { void (async () => {
                                                 if (!result || isResultStale) return;
