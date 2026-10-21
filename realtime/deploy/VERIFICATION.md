@@ -97,3 +97,14 @@ SSH 키와 전달용 비밀 파일은 Git에서 제외했다. 운영 절차는 [
 
 
 후속 Production 검증: Vercel 81a2d16 status success와 운영 version.json 일치를 확인했다. 관리자 화면 새로고침 후 재접속 성공, 의도적으로 잘못된 교환 코드는 로그인 문맥 없음으로 거절됨을 확인했다. 이어 실제 사용자 Discord identify 승인→civilwar 콜백→최적화된 Vercel 코드 교환→실시간 연결 성공. 본인 준비1/10 저장 및 새로고침 후 로그인 없이 준비1/10 복구를 확인하고 본인 준비를 다시 취소했다. 실제 경기 시작이나 타인 투표는 수행하지 않았다. 복구 증빙은 저장소 밖 owkr-production-verification/latency-session-restored.jpg에 보관했다.
+
+
+## 2026-10-21 main 자동 배포 실검증
+
+- 배포 커밋: `5baee44bfe1859c51180a0fb2a4595ab4c2c0fd6`.
+- 저장소에 등록된 `REALTIME_SSH_HOST`, `REALTIME_SSH_USER`, `REALTIME_SSH_PRIVATE_KEY`로 [Deploy realtime server](https://github.com/Overwatch-KR/owkr-balance/actions/runs/39547637563)의 모든 단계가 성공했다. 값은 출력하거나 문서에 기록하지 않았다.
+- GitHub Linux runner에서 의존성 설치, 전체 검증, 독립 실행 패키징을 완료하고 호스트키 검증 SSH로 전송했다. 기존 프로세스를 종료한 뒤 새 릴리스로 교체했다.
+- SSH로 확인한 current 릴리스와 `.release-sha`가 배포 SHA와 일치했다. systemd는 active/running, 비정상 자동 재시작 0회, Caddy active였으며, 내부·공개 HTTPS `/health/ready` 모두 `{"status":"ready","mode":"redis"}`였다.
+- 확인 시 서비스 메모리는 약 34 MiB, 최대 약 44 MiB였다. 메모리는 시점별로 변할 수 있다.
+- Vercel status success와 실제 운영 `/version.json`의 동일 SHA를 확인했다. 전체 88개 파일/449개 테스트, 타입·린트·레이어 경계·프런트 및 서버 빌드를 통과했다.
+- 실패 시 이전 릴리스 복구는 격리된 배포 스크립트 회귀 테스트로 검증했다. 이번 운영 배포에서 의도적인 장애나 롤백은 발생시키지 않았다. 이번 확인은 실제 다계정 OAuth·경기 진행 시험을 포함하지 않는다.
