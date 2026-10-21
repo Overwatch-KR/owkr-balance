@@ -46,7 +46,9 @@ describe('participant-specific OAuth and same-site recovery', () => {
     expect(redirect.origin).toBe('https://site.invalid'); expect(redirect.pathname).toBe(`/draft/${app.roomCode}`);
     expect(redirect.searchParams.get('draft_code')).toHaveLength(43);
     expect(redirect.toString()).not.toContain('secret');
-    await expect(app.auth.callback('discord-code', app.state, 'https://discord.com')).rejects.toThrow('이미 사용');
+    const reused = new URL(await app.auth.callback('discord-code', app.state, 'https://discord.com'));
+    expect(reused.pathname).toBe('/draft/auth-error');
+    expect(reused.searchParams.get('draft_error')).toBe('OAUTH_STATE_EXPIRED');
   });
   it('exchanges once, validates browser context and restores only the assigned identity', async () => {
     const app = await setup();
@@ -94,9 +96,45 @@ describe('participant-specific OAuth and same-site recovery', () => {
   });
   it('denies unlisted Discord identities and foreign issuers', async () => {
     const app = await setup('999999999999999999');
-    await expect(app.auth.callback('code', app.state, 'https://malicious.invalid')).rejects.toThrow('응답');
+    const foreign = new URL(await app.auth.callback('code', app.state, 'https://malicious.invalid'));
+    expect(foreign.origin).toBe('https://site.invalid');
+    expect(foreign.pathname).toBe('/draft/auth-error');
+    expect(foreign.searchParams.get('draft_error')).toBe('AUTH_FAILED');
     expect(app.calls).toHaveLength(0);
-    await expect(app.auth.callback('code', app.state, 'https://discord.com')).rejects.toThrow('명단');
+    const denied = new URL(await app.auth.callback('code', app.state, 'https://discord.com'));
+    expect(denied.pathname).toBe(`/draft/${app.roomCode}`);
+    expect(denied.searchParams.get('draft_error')).toBe('NOT_PARTICIPANT');
+    expect(denied.searchParams.has('draft_code')).toBe(false);
+    expect(denied.toString()).not.toContain('999999999999999999');
+    await expect(app.auth.refresh('a'.repeat(43), app.roomCode)).rejects.toThrow('다시 진행');
+  });
+  it('returns cancellation to the original room without contacting Discord', async () => {
+    const app = await setup();
+    const redirect = new URL(await app.auth.callback('', app.state, null, 'access_denied'));
+    expect(redirect.pathname).toBe(`/draft/${app.roomCode}`);
+    expect(redirect.searchParams.get('draft_error')).toBe('AUTH_CANCELLED');
+    expect(app.calls).toHaveLength(0);
+  });
+  it('does not trust a room or return URL supplied as state', async () => {
+    const app = await setup();
+    const redirect = new URL(await app.auth.callback('code', 'https://evil.invalid/draft/ATTACK2345', 'https://discord.com'));
+    expect(redirect.origin).toBe('https://site.invalid');
+    expect(redirect.pathname).toBe('/draft/auth-error');
+    expect(app.calls).toHaveLength(0);
+  });
+  it('hides upstream failures and allows a fresh successful authentication', async () => {
+    const app = await setup();
+    const failing = new DraftParticipantAuth({ engine: app.engine, appOrigin: 'https://site.invalid', publicOrigin: 'https://draft.invalid',
+      clientId: 'client', clientSecret: 'secret', privateKey: keys.privateKey,
+      fetch: async () => { throw new Error('private upstream details'); } });
+    const failure = new URL(await failing.callback('code', app.state, 'https://discord.com'));
+    expect(failure.pathname).toBe(`/draft/${app.roomCode}`);
+    expect(failure.searchParams.get('draft_error')).toBe('AUTH_FAILED');
+    expect(failure.toString()).not.toContain('private');
+    const retry = new URL(await app.auth.begin(app.roomCode, contextHash));
+    const success = new URL(await app.auth.callback('code', retry.searchParams.get('state')!, 'https://discord.com'));
+    expect(success.searchParams.get('draft_code')).toHaveLength(43);
+    expect(success.searchParams.has('draft_error')).toBe(false);
   });
   it('rechecks roster membership on refresh instead of trusting a surviving session handle', async () => {
     const app = await setup();

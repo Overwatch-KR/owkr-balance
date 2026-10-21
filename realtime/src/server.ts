@@ -69,7 +69,7 @@ export async function createRealtimeServer(options: RealtimeServerOptions) {
       if (request.method === 'GET' && url.pathname === '/auth/discord/callback') {
         requireDraft(options.participantAuth, 'AUTH_NOT_CONFIGURED', '참가자 인증이 아직 연결되지 않았습니다.');
         const redirect = await options.participantAuth.callback(url.searchParams.get('code') ?? '',
-          url.searchParams.get('state') ?? '', url.searchParams.get('iss'));
+          url.searchParams.get('state') ?? '', url.searchParams.get('iss'), url.searchParams.get('error'));
         response.writeHead(302, { Location: redirect, 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' }); response.end(); return;
       }
       if (request.method === 'POST' && url.pathname.startsWith('/bridge/participant/')) {

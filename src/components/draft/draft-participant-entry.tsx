@@ -1,19 +1,31 @@
 interface DraftParticipantEntryProps {
+  authFailure?: string;
   pending: boolean;
   error: string;
   login: () => void | Promise<void>;
   reconnect: () => void;
 }
 
-export function DraftParticipantEntry({ pending, error, login, reconnect }: DraftParticipantEntryProps) {
+const AUTH_FAILURE_MESSAGES: Record<string, string> = {
+  NOT_PARTICIPANT: '이 Discord 계정은 해당 내전 명단에 없습니다. Discord에서 배정된 계정으로 전환한 뒤 다시 인증해 주세요. 참여 예정인데도 입장되지 않으면 운영자에게 명단의 Discord 계정 확인을 요청해 주세요.',
+  AUTH_CANCELLED: 'Discord 인증을 취소했습니다. 참여하려면 다시 인증해 주세요.',
+  OAUTH_STATE_EXPIRED: '인증 요청이 만료되었거나 이미 사용되었습니다. 이 화면에서 다시 인증해 주세요.',
+  ROOM_EXPIRED: '내전 방이 없거나 만료되었습니다. 운영자에게 새 공유 링크를 요청해 주세요.',
+  INACTIVE_ROOM: '현재 사용 중인 내전 방이 아닙니다. 운영자에게 새 공유 링크를 요청해 주세요.',
+};
+
+export function DraftParticipantEntry({ pending, error, login, reconnect, authFailure = '' }: DraftParticipantEntryProps) {
+  const failureMessage = authFailure ? AUTH_FAILURE_MESSAGES[authFailure] ?? 'Discord 인증을 완료하지 못했습니다. 잠시 후 다시 인증해 주세요.' : '';
+  const roomUnavailable = authFailure === 'ROOM_EXPIRED' || authFailure === 'INACTIVE_ROOM';
   return <section className="mx-auto max-w-lg border-y border-slate-700 py-10 text-center">
           <h2 className="text-xl font-semibold text-white">배정된 Discord 계정으로 참여하세요</h2>
           <p className="mt-3 text-sm leading-6 text-slate-400">공유받은 이 방에만 참여할 수 있습니다. 팀은 명단에 따라 자동 배정되며 다른 사람의 이름을 선택할 수 없습니다.</p>
-          <button type="button" className="mt-6 min-h-12 w-full rounded-md bg-[#5865f2] px-5 py-3 font-semibold text-white disabled:opacity-50" disabled={pending} onClick={() => void login()}>
-            {pending ? 'Discord 인증으로 이동 중…' : 'Discord로 이 내전 참여'}
+          {failureMessage && <p className="mt-5 border-l-2 border-amber-500 bg-amber-500/5 px-3 py-3 text-left text-sm leading-6 text-amber-200" role="alert">{failureMessage}</p>}
+          <button type="button" className="mt-6 min-h-12 w-full rounded-md bg-[#5865f2] px-5 py-3 font-semibold text-white disabled:opacity-50" disabled={pending || roomUnavailable} onClick={() => void login()}>
+            {pending ? 'Discord 인증으로 이동 중…' : authFailure ? 'Discord로 다시 인증' : 'Discord로 이 내전 참여'}
           </button>
           <p className="mt-4 text-sm text-amber-200" role="status">{error}</p>
-          <button type="button" className="mt-3 min-h-10 px-3 text-xs text-slate-400 underline" onClick={reconnect}>기존 참가 인증으로 다시 연결</button>
+          {!roomUnavailable && <button type="button" className="mt-3 min-h-10 px-3 text-xs text-slate-400 underline" onClick={reconnect}>기존 참가 인증으로 다시 연결</button>}
           <p className="mt-5 text-xs text-slate-500">일반 사이트의 관리자 로그인으로는 참가할 수 없습니다.</p>
         </section>;
 }

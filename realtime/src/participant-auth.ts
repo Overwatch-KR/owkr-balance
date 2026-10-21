@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { requireDraft } from '../../domains/draft/shared/public.js';
+import { DraftRuleError, requireDraft } from '../../domains/draft/shared/public.js';
 import type { DraftEngine } from './engine.js';
 import { signDraftTicket } from './tickets.js';
 
@@ -60,13 +60,31 @@ export class DraftParticipantAuth {
     return url.toString();
   }
 
-  async callback(code: string, state: string, issuer: string | null): Promise<string> {
-    requireDraft(code.length > 0 && code.length <= 1024 && /^[\w-]{43}$/.test(state)
-      && issuer === 'https://discord.com', 'INVALID_OAUTH_CALLBACK', 'Discord 인증 응답을 확인해 주세요.');
-    const raw = await this.options.engine.store.getTransient(`state:${hash(state)}`, true);
-    requireDraft(raw, 'OAUTH_STATE_EXPIRED', '인증 요청이 만료되었거나 이미 사용되었습니다.');
-    const context = JSON.parse(raw) as OAuthContext;
-    requireDraft(Date.now() < context.expiresAt, 'OAUTH_STATE_EXPIRED', '인증 요청이 만료되었습니다.');
+  /** @description 검증된 인증 문맥의 방으로 실패 사유만 돌려보내며 인증 정보는 발급하지 않는다. */
+  async callback(code: string, state: string, issuer: string | null, oauthError: string | null = null): Promise<string> {
+    let roomCode: string | null = null;
+    try {
+      requireDraft(/^[\w-]{43}$/.test(state) && (issuer === 'https://discord.com' || (oauthError !== null && issuer === null)),
+        'INVALID_OAUTH_CALLBACK', 'Discord 인증 응답을 확인해 주세요.');
+      const raw = await this.options.engine.store.getTransient(`state:${hash(state)}`, true);
+      requireDraft(raw, 'OAUTH_STATE_EXPIRED', '인증 요청이 만료되었거나 이미 사용되었습니다.');
+      const context = JSON.parse(raw) as OAuthContext;
+      requireDraft(/^[A-Z2-9]{10}$/.test(context.roomCode), 'INVALID_OAUTH_CALLBACK', '인증 요청을 확인해 주세요.');
+      roomCode = context.roomCode;
+      requireDraft(Date.now() < context.expiresAt, 'OAUTH_STATE_EXPIRED', '인증 요청이 만료되었습니다.');
+      requireDraft(oauthError === null, oauthError === 'access_denied' ? 'AUTH_CANCELLED' : 'DISCORD_AUTH_FAILED', 'Discord 인증을 완료하지 못했습니다.');
+      requireDraft(code.length > 0 && code.length <= 1024, 'INVALID_OAUTH_CALLBACK', 'Discord 인증 응답을 확인해 주세요.');
+      return await this.authenticate(code, context);
+    } catch (error) {
+      const allowed = ['NOT_PARTICIPANT', 'AUTH_CANCELLED', 'OAUTH_STATE_EXPIRED', 'ROOM_EXPIRED', 'INACTIVE_ROOM'];
+      const reason = error instanceof DraftRuleError && allowed.includes(error.code) ? error.code : 'AUTH_FAILED';
+      const redirect = new URL(`/draft/${roomCode ?? 'auth-error'}`, this.options.appOrigin);
+      redirect.searchParams.set('draft_error', reason);
+      return redirect.toString();
+    }
+  }
+
+  private async authenticate(code: string, context: OAuthContext): Promise<string> {
     const tokenResponse = await this.fetcher('https://discord.com/api/oauth2/token', {
       method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({ client_id: this.options.clientId, client_secret: this.options.clientSecret,
