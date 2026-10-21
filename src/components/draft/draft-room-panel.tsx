@@ -64,6 +64,10 @@ export function DraftRoomPanel({ controller }: { controller: DraftRoomController
       </div><div className="flex items-center gap-3">{snapshot.isOperator && <button type="button" className={buttonClass} onClick={() => setOperatorOpen(true)}>운영·10인 현황</button>}<DraftCountdown key={`${snapshot.serverNow}`} snapshot={snapshot} /></div>
     </header>
     {(controller.error || notice) && <p role="status" className="border-l-2 border-amber-500 bg-amber-500/5 px-3 py-2 text-sm text-amber-200">{notice || controller.error}</p>}
+    {controller.connectionReplaced && <div className="flex flex-wrap items-center gap-3 border-y border-amber-900 py-3 text-xs text-amber-200">
+      <span>다른 창에서 계속 진행하거나, 이 창으로 연결을 가져올 수 있습니다.</span>
+      <button type="button" className={buttonClass} onClick={controller.reconnect}>이 창에서 다시 연결</button>
+    </div>}
     {self && snapshot.phase === 'LOBBY' && <section className="flex flex-wrap items-center justify-between gap-4 border-y border-slate-800 py-5">
       <div><h3 className="font-semibold text-white">내 팀·역할을 확인해 주세요</h3><p className="mt-2 text-sm text-slate-400">{self.displayName} · {self.team}팀 · {ROLE_LABELS[self.role]} · 준비 {snapshot.readyCount}/10</p>
         <p className="mt-2 text-xs text-slate-500">참가자 전원 마이크 필수 · 팀이 바뀌면 다시 준비합니다.</p></div>

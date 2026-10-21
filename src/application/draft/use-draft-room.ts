@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { inspectDraftStreamEvent, type DraftRoomSnapshot, type DraftStreamCursor, type DraftStreamEnvelope } from '#domain/draft';
+import { DRAFT_CONNECTION_REPLACED_CLOSE_CODE, inspectDraftStreamEvent, type DraftRoomSnapshot, type DraftStreamCursor, type DraftStreamEnvelope } from '#domain/draft';
 
 export const REALTIME_DRAFT_ENABLED = import.meta.env.VITE_ENABLE_REALTIME_DRAFT === 'true';
 
@@ -58,6 +58,7 @@ export async function adminDraftEntry(csrfToken: string, scope: 'create' | 'join
 export interface DraftRoomController {
   snapshot: DraftRoomSnapshot | null;
   connected: boolean;
+  connectionReplaced?: boolean;
   pending: boolean;
   error: string;
   reconnect: () => void;
@@ -80,6 +81,7 @@ export function useDraftRoom(options: {
   const ballotRevisionRef = useRef(0);
   const pendingRef = useRef(new Map<string, PendingCommand>());
   const [connected, setConnected] = useState(false);
+  const [connectionReplaced, setConnectionReplaced] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
   const [attempt, setAttempt] = useState(0);
@@ -87,6 +89,7 @@ export function useDraftRoom(options: {
   useEffect(() => {
     if (!roomCode) return;
     let disposed = false;
+    let superseded = false;
     let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
     let renewalTimer: ReturnType<typeof setTimeout> | undefined;
     let failures = 0;
@@ -97,13 +100,20 @@ export function useDraftRoom(options: {
       for (const command of pendingRef.current.values()) { clearTimeout(command.timeout); command.reject(new Error(message)); }
       pendingRef.current.clear(); setPending(false);
     };
+    const markReplaced = () => {
+      superseded = true;
+      clearTimeout(renewalTimer); clearTimeout(reconnectTimer);
+      setConnectionReplaced(true); setConnected(false);
+      const message = '다른 창에서 이 내전에 연결해 이 창의 연결을 종료했습니다. 자동 재접속은 중지되었습니다.';
+      setError(message); failPending(message);
+    };
     const renew = async (socket: WebSocket) => {
       try {
         const response = await entry();
-        if (disposed || socket !== socketRef.current || socket.readyState !== WebSocket.OPEN) return;
+        if (disposed || superseded || socket !== socketRef.current || socket.readyState !== WebSocket.OPEN) return;
         socket.send(JSON.stringify({ type: 'auth.renew', ticket: response.ticket }));
         renewalTimer = setTimeout(() => void renew(socket), Math.max(1000, response.expiresAt - Date.now() - 30_000));
-      } catch (failure) { if (!disposed) { setError(failure instanceof Error ? failure.message : '인증 갱신에 실패했습니다.'); socket.close(); } }
+      } catch (failure) { if (!disposed && !superseded) { setError(failure instanceof Error ? failure.message : '인증 갱신에 실패했습니다.'); socket.close(); } }
     };
     const connect = async () => {
       try {
@@ -122,6 +132,8 @@ export function useDraftRoom(options: {
           if (disposed || socket !== socketRef.current) return;
           try {
             const message = JSON.parse(String(event.data)) as Record<string, unknown>;
+            if (message.type === 'connection.replaced') { markReplaced(); return; }
+            if (superseded) return;
             if (message.type === 'room.snapshot' || message.type === 'room.updated') {
               const envelope = message as unknown as DraftStreamEnvelope<DraftRoomSnapshot>;
               if (message.type === 'room.snapshot') {
@@ -138,7 +150,7 @@ export function useDraftRoom(options: {
               if (previous?.epoch !== envelope.payload.epoch || previous?.stageKind !== envelope.payload.stageKind) ballotRevisionRef.current = 0;
               ballotRevisionRef.current = Math.max(ballotRevisionRef.current, envelope.payload.ballots?.self?.ballotRevision ?? 0);
               queryClient.setQueryData(queryKey, envelope.payload);
-              setConnected(true); failures = 0; return;
+              setConnected(true); setConnectionReplaced(false); failures = 0; return;
             }
             if (message.type === 'command.ack') {
               const id = String(message.commandId);
@@ -161,9 +173,10 @@ export function useDraftRoom(options: {
             if (message.type === 'storage.unavailable') { setConnected(false); setError('저장소 복구 중입니다. 입력은 저장되지 않습니다.'); failPending('저장소 복구 중입니다.'); }
           } catch { setError('연결 상태를 확인하지 못했습니다. 다시 연결해 주세요.'); socket.close(); }
         };
-        socket.onclose = () => {
+        socket.onclose = event => {
           clearTimeout(renewalTimer);
-          if (disposed) return;
+          if (disposed || socket !== socketRef.current) return;
+          if (superseded || event.code === DRAFT_CONNECTION_REPLACED_CLOSE_CODE) { markReplaced(); return; }
           setConnected(false); failPending('연결이 끊겨 저장 여부를 다시 확인해야 합니다.');
           reconnectTimer = setTimeout(() => void connect(), Math.min(15_000, 1000 * 2 ** failures++) + Math.random() * 300);
         };
@@ -198,5 +211,5 @@ export function useDraftRoom(options: {
         expectedBallotRevision: ballotRevisionRef.current, ...values }));
     });
   }, [connected]);
-  return { snapshot: query.data ?? null, connected, pending, error, reconnect: () => setAttempt(value => value + 1), command };
+  return { snapshot: query.data ?? null, connected, connectionReplaced, pending, error, reconnect: () => { setConnectionReplaced(false); setError(''); setAttempt(value => value + 1); }, command };
 }

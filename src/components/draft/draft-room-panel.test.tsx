@@ -6,6 +6,7 @@ import { DraftMapPick } from './draft-map-pick';
 import type { DraftRoomSnapshot } from '#domain/draft';
 import { DraftSelection } from './draft-selection';
 import { DraftBanResult } from './draft-ban-result';
+import { DraftRoomPanel } from './draft-room-panel';
 
 function snapshot(): DraftRoomSnapshot {
   return {
@@ -82,4 +83,12 @@ describe('draft selection and ban results', () => {
     const markup = render(<DraftBanResult snapshot={view} onCopy={vi.fn()} />);
     expect(markup).toContain('전원 기권'); expect(markup).not.toContain('data-ban-order');
   });
+  it('다른 창에 연결을 넘긴 경우 명시적 재연결을 안내하고 입력을 잠근다', () => {
+    const markup = render(<DraftRoomPanel controller={{ snapshot: snapshot(), connected: false, connectionReplaced: true,
+      pending: false, error: '다른 창에서 연결했습니다.', command: vi.fn(), reconnect: vi.fn() }} />);
+    expect(markup).toContain('이 창에서 다시 연결');
+    expect(markup).toContain('다른 창에서 계속 진행하거나');
+    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*aria-label="아나"/);
+  });
+
 });

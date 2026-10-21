@@ -1,7 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { WebSocket, WebSocketServer } from 'ws';
-import { DraftRuleError, requireDraft, emitDraftStreamEvent, type DraftStreamCursor } from '../../domains/draft/shared/public.js';
+import { DRAFT_CONNECTION_REPLACED_CLOSE_CODE, DraftRuleError, requireDraft, emitDraftStreamEvent, type DraftStreamCursor } from '../../domains/draft/shared/public.js';
 import { DraftEngine, parseDraftCommand } from './engine.js';
 import { signDraftTicket, verifyDraftTicket } from './tickets.js';
 import type { RoomBundle } from './model.js';
@@ -184,6 +184,7 @@ export async function createRealtimeServer(options: RealtimeServerOptions) {
     socket.on('error', () => socket.terminate());
     socket.on('pong', () => { const client = engine.clients.get(id); if (client) client.lastResponseAt = Date.now(); });
     socket.on('message', (data, binary) => {
+      if (socket.readyState !== WebSocket.OPEN) return;
       if (pendingMessages >= 20) { socket.close(1008, 'input queue limit'); return; }
       if (!joined && pendingMessages === 0) {
         try {
@@ -200,6 +201,7 @@ export async function createRealtimeServer(options: RealtimeServerOptions) {
       pendingMessages++;
       void engine.serial(async () => {
         let commandId: string | undefined;
+        if (socket.readyState !== WebSocket.OPEN) return;
         try {
           requireDraft(healthy && !shuttingDown && !binary, 'UNAVAILABLE', '현재 입력을 처리할 수 없습니다.');
           const message = JSON.parse(data.toString()) as Record<string, unknown>;
@@ -207,7 +209,17 @@ export async function createRealtimeServer(options: RealtimeServerOptions) {
             requireDraft(!joining && message.type === 'auth' && typeof message.ticket === 'string', 'AUTH_REQUIRED', '인증 메시지가 필요합니다.');
             joining = true;
             const ticket = verifyDraftTicket(message.ticket, options.realtimePublicKey, 'realtime-entry', Date.now());
-            await engine.connect(ticket, id);
+            const replaced = await engine.connect(ticket, id);
+            for (const oldId of replaced) {
+              const previous = sockets.get(oldId);
+              if (!previous) continue;
+              streams.delete(oldId);
+              if (previous.readyState === WebSocket.OPEN) previous.send(JSON.stringify({ type: 'connection.replaced' }));
+              previous.close(DRAFT_CONNECTION_REPLACED_CLOSE_CODE, 'connection replaced');
+              const timer = setTimeout(() => previous.terminate(), 1000);
+              timer.unref();
+              previous.once('close', () => clearTimeout(timer));
+            }
             streams.set(id, { cursor: { streamId: randomUUID(), streamSeq: 0 }, fingerprint: '' });
             joined = true; joining = false; clearTimeout(authTimer);
             await publishRoom(ticket.roomCode!, id); return;
@@ -224,7 +236,8 @@ export async function createRealtimeServer(options: RealtimeServerOptions) {
           }
           const command = parseDraftCommand(message);
           commandId = command.commandId;
-          const client = engine.clients.get(id)!;
+          const client = engine.clients.get(id);
+          requireDraft(client, 'AUTH_REQUIRED', '현재 연결이 종료되었습니다.');
           const now = Date.now();
           const rateKey = `${client.roomCode}:${client.discordId}`;
           const bucket = rates.get(rateKey) ?? { tokens: 10, finalTokens: 10, updatedAt: now };

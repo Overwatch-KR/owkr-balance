@@ -6,6 +6,8 @@ import type { DraftHero, DraftMap, DraftMapSelection, DraftParticipant, DraftPha
 import type { OperatorParticipantStatus } from './presence.js';
 import type { ParticipantBallotView } from './views.js';
 
+export const DRAFT_CONNECTION_REPLACED_CLOSE_CODE = 4001;
+
 export interface DraftRoomSnapshot {
   roomCode: string;
   gameId: string;

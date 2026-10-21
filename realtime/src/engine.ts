@@ -122,15 +122,15 @@ export class DraftEngine {
     return this.store.create(room, history, raw, commandId);
   }
 
-  async connect(ticket: DraftTicket, connectionId: string): Promise<void> {
+  async connect(ticket: DraftTicket, connectionId: string): Promise<string[]> {
     requireDraft(ticket.scope === 'join' && ticket.roomCode, 'ROOM_ACCESS_DENIED', '방 입장용 입장권이 필요합니다.');
     const bundle = await this.requireRoom(ticket.roomCode);
     const { room, history } = bundle;
     requireDraft(isDraftOperator(history.operators, ticket.sub)
       || bundle.source?.participants.some(player => player.discordId === ticket.sub), 'ROOM_ACCESS_DENIED', '현재 방 명단에 없습니다.');
     const roomClients = [...this.clients.values()].filter(client => client.roomCode === room.roomCode && !client.closed);
-    requireDraft(roomClients.length < 24, 'CONNECTION_LIMIT', '방 연결 상한에 도달했습니다.');
-    for (const client of roomClients) if (client.discordId === ticket.sub) client.input = false;
+    const replaced = roomClients.filter(client => client.discordId === ticket.sub && client.connectionId !== connectionId);
+    requireDraft(roomClients.length - replaced.length < 24, 'CONNECTION_LIMIT', '방 연결 상한에 도달했습니다.');
     const now = bundle.now;
     this.clients.set(connectionId, {
       discordId: ticket.sub, displayName: ticket.displayName, connectionId, lastResponseAt: now,
@@ -142,6 +142,8 @@ export class DraftEngine {
     }];
     try { await this.save(bundle); }
     catch (error) { this.clients.delete(connectionId); throw error; }
+    for (const client of replaced) this.clients.delete(client.connectionId);
+    return replaced.map(client => client.connectionId);
   }
 
   async renew(ticket: DraftTicket, connectionId: string): Promise<void> {

@@ -2,6 +2,7 @@ import { generateKeyPairSync } from 'node:crypto';
 import type { AddressInfo } from 'node:net';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { WebSocket } from 'ws';
+import { DRAFT_CONNECTION_REPLACED_CLOSE_CODE } from '../../domains/draft/shared/public.js';
 import { createRealtimeServer } from './server.js';
 import { createLocalDraftFixtures } from './local-fixtures.js';
 import { DraftEngine } from './engine.js';
@@ -64,6 +65,48 @@ describe('realtime HTTP and WebSocket transport', () => {
     expect(JSON.stringify(payload)).not.toContain('receipts');
     socket.terminate();
   });
+  it('closes superseded sockets while keeping the latest tab and other players connected', async () => {
+    const app = await setup();
+    const created = await app.post('/v1/rooms', { sourceId: 'LOCAL23456', commandId: 'replace-tabs' });
+    const { roomCode } = await created.json() as { roomCode: string };
+    const sockets: WebSocket[] = [];
+    const connect = async (index: number) => {
+      const now = Math.floor(Date.now() / 1000);
+      const ticket = signDraftTicket({ iss: 'owkr-realtime', purpose: 'realtime-entry',
+        sub: app.fixture.identities[index].discordUserId, displayName: '시험', roomCode,
+        scope: 'join', iat: now, exp: now + 300 }, keys.privateKey);
+      const socket = new WebSocket(`${app.base.replace('http:', 'ws:')}/v1/socket`, { origin });
+      sockets.push(socket);
+      await new Promise<void>((resolve, reject) => {
+        socket.once('error', reject);
+        socket.once('open', () => socket.send(JSON.stringify({ type: 'auth', ticket })));
+        socket.once('message', data => {
+          const message = JSON.parse(data.toString());
+          if (message.type === 'room.snapshot') resolve();
+          else reject(new Error(JSON.stringify(message)));
+        });
+      });
+      return socket;
+    };
+    try {
+      let previous = await connect(0);
+      const otherPlayer = await connect(1);
+      for (let index = 0; index < 3; index++) {
+        const messages: string[] = [];
+        previous.on('message', data => messages.push(JSON.parse(data.toString()).type));
+        const closed = new Promise<number>(resolve => previous.once('close', code => resolve(code)));
+        const current = await connect(0);
+        expect(await closed).toBe(DRAFT_CONNECTION_REPLACED_CLOSE_CODE);
+        expect(messages).toContain('connection.replaced');
+        expect(app.engine.clients.size).toBe(2);
+        expect(current.readyState).toBe(WebSocket.OPEN);
+        expect(otherPlayer.readyState).toBe(WebSocket.OPEN);
+        previous = current;
+      }
+      expect((await app.engine.requireRoom(roomCode)).room.timer.status).toBe('ACTIVE');
+    } finally { for (const socket of sockets) socket.terminate(); }
+  });
+
   it('keeps authenticated arrivals and the writer lease alive while commands wait', async () => {
     const app = await setup();
     const created = await app.post('/v1/rooms', { sourceId: 'LOCAL23456', commandId: 'queued-auth' });

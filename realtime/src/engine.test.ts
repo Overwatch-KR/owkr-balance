@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { DraftEngine, parseDraftCommand, type DraftCommand } from './engine.js';
 import { createLocalDraftFixtures } from './local-fixtures.js';
 import type { DraftTicket } from './tickets.js';
@@ -113,11 +113,76 @@ describe('local server persisted flow', () => {
     expect(bundle.room.phase).toBe('MAP_RESOLVED');
   });
 
-  it('revokes writes from an old input tab while preserving one ballot', async () => {
+  it('replaces the old connection while preserving readiness, ballots and operator presence', async () => {
     const app = await setup(); await app.readyAll(); await app.run(0, 'draft.start');
-    await app.engine.connect(app.ticket(app.ids[0], app.code), 'new-tab');
-    await expect(app.run(0, 'ballot.lock')).rejects.toThrow('입력 담당');
+    const mapId = (await app.engine.requireRoom(app.code)).room.candidates!.candidates[0].map.mapId;
+    await app.run(0, 'ballot.lock', { selection: [mapId] });
+    expect(await app.engine.connect(app.ticket(app.ids[0], app.code), 'new-tab')).toEqual(['c0']);
+    expect(app.engine.clients.has('c0')).toBe(false);
+    await expect(app.run(0, 'ballot.lock')).rejects.toThrow('먼저 방에 연결');
+    await app.engine.disconnect('c0'); await app.engine.tick(app.code);
+    const view = await app.engine.snapshot('new-tab');
+    expect(view.timer.status).toBe('ACTIVE');
+    expect(view.selfReady).toBe(true);
+    expect(view.ballots?.self?.selection).toEqual([mapId]);
+    expect(view.ballots?.self?.locked).toBe(true);
     expect((await app.engine.requireRoom(app.code)).room.stage!.ballots).toHaveLength(10);
+    expect(app.engine.clients.size).toBe(10);
+  });
+
+  it('keeps the previous connection usable if persisting the new connection fails', async () => {
+    const app = await setup(); await app.connect(0);
+    const commit = vi.spyOn(app.store, 'commit').mockRejectedValueOnce(new Error('storage unavailable'));
+    await expect(app.engine.connect(app.ticket(app.ids[0], app.code), 'failed-tab')).rejects.toThrow('storage unavailable');
+    expect(app.engine.clients.has('failed-tab')).toBe(false);
+    expect(app.engine.clients.get('c0')?.input).toBe(true);
+    commit.mockRestore();
+    expect((await app.engine.snapshot('c0')).inputConnected).toBe(true);
+  });
+
+  it('repeated tabs never grow the authenticated connection count', async () => {
+    const app = await setup(); await app.readyAll();
+    let previousId = 'c0';
+    for (let index = 0; index < 30; index++) {
+      const id = `tab-${index}`;
+      expect(await app.engine.connect(app.ticket(app.ids[0], app.code), id)).toEqual([previousId]);
+      expect(app.engine.clients.size).toBe(10);
+      previousId = id;
+    }
+  });
+
+  it('scopes replacement to the same room and does not kick the account from another room', async () => {
+    const app = await setup();
+    const otherRoom = await app.engine.createRoom(app.ticket(), 'LOCAL23456', 'create-other-room');
+    await app.connect(0);
+    await app.engine.connect(app.ticket(app.ids[0], otherRoom), 'other-room');
+    expect(await app.engine.connect(app.ticket(app.ids[0], app.code), 'new-tab')).toEqual(['c0']);
+    expect(app.engine.clients.has('other-room')).toBe(true);
+    expect((await app.engine.snapshot('other-room')).inputConnected).toBe(true);
+    expect(app.engine.clients.size).toBe(2);
+  });
+
+  it('preserves a manual pause when the operator switches tabs and allows the latest tab to resume', async () => {
+    const app = await setup(); await app.readyAll(); await app.run(0, 'draft.start');
+    await app.run(0, 'draft.pause');
+    await app.engine.connect(app.ticket(app.ids[0], app.code), 'new-tab');
+    await app.engine.disconnect('c0');
+    const { room } = await app.engine.requireRoom(app.code);
+    expect(room.timer.status).toBe('PAUSED');
+    await app.engine.command('new-tab', parseDraftCommand({ type: 'draft.resume', commandId: 'resume-from-new-tab',
+      epoch: room.epoch, expectedRevision: room.revision }));
+    expect((await app.engine.requireRoom(app.code)).room.timer.status).toBe('ACTIVE');
+  });
+
+  it('leaves only the last tab after simultaneous serialized connection attempts', async () => {
+    const app = await setup(); await app.readyAll();
+    const replacements = await Promise.all(Array.from({ length: 8 }, (_, index) =>
+      app.engine.serial(() => app.engine.connect(app.ticket(app.ids[0], app.code), `parallel-${index}`))));
+    expect(replacements[0]).toEqual(['c0']);
+    expect(replacements[7]).toEqual(['parallel-6']);
+    expect(app.engine.clients.size).toBe(10);
+    expect(app.engine.clients.has('parallel-7')).toBe(true);
+    expect((await app.engine.snapshot('parallel-7')).selfReady).toBe(true);
   });
 
   it('pauses on last operator disconnect, preserving the deadline remainder', async () => {
