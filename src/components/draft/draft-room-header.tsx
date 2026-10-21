@@ -20,7 +20,16 @@ function DraftCountdown({ snapshot, connected }: { snapshot: DraftRoomSnapshot; 
 }
 
 export function DraftRoomHeader({ controller, admin, onOpenOperator }: { controller: DraftRoomController; admin: boolean; onOpenOperator: () => void }) {
+  const [copyNotice, setCopyNotice] = useState('');
   const snapshot = controller.snapshot!;
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/draft/${snapshot.roomCode}`);
+      setCopyNotice('참가자 공유 링크를 복사했습니다.');
+    } catch {
+      setCopyNotice('링크를 복사하지 못했습니다. 브라우저의 클립보드 권한을 확인해 주세요.');
+    }
+  };
   const step = getDraftStep(snapshot);
   const title = snapshot.playStatus === 'PLAYING' ? '경기 진행 중' : snapshot.playStatus === 'FINISHED' ? '경기 종료'
     : snapshot.playStatus === 'ABORTED_PLAYED' ? '플레이 후 중단' : snapshot.playStatus === 'NOT_PLAYED' ? '경기 미진행' : DRAFT_PHASE_LABELS[snapshot.phase];
@@ -28,9 +37,10 @@ export function DraftRoomHeader({ controller, admin, onOpenOperator }: { control
   return <header className="draft-room-header">
     <PageHeader eyebrow={`OWKR MATCH CONTROL · ${admin ? '밴픽 운영' : '실시간 내전 참여'}`}
       title={`${snapshot.gameIndex}경기 · ${title}`}
-      actions={<>{admin && snapshot.isOperator && <button type="button" className="btn-ghost text-xs" onClick={() => void navigator.clipboard.writeText(`${window.location.origin}/draft/${snapshot.roomCode}`).catch(() => undefined)}>공유 링크 복사</button>}
+      actions={<>{snapshot.isOperator && <button type="button" className="btn-ghost border border-cyan-700 text-xs text-cyan-200" onClick={() => void copyLink()}>공유 링크 복사</button>}
         {snapshot.isOperator && <button type="button" className="btn-ghost text-xs" onClick={onOpenOperator}>참가 현황·운영</button>}
         <DraftCountdown key={`${snapshot.serverNow}:${snapshot.timer.status}:${controller.connected}`} snapshot={snapshot} connected={controller.connected} /></>} />
+    {copyNotice && <p className="mb-2 text-xs text-slate-300" role="status">{copyNotice}</p>}
     <ol className="draft-steps" aria-label="밴픽 진행 단계">{labels.map((label, index) => <li key={index} aria-current={step === index ? 'step' : undefined}
       className={step === index ? 'draft-step-current' : step > index ? 'draft-step-done' : ''}><span>{index < step ? '✓' : index + 1}</span>{label}</li>)}</ol>
     <div className="draft-guidance"><p className="text-sm font-medium text-slate-200">{!controller.connected ? '연결 상태를 먼저 확인해 주세요.' : controller.pending ? '요청을 서버에서 확인하고 있습니다.' : getDraftGuidance(snapshot)}</p>

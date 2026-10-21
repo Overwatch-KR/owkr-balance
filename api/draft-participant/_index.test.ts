@@ -36,6 +36,38 @@ describe('same-site participant session bridge', () => {
     expect(cookie).not.toContain('owkr_session');
     expect(res.json).toHaveBeenCalledWith({ redirect: 'https://discord.com/oauth2/authorize?state=abc' });
   });
+  it.each([
+    ['ROOM_EXPIRED', 410, '새 공유 링크'],
+    ['INACTIVE_ROOM', 410, '새 공유 링크'],
+    ['BRIDGE_ACCESS_DENIED', 503, '연결 설정'],
+    ['UNAVAILABLE', 503, '잠시 후'],
+    ['NOT_PARTICIPANT', 403, '명단'],
+    ['EXCHANGE_EXPIRED', 401, '다시 인증'],
+    ['INVALID_AUTH_CONTEXT', 401, '브라우저'],
+    ['INVALID_SESSION', 401, '다시 참여'],
+    ['PARTICIPANT_SESSION_EXPIRED', 401, '만료'],
+  ])('preserves the safe reason for %s without exposing upstream details', async (code, status, message) => {
+    configure();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ code, message: 'private upstream details' }), { status: 400 })));
+    const res = response();
+    await handler(request({ action: 'start', roomCode: 'ROOM234567' }), res);
+    expect(res.status).toHaveBeenCalledWith(status);
+    expect(res.json).toHaveBeenCalledWith({ code, error: expect.stringContaining(message) });
+    expect(JSON.stringify((res.json as ReturnType<typeof vi.fn>).mock.calls)).not.toContain('private upstream details');
+    expect((res.setHeader as ReturnType<typeof vi.fn>).mock.calls.some(call => call[0] === 'Set-Cookie')).toBe(false);
+  });
+  it.each(['network', 'html', 'unknown', 'null'])('reports %s upstream failure as service unavailability instead of a login failure', async kind => {
+    configure();
+    const fetcher = vi.fn();
+    if (kind === 'network') fetcher.mockRejectedValue(new Error('private network details'));
+    else fetcher.mockResolvedValue(new Response(kind === 'html' ? '<html>Bad Gateway</html>'
+      : kind === 'null' ? 'null' : JSON.stringify({ code: 'PRIVATE_ERROR', message: 'private upstream details' }), { status: 502 }));
+    vi.stubGlobal('fetch', fetcher);
+    const res = response();
+    await handler(request({ action: 'start', roomCode: 'ROOM234567' }), res);
+    expect(res.status).toHaveBeenCalledWith(503);
+    expect(res.json).toHaveBeenCalledWith({ code: 'UNAVAILABLE', error: expect.stringContaining('잠시 후') });
+  });
   it('stores a room-scoped recovery handle in a separate secure cookie and never returns it to JavaScript', async () => {
     configure(); vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ handle: 'h'.repeat(43), roomCode: 'ROOM234567', expiresAt: Date.now() + 100_000 }))));
     const res = response(); await handler(request({ action: 'exchange', code: 'c'.repeat(43) }, { cookie: `owkr_draft_oauth_context=${'b'.repeat(43)}` }), res);
@@ -75,7 +107,7 @@ describe('same-site participant session bridge', () => {
     }))));
     const res = response();
     await handler(request({ action: 'exchange', code: 'c'.repeat(43) }, { cookie: `owkr_draft_oauth_context=${'b'.repeat(43)}` }), res);
-    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.status).toHaveBeenCalledWith(502);
     expect((res.setHeader as ReturnType<typeof vi.fn>).mock.calls.some(call => call[0] === 'Set-Cookie')).toBe(false);
   });
 });

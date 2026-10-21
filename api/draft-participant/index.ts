@@ -5,6 +5,20 @@ import { disableResponseCache, getRequestOrigin } from '../_lib/http.js';
 
 const CONTEXT_COOKIE = 'owkr_draft_oauth_context';
 
+const BRIDGE_FAILURES: Record<string, { status: number; error: string }> = {
+  ROOM_CLOSED: { status: 410, error: '종료된 내전입니다. 운영자에게 새 공유 링크를 요청해 주세요.' },
+  ROOM_EXPIRED: { status: 410, error: '내전 방이 없거나 만료되었습니다. 운영자에게 새 공유 링크를 요청해 주세요.' },
+  INACTIVE_ROOM: { status: 410, error: '현재 사용 중인 내전 방이 아닙니다. 운영자에게 새 공유 링크를 요청해 주세요.' },
+  NOT_PARTICIPANT: { status: 403, error: '이 내전 명단에 등록된 Discord 계정으로 참여해 주세요. 운영자에게 명단을 확인해 주세요.' },
+  EXCHANGE_EXPIRED: { status: 401, error: '참가 인증 교환 코드가 만료되었거나 이미 사용되었습니다. 방에서 다시 인증해 주세요.' },
+  INVALID_AUTH_CONTEXT: { status: 401, error: '인증을 시작한 브라우저에서 다시 참여해 주세요.' },
+  INVALID_SESSION: { status: 401, error: '이 방의 참가 인증이 필요합니다. Discord로 다시 참여해 주세요.' },
+  PARTICIPANT_SESSION_EXPIRED: { status: 401, error: '참가 인증이 만료되었습니다. Discord로 다시 참여해 주세요.' },
+  BRIDGE_ACCESS_DENIED: { status: 503, error: '참가 인증 서버 연결 설정을 확인해야 합니다. 운영자에게 문의해 주세요.' },
+  UNAVAILABLE: { status: 503, error: '참가 인증 서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.' },
+  INVALID_RESPONSE: { status: 502, error: '참가 인증 서버 응답을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.' },
+};
+
 /** @description 같은 사이트의 별도 HttpOnly 쿠키로 참가자 세션을 복구하며 관리자 쿠키는 발급하지 않는다. */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   disableResponseCache(res);
@@ -25,8 +39,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       body: JSON.stringify(payload), signal: AbortSignal.timeout(10_000), redirect: 'error',
     });
     if (!result.ok) {
-      const failure = await result.json() as { code?: string };
-      throw new Error(failure.code === 'ROOM_CLOSED' ? 'ROOM_CLOSED' : 'AUTH_FAILED');
+      const failure: unknown = await result.json().catch(() => null);
+      const code = failure && typeof failure === 'object' && 'code' in failure ? failure.code : null;
+      throw new Error(typeof code === 'string' && Object.hasOwn(BRIDGE_FAILURES, code) ? code : 'UNAVAILABLE');
     }
     return result.json() as Promise<Record<string, unknown>>;
   };
@@ -65,9 +80,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     return res.status(400).json({ error: '참가 인증 작업을 확인해 주세요.' });
   } catch (error) {
-    if (error instanceof Error && error.message === 'ROOM_CLOSED') return res.status(410).json({
-      code: 'ROOM_CLOSED', error: '종료된 내전입니다. 운영자에게 새 공유 링크를 요청해 주세요.',
-    });
-    return res.status(401).json({ error: '참가 인증을 완료하지 못했습니다. 방에서 다시 참여해 주세요.' });
+    const code = error instanceof Error && Object.hasOwn(BRIDGE_FAILURES, error.message) ? error.message : 'UNAVAILABLE';
+    const failure = BRIDGE_FAILURES[code];
+    return res.status(failure.status).json({ code, error: failure.error });
   }
 }

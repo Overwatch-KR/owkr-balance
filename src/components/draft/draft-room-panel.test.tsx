@@ -201,6 +201,14 @@ describe('draft selection and ban results', () => {
     expect(markup).not.toContain('role="dialog"');
   });
 
+  it.each([true, false])('운영자는 관리자 화면 여부(%s)와 관계없이 공유 링크를 복사할 수 있다', admin => {
+    const view = snapshot(); view.isOperator = true;
+    const controller = { snapshot: view, connected: true, pending: false, error: '', command: vi.fn(), reconnect: vi.fn() };
+    expect(render(<DraftRoomPanel controller={controller} admin={admin} />)).toContain('공유 링크 복사');
+    view.isOperator = false;
+    expect(render(<DraftRoomPanel controller={controller} admin={admin} />)).not.toContain('공유 링크 복사');
+  });
+
   it('접속·입력·준비가 부족하면 이름과 이유를 표시하고 시작을 잠근다', () => {
     const view = snapshot(); view.phase = 'LOBBY'; view.isOperator = true; view.readyCount = 9;
     view.progress = Array.from({ length: 10 }, (_, index) => ({ ...view.participants[0], discordId: String(index),
