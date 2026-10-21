@@ -3,12 +3,13 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { Ban, Copy, RotateCcw } from 'lucide-react';
 import type { DraftRoomSnapshot, DraftTeam } from '#domain/draft';
 import { DraftAsset } from './draft-asset';
+import { getDraftTeamLabel } from './draft-room-view';
 
 function teamAppearance(team: DraftTeam | null, firstAttackTeam: DraftTeam | null) {
   const attacking = firstAttackTeam !== null && team === firstAttackTeam;
   const red = firstAttackTeam === null ? team === 'B' : attacking;
   return {
-    label: team === null ? '선택 팀 정보 없음' : `${firstAttackTeam === null ? '' : attacking ? '공격 · ' : '수비 · '}${team}팀`,
+    label: team === null ? '선택 팀 정보 없음' : getDraftTeamLabel(team, firstAttackTeam),
     border: team === null ? 'border-slate-700' : red ? 'border-red-500/70' : 'border-blue-500/70',
     text: team === null ? 'text-slate-400' : red ? 'text-red-300' : 'text-blue-300',
     bar: team === null ? 'bg-slate-700' : red ? 'bg-red-500' : 'bg-blue-500',
@@ -16,7 +17,7 @@ function teamAppearance(team: DraftTeam | null, firstAttackTeam: DraftTeam | nul
   };
 }
 
-/** @description 서버의 슬롯 순서·선택 팀을 보존해 결과를 순차 공개하며 진영 미배정 맵은 A/B 팀만 표시한다. */
+/** @description 서버의 슬롯 순서·선택 팀을 보존해 결과를 순차 공개하며 진영 미배정 맵은 게임 로비 팀 번호를 표시한다. */
 export function DraftBanResult({ snapshot, onCopy }: { snapshot: DraftRoomSnapshot; onCopy: () => void }) {
   const reducedMotion = useReducedMotion();
   const [replay, setReplay] = useState(0);

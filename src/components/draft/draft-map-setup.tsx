@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { getDraftTeamLabel } from './draft-room-view';
 import type { DraftRoomController } from '@application/draft/use-draft-room';
 
 /** @description 준비 단계에서만 운영자가 맵 선정 방식과 직접 선택할 팟지 선수를 지정한다. */
@@ -16,7 +17,7 @@ export function DraftMapSetup({ controller, onNotice }: { controller: DraftRoomC
         </select></label>
       {mode === 'POTG' && <label className="text-xs text-slate-400">팟지 선수
         <select className="form-control mt-1" value={picker} disabled={controller.pending || !controller.connected} onChange={event => setPicker(event.target.value)}>
-          <option value="">선수를 지정하세요</option>{snapshot.participants.map(player => <option key={player.discordId} value={player.discordId}>{player.displayName} · {player.team}팀</option>)}
+          <option value="">선수를 지정하세요</option>{snapshot.participants.map(player => <option key={player.discordId} value={player.discordId}>{player.displayName} · {getDraftTeamLabel(player.team, snapshot.mapResult?.firstAttackTeam)}</option>)}
         </select></label>}
       <button type="button" className="btn-ghost border border-slate-700 text-xs" disabled={unchanged || controller.pending || !controller.connected || snapshot.timer.status !== 'ACTIVE' || (mode === 'POTG' && !picker)} onClick={() => {
         setMessage(''); onNotice?.(''); void controller.command('map.configure', { mapMode: mode, pickerDiscordId: mode === 'POTG' ? picker : null })

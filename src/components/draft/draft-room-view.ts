@@ -1,4 +1,13 @@
-import { DRAFT_LIMITS, type DraftRoomSnapshot } from '#domain/draft';
+import { DRAFT_LIMITS, type DraftRoomSnapshot, type DraftTeam } from '#domain/draft';
+
+/** @description 확정된 선공 배정으로 진영을 표시하고 미배정 팀은 게임 로비 번호로 구분한다. */
+export function getDraftTeamLabel(team: DraftTeam, firstAttackTeam: DraftTeam | null = null): string {
+  return firstAttackTeam ? team === firstAttackTeam ? '공격팀' : '수비팀' : `${team === 'A' ? 1 : 2}팀`;
+}
+
+export function getDraftSideSummary(firstAttackTeam: DraftTeam): string {
+  return `공격팀 · 게임 로비 ${firstAttackTeam === 'A' ? 1 : 2}팀 / 수비팀 · 게임 로비 ${firstAttackTeam === 'A' ? 2 : 1}팀`;
+}
 
 export const DRAFT_PHASE_LABELS: Record<DraftRoomSnapshot['phase'], string> = {
   LOBBY: '팀 확인·준비', MAP_VOTING: '맵 투표', MAP_PICKING: '팟지 맵 선택', MAP_RESOLVED: '선택 맵 확인',

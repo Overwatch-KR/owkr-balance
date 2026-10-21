@@ -3,7 +3,7 @@ import { Check, RotateCcw, Save } from 'lucide-react';
 import type { DraftRole } from '#domain/draft';
 import type { DraftRoomController } from '@application/draft/use-draft-room';
 import { DraftAsset } from './draft-asset';
-import { clearDraftBanRank } from './draft-room-view';
+import { clearDraftBanRank, getDraftTeamLabel, getDraftSideSummary } from './draft-room-view';
 import { DraftMyBanVote, DraftTeamScores } from './draft-ban-vote';
 
 const ROLE_LABELS = { TANK: '탱커', DPS: '공격', SUPPORT: '지원' } as const;
@@ -68,7 +68,7 @@ export function DraftSelection({ controller, onNotice }: { controller: DraftRoom
       {isBan && <DraftTeamScores snapshot={snapshot} />}
     </div>
     <aside aria-label="우리 팀 선택 현황" className="draft-team-list">
-      <div className="mb-2 flex items-center justify-between"><h3 className="text-sm font-semibold text-white">우리 팀 · {selfPlayer?.team}팀</h3></div>
+      <div className="mb-2 flex items-center justify-between"><h3 className="text-sm font-semibold text-white">우리 팀 · {selfPlayer ? getDraftTeamLabel(selfPlayer.team, snapshot.mapResult?.firstAttackTeam) : '확인 중'}</h3></div>
       <div className="draft-nameplates">{team.map(player => {
         const isSelf = player.discordId === snapshot.selfDiscordId;
         const ballot = isSelf ? { ...self, selection, locked: confirmed } : snapshot.ballots?.teammates.find(entry => entry.discordId === player.discordId);
@@ -101,7 +101,7 @@ export function DraftSelection({ controller, onNotice }: { controller: DraftRoom
           className={`overflow-hidden rounded-md border bg-surface-elevated text-left transition disabled:opacity-50 ${selection[0] === option.map.mapId ? 'border-cyan-400 ring-1 ring-cyan-400' : 'border-slate-800 hover:border-slate-500'}`}>
           <DraftAsset kind="maps" id={option.map.mapId} name={option.map.nameKo} />
           <div className="p-3"><p className="text-sm font-semibold">{option.map.nameKo}</p>
-            <p className="mt-1 text-[11px] text-slate-500">{option.firstAttackTeam ? `첫 공격 ${option.firstAttackTeam}팀 · 첫 수비 ${option.firstAttackTeam === 'A' ? 'B' : 'A'}팀` : '공격·수비 구분 없음'}</p>
+            <p className="mt-1 text-[11px] text-slate-500">{option.firstAttackTeam ? getDraftSideSummary(option.firstAttackTeam) : '공격·수비 구분 없음'}</p>
             <p className="mt-2 text-xs text-cyan-300">{snapshot.ballots?.mapTotals?.[option.map.mapId] ?? 0}표</p></div>
         </button>)}
         {!!snapshot.candidates?.randomPool.length && <button type="button" disabled={disabled} aria-pressed={selection[0] === 'RANDOM'} onClick={() => setSelection(['RANDOM'])}

@@ -9,7 +9,7 @@ import { DraftBanResult } from './draft-ban-result';
 import { DraftRoomPanel } from './draft-room-panel';
 import { DraftOperatorActions } from './draft-operator-actions';
 import { DraftConnectionStatus } from './draft-connection-status';
-import { getDraftGuidance, getDraftPrimaryAction, getDraftStep, getDraftTeamScores, clearDraftBanRank } from './draft-room-view';
+import { getDraftGuidance, getDraftPrimaryAction, getDraftStep, getDraftTeamScores, clearDraftBanRank, getDraftTeamLabel } from './draft-room-view';
 
 function snapshot(): DraftRoomSnapshot {
   return {
@@ -86,8 +86,8 @@ describe('draft selection and ban results', () => {
     const markup = render(<DraftBanResult snapshot={snapshot()} onCopy={vi.fn()} />);
     expect([...markup.matchAll(/data-ban-team="(.*?)"/g)].map(match => match[1])).toEqual(['B', 'A', 'A', 'B']);
     expect(markup).toContain('밴 없음');
-    expect(markup).toContain('수비 · B팀 선택');
-    expect(markup).toContain('공격 · A팀 선택');
+    expect(markup).toContain('수비팀 선택');
+    expect(markup).toContain('공격팀 선택');
     expect(markup).toContain('1·4번 밴');
     expect(markup).toContain('2·3번 밴');
     expect(markup).toContain('bg-red-500');
@@ -96,8 +96,19 @@ describe('draft selection and ban results', () => {
   it('공격 수비가 없는 맵에서 임의의 진영을 붙이지 않는다', () => {
     const view = snapshot(); view.mapResult = { ...view.mapResult!, firstAttackTeam: null };
     const markup = render(<DraftBanResult snapshot={view} onCopy={vi.fn()} />);
-    expect(markup).toContain('A팀 선택'); expect(markup).toContain('B팀 선택');
-    expect(markup).not.toContain('공격 ·'); expect(markup).not.toContain('수비 ·');
+    expect(markup).toContain('1팀 선택'); expect(markup).toContain('2팀 선택');
+    expect(markup).not.toContain('공격팀'); expect(markup).not.toContain('수비팀');
+  });
+  it('선공이 B팀인 맵에서도 밴 결과와 우리 팀 표기를 실제 진영에 맞춘다', () => {
+    const view = snapshot(); view.mapResult = { ...view.mapResult!, firstAttackTeam: 'B' };
+    expect(getDraftTeamLabel('A', 'B')).toBe('수비팀');
+    expect(getDraftTeamLabel('B', 'B')).toBe('공격팀');
+    const result = render(<DraftBanResult snapshot={view} onCopy={vi.fn()} />);
+    const firstSlot = result.slice(result.indexOf('data-ban-order="1"'), result.indexOf('data-ban-order="2"'));
+    expect(firstSlot).toContain('공격팀 선택'); expect(firstSlot).toContain('border-red-500/70');
+    const markup = render(<DraftSelection controller={{ snapshot: view, connected: true, pending: false, error: '', command: vi.fn(), reconnect: vi.fn() }} />);
+    expect(markup).toContain('우리 팀 · 수비팀');
+    expect(markup).not.toContain('A팀'); expect(markup).not.toContain('B팀');
   });
   it('다른 참가자에게 팟지 확정 버튼을 제공하지 않고 현재 선택자를 안내한다', () => {
     const view = snapshot(); view.phase = 'MAP_PICKING'; view.availableMaps = DEFAULT_DRAFT_MAP_CATALOG.entries;
