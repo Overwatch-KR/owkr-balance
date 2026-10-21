@@ -18,10 +18,6 @@ OWKR Match의 운영 배포 내용을 날짜별로 정리한 문서입니다.
 
 ## 미배포
 
-### 2026-10-21
-
-- 밴픽의 팀 표기를 실제 선공 배정에 맞춰 공격팀·수비팀으로 변경했습니다. 우리 팀·밴 결과·명단·운영 현황·결과 복사에 동일하게 적용하며, 진영 미배정 단계와 공수 구분 없는 맵은 게임 로비 1팀·2팀으로 표시합니다.
-
 ### 2026-10-19
 
 - 내전 참가자는 모두 마이크를 필수로 사용하도록 참가 정책을 명시했습니다. 기존에 제거된 마이크 미사용 입력·표시·밸런싱 예외는 제공하지 않습니다.
@@ -256,6 +252,10 @@ OWKR Match의 운영 배포 내용을 날짜별로 정리한 문서입니다.
 ## 2026-10-21 — Vercel Production·실시간 서버 자동 배포
 
 배포 기준 커밋: [`5baee44`](https://github.com/Overwatch-KR/owkr-balance/commit/5baee44bfe1859c51180a0fb2a4595ab4c2c0fd6) · [자동 배포 성공](https://github.com/Overwatch-KR/owkr-balance/actions/runs/39547637563), 서버 릴리스 SHA 및 Vercel Production version.json 일치 확인.
+
+후속 배포: [`0568c1b`](https://github.com/Overwatch-KR/owkr-balance/commit/0568c1bc12aea49bedf9d90c3a6d893cf6f1806a) · 팀 진영 표기 변경, 전체 450개 테스트 통과, 실시간 서버 자동 배포 및 Vercel 운영 버전 일치 확인.
+
+- 밴픽의 팀 표기를 실제 선공 배정에 맞춰 공격팀·수비팀으로 변경했습니다. 우리 팀·밴 결과·명단·운영 현황·결과 복사에 동일하게 적용하며, 진영 미배정 단계와 공수 구분 없는 맵은 게임 로비 1팀·2팀으로 표시합니다.
 
 후속 배포: [`a30244c`](https://github.com/Overwatch-KR/owkr-balance/commit/a30244cc4ba29dd1e18c4ca45a2cc82a340771ea) · 실시간 서버 자동 배포 성공 및 실행 코드의 40초 설정 확인.
 
