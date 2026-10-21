@@ -15,7 +15,7 @@ export function useAdminDraft({ userId, csrfToken }: { userId: string; csrfToken
   const [roomCode, setRoomCode] = useState<string | null>(() => REALTIME_DRAFT_ENABLED ? readRememberedRoom(userId) : null);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
-  const requestId = useRef<string | null>(null);
+  const requestId = useRef<{ sourceId: string; id: string } | null>(null);
   const controller = useDraftRoom({ roomCode, mode: 'admin', userId, csrfToken });
   useEffect(() => {
     if (controller.roomClosed) {
@@ -35,11 +35,11 @@ export function useAdminDraft({ userId, csrfToken }: { userId: string; csrfToken
   const createRoom = useCallback(async (sourceId: string): Promise<void> => {
     if (!REALTIME_DRAFT_ENABLED) throw new Error('실시간 밴픽 기능이 아직 공개되지 않았습니다.');
     setCreating(true); setError('');
-    requestId.current ??= crypto.randomUUID();
+    if (requestId.current?.sourceId !== sourceId) requestId.current = { sourceId, id: crypto.randomUUID() };
     try {
       const entry = await adminDraftEntry(csrfToken, 'create');
       const created = await draftRequest<{ roomCode: string }>(`${entry.realtimeUrl}/v1/rooms`,
-        { sourceId, commandId: requestId.current }, { Authorization: `Bearer ${entry.ticket}` });
+        { sourceId, commandId: requestId.current.id }, { Authorization: `Bearer ${entry.ticket}` });
       setRoomCode(created.roomCode); requestId.current = null;
     } catch (failure) { setError(failure instanceof Error ? failure.message : '방을 만들지 못했습니다.'); throw failure; }
     finally { setCreating(false); }

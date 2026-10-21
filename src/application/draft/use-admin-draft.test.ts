@@ -31,6 +31,19 @@ function render() {
 }
 
 describe('admin closed room memory', () => {
+  it('reuses a request only for the same source and gives an independent source a new request id', async () => {
+    vi.stubGlobal('localStorage', { getItem: () => null });
+    const draft = render();
+    harness.entry.mockResolvedValue({ ticket: 'entry', realtimeUrl: 'https://draft.invalid' });
+    harness.request.mockRejectedValue(new Error('unavailable'));
+    await expect(draft.createRoom('SOURCE2345')).rejects.toThrow('unavailable');
+    await expect(draft.createRoom('SOURCE2345')).rejects.toThrow('unavailable');
+    harness.request.mockResolvedValue({ roomCode: 'NEWROOM234' });
+    await draft.createRoom('SOURCE6789');
+    const ids = harness.request.mock.calls.map(call => call[1].commandId);
+    expect(ids[0]).toBe(ids[1]);
+    expect(ids[2]).not.toBe(ids[0]);
+  });
   it('forgets the closed room and permits creation of a new independent room', async () => {
     const storage = new Map([['owkr:draft:v1:operator', JSON.stringify({ code: 'ROOM234567', expiresAt: Date.now() + 60000 })]]);
     vi.stubGlobal('localStorage', { getItem: (key: string) => storage.get(key) ?? null, removeItem: (key: string) => storage.delete(key) });

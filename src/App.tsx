@@ -13,6 +13,7 @@ import {
 } from './utils/user-sheet';
 import { createMatchShareCode, loadMatchShare } from './utils/match-share';
 import type { LoadedMatchLiveSession } from './utils/match-live-share';
+import { createIndependentDraftRoom } from '@application/draft/create-independent-draft-room';
 import { useOnboardingGuide } from './hooks/use-onboarding-guide';
 import { useToast } from './hooks/use-toast';
 import { useMatchActions } from './hooks/use-match-actions';
@@ -559,8 +560,9 @@ const MatchApp = ({
                                         <button type="button" disabled={!result || isResultStale || isLivePublishing || draft.creating || Boolean(draft.roomCode)}
                                             className="min-h-10 rounded-md border border-cyan-700 px-4 text-cyan-200 disabled:opacity-40"
                                             onClick={() => { void (async () => {
-                                                const source = liveSession ?? await startLiveSession();
-                                                await draft.createRoom(source.code); navigate('/draft-control');
+                                                if (!result || isResultStale) return;
+                                                await createIndependentDraftRoom(players, result, csrfToken, draft.createRoom);
+                                                navigate('/draft-control');
                                             })().catch(error => showToast('error', getErrorMessage(error, '실시간 방을 만들지 못했습니다.'))); }}>
                                             {draft.creating ? '방 생성 중…' : '실시간 밴픽 방 만들기'}
                                         </button>
