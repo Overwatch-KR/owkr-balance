@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   createMapCandidates, resolveMapVote, resolveHeroBans, validateRetainedBans, validateDraftRoster,
-  getDraftRoomExpiry, DRAFT_LIMITS, validateDraftSource, validateHeroCatalog,
+  getDraftRoomExpiry, DRAFT_LIMITS, validateDraftSource, validateHeroCatalog, getMapRevealDurationMs,
 } from '../shared/public.js';
 import { heroes, maps, NOW, players, rolls } from './fixtures.js';
 
@@ -43,6 +43,21 @@ describe('draft roster and catalogue boundaries', () => {
 });
 
 describe('map candidate and vote rules', () => {
+  it('randomizes roll duration from 2.5 to 4 seconds without changing the chosen map or its starting side', () => {
+    const snapshot = candidates();
+    const options = snapshot.candidates.map(candidate => candidate.map.mapId);
+    const ballots = [...Array(5).fill(options[0]), ...Array(5).fill(options[1])];
+    const shortest = resolveMapVote(snapshot, ballots, 2, [0.1, 0]);
+    const longest = resolveMapVote(snapshot, ballots, 2, [0.1, 0.99999999]);
+    expect(shortest.rollDurationMs).toBe(2500);
+    expect(longest.rollDurationMs).toBe(4000);
+    expect(shortest.map).toEqual(longest.map);
+    expect(shortest.firstAttackTeam).toBe(longest.firstAttackTeam);
+    expect(getMapRevealDurationMs(shortest)).toBe(6500);
+    expect(getMapRevealDurationMs(longest)).toBe(8000);
+    expect(getMapRevealDurationMs({ ...shortest, rollDurationMs: undefined })).toBe(4000);
+    expect(resolveMapVote(snapshot, Array(10).fill(options[0]), 2, rolls).rollDurationMs).toBe(0);
+  });
   it('excludes played canonical maps including seasonal variants from every draw pool', () => {
     const snapshot = candidates({ catalog: { ...maps, entries: [...maps.entries,
       { ...maps.entries[0], mapId: 'control-winter' }] }, usedCanonicalMapIds: ['control'] });

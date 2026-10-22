@@ -3,7 +3,7 @@ import { getDraftTeamLabel, getDraftSideSummary } from './draft-room-view';
 import { useState } from 'react';
 import { DraftMapSetup } from './draft-map-setup';
 import { DraftMapPick } from './draft-map-pick';
-import { DraftAsset } from './draft-asset';
+import { DraftMapReveal } from './draft-map-reveal';
 import { DraftSelection } from './draft-selection';
 import { DraftOperatorDialog } from './draft-operator-dialog';
 import { DraftBanResult } from './draft-ban-result';
@@ -39,7 +39,7 @@ export function DraftRoomPanel({ controller, admin = false }: { controller: Draf
     try { await navigator.clipboard.writeText(result); setNotice('맵·밴 결과를 복사했습니다.'); }
     catch { setNotice('복사 권한을 확인해 주세요.'); }
   };
-  return <div className={`draft-room-panel ${snapshot.ballots?.self || snapshot.phase === 'MAP_PICKING' ? 'draft-room-selecting' : 'space-y-5'}`}>
+  return <div className={`draft-room-panel ${snapshot.ballots?.self || ['MAP_PICKING', 'MAP_RESOLVED'].includes(snapshot.phase) ? 'draft-room-selecting' : 'space-y-5'}`}>
     <DraftRoomHeader controller={controller} admin={admin} onOpenOperator={() => setOperatorOpen(true)} />
     <DraftConnectionStatus controller={controller} notice={notice} />
     {snapshot.isOperator && <DraftOperatorActions key={`${snapshot.gameId}:${snapshot.epoch}`} controller={controller} execute={execute} />}
@@ -52,16 +52,11 @@ export function DraftRoomPanel({ controller, admin = false }: { controller: Draf
     {snapshot.phase === 'LOBBY' && <p className="text-xs text-slate-400">맵 선정: {snapshot.mapSelection.mode === 'VOTE' ? '참가자 투표' : `팟지 · ${snapshot.participants.find(player => player.discordId === snapshot.mapSelection.pickerDiscordId)?.displayName ?? '선수 지정 필요'}`}</p>}
     {snapshot.phase === 'LOBBY' && snapshot.isOperator && <DraftMapSetup key={snapshot.epoch} controller={controller} onNotice={setNotice} />}
     {snapshot.phase === 'MAP_PICKING' && <DraftMapPick key={`${snapshot.gameId}:${snapshot.epoch}`} controller={controller} onNotice={setNotice} />}
-    {snapshot.phase === 'MAP_RESOLVED' && snapshot.mapResult && <section aria-label="확정 맵 확인" className="mx-auto w-full app-compact-content overflow-hidden rounded-md border border-cyan-700 bg-surface-elevated">
-      <div className="max-h-48 overflow-hidden"><DraftAsset kind="maps" id={snapshot.mapResult.map.mapId} name={snapshot.mapResult.map.nameKo} /></div>
-      <div className="p-4"><h3 className="text-lg font-semibold text-white">{snapshot.mapResult.map.nameKo}</h3>
-        <p className="mt-1 text-xs text-slate-400">{snapshot.mapResult.firstAttackTeam ? getDraftSideSummary(snapshot.mapResult.firstAttackTeam) : '공격·수비 구분 없음'}</p>
-        <p className="mt-2 text-xs text-cyan-300">모두 같은 3초 확인 시간을 가진 뒤 영웅 선택을 시작합니다.</p></div>
-    </section>}
+    {snapshot.phase === 'MAP_RESOLVED' && snapshot.mapResult && <DraftMapReveal key={snapshot.mapResult.resolutionId} snapshot={snapshot} />}
     {snapshot.ballots?.self && <DraftSelection key={`${snapshot.gameId}:${snapshot.epoch}:${snapshot.stageKind}`} controller={controller} onNotice={setNotice} />}
     {snapshot.heroResult && <DraftBanResult key={snapshot.heroResult.resolutionId} snapshot={snapshot} onCopy={() => void copyResult()} />}
     {!snapshot.ballots?.self && !['MAP_PICKING', 'MAP_RESOLVED'].includes(snapshot.phase) && <section aria-label="배정된 팀" className={`grid gap-4 md:grid-cols-2 ${snapshot.heroResult ? 'draft-result-roster' : ''}`}>
-      {(['A', 'B'] as const).map(team => <div key={team} className={`border-t-2 pt-3 ${(snapshot.mapResult?.firstAttackTeam ? snapshot.mapResult.firstAttackTeam === team : team === 'B') ? 'border-red-500' : 'border-blue-500'}`}>
+      {(['A', 'B'] as const).map(team => <div key={team} className={`border-t-2 pt-3 ${team === (snapshot.mapResult?.firstAttackTeam ?? 'A') ? 'border-red-500' : 'border-blue-500'}`}>
         <h3 className="mb-2 font-semibold">{getDraftTeamLabel(team, snapshot.mapResult?.firstAttackTeam)} · 게임 로비 {team === 'A' ? 1 : 2}팀</h3>
         {snapshot.participants.filter(player => player.team === team).map(player => <div key={player.discordId} className="flex items-center justify-between border-b border-slate-800 py-3 text-sm">
           <span>{player.displayName}{player.discordId === snapshot.selfDiscordId ? ' (나)' : ''}</span><span className="text-xs text-slate-400">{ROLE_LABELS[player.role]}</span>

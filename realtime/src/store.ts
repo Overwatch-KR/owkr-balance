@@ -144,7 +144,8 @@ local function stamp(value)
 end
 local roomJson = ARGV[2]
 if nextRoom.phase == 'MAP_RESOLVED' and nextRoom.timer.deadlineAt == -1 then
-  roomJson = string.gsub(roomJson, '"deadlineAt":%-1', '"deadlineAt":' .. string.format('%.0f',now + ${DRAFT_LIMITS.mapRevealMs}))
+  local rollMs = nextRoom.mapResult and nextRoom.mapResult.rollDurationMs or 0
+  roomJson = string.gsub(roomJson, '"deadlineAt":%-1', '"deadlineAt":' .. string.format('%.0f',now + ${DRAFT_LIMITS.mapRevealMs} + rollMs))
 end
 redis.call('SET', KEYS[1], stamp(roomJson), 'PXAT', current.expiresAt)
 redis.call('SET', KEYS[2], stamp(ARGV[3]), 'PXAT', history.expiresAt)

@@ -23,7 +23,7 @@ export function DraftMapPick({ controller, onNotice }: { controller: DraftRoomCo
   return <section aria-label="팟지 맵 선택" className="draft-map-pool min-w-0">
     <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
       <div><h3 className="font-semibold text-white">{isPicker ? '팟지 맵을 선택하세요' : `${picker?.displayName ?? '지정 선수'}님의 맵 선택을 기다리고 있습니다`}</h3>
-        <p className="mt-1 text-xs text-slate-500">미사용 맵 {snapshot.availableMaps.length}개 · 확정 후 모두 3초간 맵을 확인합니다.</p></div>
+        <p className="mt-1 text-xs text-slate-500">미사용 맵 {snapshot.availableMaps.length}개 · 확정 후 모두 4초간 맵을 확인합니다.</p></div>
       <div className="flex gap-2"><input aria-label="맵 검색" className="form-control max-w-44" placeholder="맵 이름 검색" value={search} onChange={event => { setSearch(event.target.value); setPage(0); }} />
         <select aria-label="맵 모드 필터" className="form-control max-w-32" value={mode} onChange={event => { setMode(event.target.value); setPage(0); }}><option value="ALL">전체 모드</option>
           {Object.entries(MODE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>

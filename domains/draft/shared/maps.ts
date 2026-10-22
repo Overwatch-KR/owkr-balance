@@ -1,5 +1,5 @@
 import { validateMapCatalog } from './catalog.js';
-import { requireDraft, type DraftCatalog, type DraftMap, type DraftTeam } from './model.js';
+import { DRAFT_LIMITS, requireDraft, type DraftCatalog, type DraftMap, type DraftTeam } from './model.js';
 import { DraftRandom } from './random.js';
 
 export interface MapOption {
@@ -103,6 +103,12 @@ export interface MapResolution {
   map: DraftMap;
   firstAttackTeam: DraftTeam | null;
   draws: readonly number[];
+  rollDurationMs?: number;
+}
+
+/** @description 저장된 추첨 연출 시간 뒤에 별도의 확정 맵 확인 4초를 보장하며 추첨 시간이 없는 결과도 동일하게 확인한다. */
+export function getMapRevealDurationMs(result: MapResolution | null): number {
+  return DRAFT_LIMITS.mapRevealMs + (result?.rollDurationMs ?? 0);
 }
 
 /** @description 봉인된 개인 표만 전달받아 6표 차이 또는 득표 비례 방식으로 결과를 계산한다. */
@@ -150,13 +156,19 @@ export function resolveMapVote(
       : snapshot.candidates.find(candidate => candidate.map.mapId === selectedOption)!.map;
   }
   const visible = snapshot.candidates.find(candidate => candidate.map.mapId === selectedMap.mapId);
+  const startingTeam = visible ? visible.firstAttackTeam : firstAttackTeam(selectedMap, random);
+  const needsRoll = (method === 'WEIGHTED' && options.filter(id => totals[id] > 0).length > 1)
+    || (method === 'ALL_ABSTAINED' && snapshot.eligiblePool.length > 1);
+  const rollDurationMs = needsRoll
+    ? DRAFT_LIMITS.mapRollMinMs + random.index(DRAFT_LIMITS.mapRollMaxMs - DRAFT_LIMITS.mapRollMinMs + 1) : 0;
   return {
     resolutionId: snapshot.resolutionId,
     method,
     selectedOption,
     totals,
     map: { ...selectedMap },
-    firstAttackTeam: visible ? visible.firstAttackTeam : firstAttackTeam(selectedMap, random),
+    firstAttackTeam: startingTeam,
+    rollDurationMs,
     draws: random.draws,
   };
 }

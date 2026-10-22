@@ -7,7 +7,7 @@ import { getDraftTeamLabel } from './draft-room-view';
 
 function teamAppearance(team: DraftTeam | null, firstAttackTeam: DraftTeam | null) {
   const attacking = firstAttackTeam !== null && team === firstAttackTeam;
-  const red = firstAttackTeam === null ? team === 'B' : attacking;
+  const red = firstAttackTeam === null ? team === 'A' : attacking;
   return {
     label: team === null ? '선택 팀 정보 없음' : getDraftTeamLabel(team, firstAttackTeam),
     border: team === null ? 'border-slate-700' : red ? 'border-red-500/70' : 'border-blue-500/70',

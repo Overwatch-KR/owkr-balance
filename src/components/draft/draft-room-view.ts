@@ -36,10 +36,11 @@ export function getDraftGuidance(snapshot: DraftRoomSnapshot): string {
     const picker = snapshot.participants.find(player => player.discordId === snapshot.mapSelection.pickerDiscordId);
     return snapshot.selfDiscordId === picker?.discordId ? '플레이할 맵을 고른 뒤 확정해 주세요.' : `${picker?.displayName ?? '지정 선수'}님의 맵 선택을 기다리는 중`;
   }
-  if (snapshot.phase === 'MAP_RESOLVED') return '확정 맵을 3초간 확인한 뒤 밴 투표로 이동합니다.';
-  if (snapshot.ballots?.self?.locked) return snapshot.stageKind === 'BAN' ? '준비 완료 · 마감 전까지 픽을 수정할 수 있습니다.' : '선택 확정 완료 · 다른 참가자를 기다리는 중';
+  if (snapshot.phase === 'MAP_RESOLVED') return snapshot.mapResult?.method === 'POTG'
+    ? '선택된 맵을 확인한 뒤 밴 투표로 이동합니다.' : '맵 추첨과 결과 확인 후 밴 투표로 이동합니다.';
+  if (snapshot.ballots?.self?.locked) return '준비 완료 · 마감 전까지 선택을 수정할 수 있습니다.';
   if (snapshot.stageKind && !snapshot.ballots?.self) return '참가자들이 선택하고 있습니다. 참가 현황에서 확정 상태를 확인하세요.';
-  if (snapshot.phase === 'MAP_VOTING') return '플레이할 맵을 선택하고 선택 확정을 눌러 주세요.';
+  if (snapshot.phase === 'MAP_VOTING') return '플레이할 맵을 선택하세요. 맵 선택 시 자동 준비됩니다.';
   if (snapshot.phase === 'HERO_VOTING') return '밴할 영웅을 선택하세요. 3개 선택 시 자동 준비됩니다.';
   if (snapshot.phase === 'HERO_RESOLVED') return snapshot.isOperator ? '맵과 밴 결과를 확인하고 게임 로비에 적용해 주세요.' : '맵과 밴 결과 확정 · 운영자의 게임 설정 적용을 기다리는 중';
   return snapshot.isOperator ? '게임 설정 적용 완료 · 실제 경기 시작을 기록해 주세요.' : '게임 설정 적용 완료 · 실제 경기 시작을 기다리는 중';

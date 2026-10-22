@@ -6,6 +6,8 @@ import { DraftMapPick } from './draft-map-pick';
 import type { DraftRoomSnapshot } from '#domain/draft';
 import { DraftSelection } from './draft-selection';
 import { DraftBanResult } from './draft-ban-result';
+import { DraftMapReveal } from './draft-map-reveal';
+import { DraftMapVoteSlots } from './draft-map-vote-slots';
 import { DraftRoomPanel } from './draft-room-panel';
 import { DraftOperatorActions } from './draft-operator-actions';
 import { DraftConnectionStatus } from './draft-connection-status';
@@ -38,6 +40,59 @@ function render(content: React.ReactNode) {
 }
 
 describe('draft selection and ban results', () => {
+  it('투표 칸은 진영 색상을 쓰고 미배정 맵은 1팀 빨강·2팀 파랑, 추첨 칸은 단색이다', () => {
+    const props = { optionId: 'map', name: '예제 맵', count: 3, teamCounts: { A: 2, B: 1 } };
+    const normal = render(<DraftMapVoteSlots {...props} />);
+    expect(normal.match(/data-side="attack"/g)).toHaveLength(2);
+    expect(normal.match(/data-side="defense"/g)).toHaveLength(1);
+    const swapped = render(<DraftMapVoteSlots {...props} firstAttackTeam="B" />);
+    expect(swapped.match(/data-side="attack"/g)).toHaveLength(1);
+    expect(swapped.match(/data-side="defense"/g)).toHaveLength(2);
+    expect(render(<DraftMapVoteSlots optionId="map" name="예제 맵" count={3} />)).not.toContain('data-side');
+  });
+
+  it('추첨 후에는 후보나 무작위 목록 없이 확정 맵 하나만 표시한다', () => {
+    const view = snapshot();
+    view.phase = 'MAP_RESOLVED';
+    view.mapResult = { ...view.mapResult!, rollDurationMs: 2400 };
+    view.timer = { ...view.timer, phase: 'MAP_RESOLVED', status: 'PAUSED', deadlineAt: null, remainingMs: 4000 };
+    const markup = render(<DraftMapReveal snapshot={view} />);
+    expect(markup).toContain('aria-label="확정 맵 확인"');
+    expect(markup.match(/<figure/g)).toHaveLength(1);
+    expect(markup).toContain('>왕의 길</h2>');
+    expect(markup).not.toContain('draft-map-roll-option');
+    expect(markup).not.toContain('무작위 · 미사용 맵');
+  });
+
+  it('맵 자동 준비 후에도 맵을 수정할 수 있고 자동 준비 버튼으로는 취소할 수 없다', () => {
+    const view = snapshot();
+    view.phase = 'MAP_VOTING'; view.stageKind = 'MAP';
+    const maps = DEFAULT_DRAFT_MAP_CATALOG.entries;
+    view.candidates = { resolutionId: 'map', catalogVersion: 'test', mapHistoryRevision: 1, eligiblePool: maps,
+      candidates: maps.slice(0, 3).map(map => ({ map, firstAttackTeam: null })), randomPool: maps.slice(3),
+      remainingMapsConfirmed: false, diversityExceptionReason: null, draws: [] };
+    view.ballots = { ...view.ballots!, self: { ...view.ballots!.self!, selection: [maps[0].mapId], locked: true } };
+    const controller = { snapshot: view, connected: true, pending: false, error: '', command: vi.fn(), reconnect: vi.fn() };
+    let markup = render(<DraftSelection controller={controller} />);
+    expect(markup).toContain('맵을 누르면 자동 준비됩니다.');
+    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>.*?<\/svg>자동 준비 완료<\/button>/);
+    expect(markup).not.toMatch(/<button[^>]*disabled=""[^>]*aria-pressed="(?:true|false)"/);
+    expect(markup).not.toContain('선택 확정');
+    expect(markup).not.toContain('우리 팀 선택 현황');
+    expect(markup).not.toContain('draft-team-list');
+    expect(markup).not.toContain('>저장</button>');
+    expect(getDraftGuidance(view)).toContain('마감 전까지 선택을 수정');
+    view.ballots.self!.selection = []; view.ballots.self!.locked = false;
+    markup = render(<DraftSelection controller={controller} />);
+    expect(markup).toContain('기권 준비');
+    view.ballots.self!.locked = true;
+    markup = render(<DraftSelection controller={controller} />);
+    expect(markup).toContain('준비 취소');
+    view.stageStatus = 'SEALED';
+    markup = render(<DraftSelection controller={controller} />);
+    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*aria-pressed="false"/);
+  });
+
   it('본인과 팀원의 이름 아래에 1,2,3순위 초상화를 각자의 표대로 표시한다', () => {
     const markup = render(<DraftSelection controller={{ snapshot: snapshot(), connected: true, pending: false, error: '', command: vi.fn(), reconnect: vi.fn() }} />);
     const self = markup.slice(markup.indexOf('aria-label="하늘 내 선택"'), markup.indexOf('aria-label="별빛 선택 현황"'));
@@ -126,7 +181,7 @@ describe('draft selection and ban results', () => {
     view.mapSelection = { mode: 'POTG', pickerDiscordId: 'self' };
     const markup = render(<DraftMapPick controller={{ snapshot: view, connected: true, pending: false, error: '', command: vi.fn(), reconnect: vi.fn() }} />);
     expect(markup).toContain('미사용 맵 31개'); expect(markup).toContain('맵 검색'); expect(markup).toContain('다음 맵');
-    expect(markup).toContain('이 맵으로 확정'); expect(markup).toContain('3초');
+    expect(markup).toContain('이 맵으로 확정'); expect(markup).toContain('4초');
   });
   it('전원 기권은 가짜 밴 슬롯이나 선택 팀을 만들지 않는다', () => {
     const view = snapshot(); view.heroResult = { ...view.heroResult!, firstTeam: null, slots: [], bannedHeroIds: [] };

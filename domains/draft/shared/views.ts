@@ -7,6 +7,7 @@ export interface ParticipantBallotView {
   teammates: readonly DraftBallot[];
   confirmedCounts: Record<DraftTeam, number>;
   mapTotals: Readonly<Record<string, number>> | null;
+  mapTeamTotals?: Readonly<Record<string, Record<DraftTeam, number>>> | null;
 }
 
 function publicBallot(ballot: DraftBallot): DraftBallot {
@@ -35,10 +36,15 @@ export function projectDraftBallots(input: {
   const mapTotals = input.stage.kind === 'MAP'
     ? Object.fromEntries(input.stage.allowedIds.map(id => [id, ballots.filter(ballot => ballot.selection[0] === id).length]))
     : null;
+  const mapTeamTotals = input.stage.kind === 'MAP'
+    ? Object.fromEntries(input.stage.allowedIds.map(id => [id, {
+      A: ballots.filter(ballot => ballot.selection[0] === id && currentIds.get(ballot.discordId) === 'A').length,
+      B: ballots.filter(ballot => ballot.selection[0] === id && currentIds.get(ballot.discordId) === 'B').length,
+    }])) : null;
   return {
     self: self ? publicBallot(self) : null,
     teammates: viewer && input.stage.kind !== 'MAP'
       ? ballots.filter(ballot => currentIds.get(ballot.discordId) === viewer.team).map(publicBallot) : [],
-    confirmedCounts, mapTotals,
+    confirmedCounts, mapTotals, mapTeamTotals,
   };
 }

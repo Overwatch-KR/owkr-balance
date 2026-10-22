@@ -84,7 +84,6 @@ export function applyBallotCommand(
   }
   requireDraft(stage.status === 'OPEN' && now < stage.deadlineAt,
     'BALLOT_CLOSED', '투표가 정지되었거나 마감되었습니다.');
-  requireDraft(stage.kind === 'BAN' || !ballot.locked, 'BALLOT_LOCKED', '확정한 표는 변경할 수 없습니다.');
   requireDraft(command.expectedBallotRevision === ballot.ballotRevision,
     'BALLOT_CONFLICT', '저장된 표가 변경되었습니다. 최신 상태로 다시 제출해 주세요.');
   const limit = stage.kind === 'BAN' ? 3 : 1;
@@ -96,7 +95,7 @@ export function applyBallotCommand(
   requireDraft(stage.receipts.length < 2000, 'COMMAND_LIMIT', '이 단계의 입력 한도를 초과했습니다. 운영자에게 문의해 주세요.');
   const nextBallot: DraftBallot = {
     discordId: connection.discordId, ballotRevision: ballot.ballotRevision + 1,
-    selection: [...command.selection], locked: command.lock || (stage.kind === 'BAN' && selectedIds.length === 3),
+    selection: [...command.selection], locked: command.lock || selectedIds.length === limit,
   };
   const receipt: BallotReceipt = {
     discordId: connection.discordId, commandId: command.commandId, body,

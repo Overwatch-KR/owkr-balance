@@ -26,10 +26,35 @@ async function setup(options: { realCatalogs?: boolean } = {}) {
   const connect = async (index: number) => engine.connect(ticket(ids[index], code), `c${index}`);
   const readyAll = async () => { for (let index = 0; index < 10; index++) { await connect(index); await run(index, 'ready.set'); } };
   const lockAll = async (selection: string[]) => { for (let index = 0; index < 10; index++) await run(index, 'ballot.lock', { selection }); };
-  return { ...fixtures, engine, ids, code, ticket, run, connect, readyAll, lockAll, advance(ms: number) { time += ms; } };
+  const finishMapReveal = async () => {
+    const { room } = await engine.requireRoom(code);
+    expect(room.phase).toBe('MAP_RESOLVED');
+    time = room.timer.deadlineAt!;
+    await engine.tick(code);
+  };
+  return { ...fixtures, engine, ids, code, ticket, run, connect, readyAll, lockAll, finishMapReveal, advance(ms: number) { time += ms; } };
 }
 
 describe('local server persisted flow', () => {
+  it('shares the randomized roll deadline and holds the confirmed map for another full four seconds', async () => {
+    const app = await setup(); await app.readyAll(); await app.run(0, 'draft.start');
+    const { room } = await app.engine.requireRoom(app.code);
+    const options = room.candidates!.candidates;
+    for (let index = 0; index < 10; index++) await app.run(index, 'ballot.save', { selection: [options[index % 2].map.mapId] });
+    await app.engine.tick(app.code);
+    const views = await Promise.all(Array.from({ length: 10 }, (_, index) => app.engine.snapshot(`c${index}`)));
+    const duration = views[0].mapResult!.rollDurationMs!;
+    expect(duration).toBeGreaterThanOrEqual(2500);
+    expect(duration).toBeLessThanOrEqual(4000);
+    expect(new Set(views.map(view => view.timer.deadlineAt)).size).toBe(1);
+    expect(views[0].timer.deadlineAt! - views[0].serverNow).toBe(duration + 4000);
+    app.advance(duration); await app.engine.tick(app.code);
+    expect((await app.engine.snapshot('c0')).phase).toBe('MAP_RESOLVED');
+    app.advance(3999); await app.engine.tick(app.code);
+    expect((await app.engine.snapshot('c0')).phase).toBe('MAP_RESOLVED');
+    app.advance(1); await app.engine.tick(app.code);
+    expect((await app.engine.snapshot('c0')).phase).toBe('HERO_VOTING');
+  });
   it('completes ten-person map/ban flow and records played maps across games', async () => {
     const app = await setup();
     await app.readyAll();
@@ -40,7 +65,7 @@ describe('local server persisted flow', () => {
     await app.lockAll([mapId]);
     expect((await app.engine.requireRoom(app.code)).room.stage?.status).toBe('SEALED');
     await app.engine.tick(app.code);
-    app.advance(3000); await app.engine.tick(app.code);
+    await app.finishMapReveal();
     expect((await app.engine.requireRoom(app.code)).room.phase).toBe('HERO_VOTING');
     await app.lockAll(['local-hero-0', 'local-hero-3', 'local-hero-6']); await app.engine.tick(app.code);
     bundle = await app.engine.requireRoom(app.code);
@@ -59,10 +84,38 @@ describe('local server persisted flow', () => {
     expect(bundle.room.expiresAt).toBe((await app.store.readSource('LOCAL23456')).source!.expiresAt);
   });
 
+  it('saves map changes, deselection and abstention before automatically sealing ten ready ballots', async () => {
+    const app = await setup(); await app.readyAll(); await app.run(0, 'draft.start');
+    const bundle = await app.engine.requireRoom(app.code);
+    const mapId = bundle.room.candidates!.candidates[0].map.mapId;
+    await app.run(0, 'ballot.save', { selection: [mapId] });
+    let view = await app.engine.snapshot('c0');
+    expect(view.ballots?.self).toMatchObject({ selection: [mapId], locked: true });
+    expect(view.ballots?.mapTotals?.[mapId]).toBe(1);
+    expect(view.ballots?.mapTeamTotals?.[mapId]).toEqual({ A: 1, B: 0 });
+    await app.run(0, 'ballot.save', { selection: ['RANDOM'] });
+    view = await app.engine.snapshot('c0');
+    expect(view.ballots?.self).toMatchObject({ selection: ['RANDOM'], locked: true });
+    expect(view.ballots?.mapTotals?.[mapId] ?? 0).toBe(0);
+    expect(view.ballots?.mapTotals?.RANDOM).toBe(1);
+    expect(view.ballots?.mapTeamTotals?.[mapId]).toEqual({ A: 0, B: 0 });
+    expect(view.ballots?.mapTeamTotals?.RANDOM).toEqual({ A: 1, B: 0 });
+    await app.run(0, 'ballot.save', { selection: [] });
+    expect((await app.engine.snapshot('c0')).ballots?.self).toMatchObject({ selection: [], locked: false });
+    await app.run(0, 'ballot.lock', { selection: [] });
+    expect((await app.engine.snapshot('c0')).ballots?.self).toMatchObject({ selection: [], locked: true });
+    await app.run(0, 'ballot.save', { selection: [mapId] });
+    for (let index = 1; index < 10; index++) await app.run(index, 'ballot.save', { selection: [mapId] });
+    expect((await app.engine.requireRoom(app.code)).room.stage?.status).toBe('SEALED');
+    await expect(app.run(0, 'ballot.save', { selection: [] })).rejects.toThrow('마감');
+    await app.engine.tick(app.code);
+    expect((await app.engine.requireRoom(app.code)).room.mapResult?.map.mapId).toBe(mapId);
+  });
+
   it('automatically confirms ten three-pick saves and seals the stage without confirm commands', async () => {
     const app = await setup(); await app.readyAll(); await app.run(0, 'draft.start');
     await app.lockAll([]); await app.engine.tick(app.code);
-    app.advance(3000); await app.engine.tick(app.code);
+    await app.finishMapReveal();
     const selection = ['local-hero-0', 'local-hero-3', 'local-hero-6'];
     await app.run(0, 'ballot.save', { selection });
     expect((await app.engine.snapshot('c0')).ballots?.self?.locked).toBe(true);
@@ -135,7 +188,7 @@ describe('local server persisted flow', () => {
   it('recovers a persisted legacy preference stage into an empty paused ban vote', async () => {
     const app = await setup(); await app.readyAll(); await app.run(0, 'draft.start');
     await app.lockAll([]); await app.engine.tick(app.code);
-    app.advance(3000); await app.engine.tick(app.code);
+    await app.finishMapReveal();
     const bundle = await app.engine.requireRoom(app.code);
     const epoch = bundle.room.epoch;
     Object.assign(bundle.room, { phase: 'HERO_PREFERENCE' });
@@ -264,7 +317,7 @@ describe('POTG selection with the bundled catalog', () => {
     await app.lockAll(['ana', 'dva', 'genji']); await app.engine.tick(app.code);
     await app.run(0, 'game.confirmApplied'); await app.run(0, 'game.markStarted'); await app.run(0, 'game.markFinished');
   }
-  it('allows only the designated player, freezes all players for the same three seconds, then opens bans', async () => {
+  it('allows only the designated player, freezes all players for the same four seconds, then opens bans', async () => {
     const app = await startPotg();
     const before = await app.engine.snapshot('c0');
     expect(before.phase).toBe('MAP_PICKING'); expect(before.availableMaps).toHaveLength(31);
@@ -276,10 +329,10 @@ describe('POTG selection with the bundled catalog', () => {
     const snapshots = await Promise.all(Array.from({ length: 10 }, (_, index) => app.engine.snapshot(`c${index}`)));
     expect(new Set(snapshots.map(view => view.timer.deadlineAt)).size).toBe(1);
     expect(snapshots.every(view => view.phase === 'MAP_RESOLVED' && view.ballots === null)).toBe(true);
-    expect(snapshots[0].timer.deadlineAt! - snapshots[0].serverNow).toBe(3000);
+    expect(snapshots[0].timer.deadlineAt! - snapshots[0].serverNow).toBe(4000);
     await expect(app.run(3, 'ballot.lock', { selection: ['ana'] })).rejects.toThrow('현재 입력');
     await expect(app.run(3, 'map.pick', { mapId: 'kings-row' })).rejects.toThrow('팟지 맵 선택 단계');
-    app.advance(2999); await app.engine.tick(app.code);
+    app.advance(3999); await app.engine.tick(app.code);
     expect((await app.engine.snapshot('c3')).phase).toBe('MAP_RESOLVED');
     app.advance(1); await app.engine.tick(app.code);
     expect((await app.engine.snapshot('c3')).phase).toBe('HERO_VOTING');
@@ -298,7 +351,7 @@ describe('POTG selection with the bundled catalog', () => {
         await app.run(0, 'draft.start');
         await expect(app.run(3, 'map.pick', { mapId: 'grimsvotn' })).rejects.toThrow('사용했거나');
       }
-      await app.run(3, 'map.pick', { mapId }); app.advance(3000); await app.engine.tick(app.code);
+      await app.run(3, 'map.pick', { mapId }); await app.finishMapReveal();
       await finish(app);
     }
     const result = await app.engine.requireRoom(app.code);
@@ -321,12 +374,12 @@ describe('POTG selection with the bundled catalog', () => {
     await expect(app.run(3, 'map.pick', { mapId: 'grimsvotn' })).rejects.toThrow('원본이 변경');
     expect((await app.engine.requireRoom(app.code)).room.mapResult).toBeNull();
   });
-  it('starts the full three-second reveal at storage commit even when saving is delayed', async () => {
+  it('starts the full four-second reveal at storage commit even when saving is delayed', async () => {
     const app = await startPotg(); const commit = app.store.commit.bind(app.store);
     app.store.commit = async (bundle, guard) => { if (bundle.room.phase === 'MAP_RESOLVED') app.advance(1250); return commit(bundle, guard); };
     await app.run(3, 'map.pick', { mapId: 'grimsvotn' });
     const view = await app.engine.snapshot('c0');
-    expect(view.timer.deadlineAt! - view.serverNow).toBe(3000);
+    expect(view.timer.deadlineAt! - view.serverNow).toBe(4000);
   });
   it('also holds a voted map for three full seconds after delayed result persistence', async () => {
     const app = await setup(); await app.readyAll(); await app.run(0, 'draft.start');
@@ -334,7 +387,7 @@ describe('POTG selection with the bundled catalog', () => {
     const commit = app.store.commit.bind(app.store);
     app.store.commit = async (bundle, guard) => { if (bundle.room.phase === 'MAP_RESOLVED') app.advance(1250); return commit(bundle, guard); };
     await app.engine.tick(app.code); const view = await app.engine.snapshot('c0');
-    expect(view.timer.deadlineAt! - view.serverNow).toBe(3000);
+    expect(view.timer.deadlineAt! - view.serverNow).toBe(4000);
   });
   it('keeps a retried configuration idempotent after it invalidates previous ready commands', async () => {
     const app = await setup(); await app.readyAll(); const view = await app.engine.snapshot('c0');
@@ -390,7 +443,7 @@ describe('closing a draft room', () => {
   });
   it('requires a playing game to finish first and preserves recorded game and map history', async () => {
     const app = await setup(); await app.readyAll(); await app.run(0, 'draft.start');
-    await app.lockAll([]); await app.engine.tick(app.code); app.advance(3000); await app.engine.tick(app.code);
+    await app.lockAll([]); await app.engine.tick(app.code); await app.finishMapReveal();
     await app.lockAll([]); await app.engine.tick(app.code); await app.run(0, 'game.confirmApplied');
     await app.run(0, 'game.markStarted');
     await expect(app.run(0, closeType)).rejects.toMatchObject({ code: 'GAME_NOT_CLOSED' });
@@ -493,7 +546,7 @@ describe('automatic idle room closure', () => {
   });
   it('also closes forgotten playing rooms without fabricating a game finish record', async () => {
     const app = await setup(); await app.readyAll(); await app.run(0, 'draft.start');
-    await app.lockAll([]); await app.engine.tick(app.code); app.advance(3000); await app.engine.tick(app.code);
+    await app.lockAll([]); await app.engine.tick(app.code); await app.finishMapReveal();
     await app.lockAll([]); await app.engine.tick(app.code); await app.run(0, 'game.confirmApplied'); await app.run(0, 'game.markStarted');
     const before = (await app.store.load(app.code))!;
     app.advance(idleMs); await app.engine.tick(app.code);

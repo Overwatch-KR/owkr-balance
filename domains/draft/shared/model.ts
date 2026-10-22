@@ -64,7 +64,9 @@ export interface DraftActor {
 
 export const DRAFT_RULES_VERSION = 'owkr-map-ban-v2';
 export const DRAFT_LIMITS = {
-  mapRevealMs: 3000,
+  mapRevealMs: 4000,
+  mapRollMinMs: 2500,
+  mapRollMaxMs: 4000,
   roomLifetimeMs: 3 * 60 * 60 * 1000,
   roomIdleMs: 2 * 60 * 60 * 1000,
   sessionLifetimeMs: 24 * 60 * 60 * 1000,

@@ -15,14 +15,35 @@ function command(overrides: Partial<BallotCommand> = {}): BallotCommand {
 const operators = { ownerId: players[0].discordId, coOperatorId: players[5].discordId, operatorRevision: 1 };
 
 describe('ballot atomic calculation contract', () => {
-  it('keeps map confirmation immutable before a delayed draft arrives', () => {
+  it('automatically readies maps and keeps changes editable until sealing', () => {
     const original = stage('MAP');
     const saved = applyBallotCommand(original, command({ kind: 'MAP' }), connection, NOW).stage;
+    expect(saved.ballots[0]).toMatchObject({ selection: ['h0'], locked: true, ballotRevision: 1 });
     const locked = applyBallotCommand(saved, command({ kind: 'MAP', commandId: 'lock', expectedBallotRevision: 1,
-      selection: ['h1'], lock: true }), connection, NOW + 1).stage;
+      selection: ['h1'], lock: false }), connection, NOW + 1).stage;
     expect(locked.ballots[0]).toMatchObject({ selection: ['h1'], locked: true, ballotRevision: 2 });
-    expect(() => applyBallotCommand(locked, command({ kind: 'MAP', commandId: 'late', expectedBallotRevision: 1 }), connection, NOW + 2)).toThrow('확정');
+    expect(() => applyBallotCommand(locked, command({ kind: 'MAP', commandId: 'late', expectedBallotRevision: 1 }), connection, NOW + 2)).toThrow('저장된 표');
+    const cleared = applyBallotCommand(locked, command({ kind: 'MAP', commandId: 'clear', expectedBallotRevision: 2,
+      selection: [] }), connection, NOW + 2).stage;
+    expect(cleared.ballots[0]).toMatchObject({ selection: [], locked: false, ballotRevision: 3 });
+    const refilled = applyBallotCommand(cleared, command({ kind: 'MAP', commandId: 'refill', expectedBallotRevision: 3,
+      selection: ['h2'] }), connection, NOW + 3).stage;
+    expect(refilled.ballots[0]).toMatchObject({ selection: ['h2'], locked: true });
+    const sealed = sealBallotStage(refilled, 'map-closed', NOW + 20_000, rolls);
+    expect(() => applyBallotCommand(sealed, command({ kind: 'MAP', commandId: 'closed-edit', expectedBallotRevision: 4,
+      selection: [] }), connection, NOW + 20_000)).toThrow('마감');
     expect(original.ballots[0].selection).toEqual([]);
+  });
+  it('supports explicit map abstention and clears readiness only with no selection', () => {
+    let current = applyBallotCommand(stage('MAP'), command({ kind: 'MAP', selection: [], lock: true }), connection, NOW).stage;
+    expect(current.ballots[0]).toMatchObject({ selection: [], locked: true });
+    current = applyBallotCommand(current, command({ kind: 'MAP', commandId: 'cancel-abstention', expectedBallotRevision: 1,
+      selection: [] }), connection, NOW + 1).stage;
+    expect(current.ballots[0]).toMatchObject({ selection: [], locked: false });
+    current = applyBallotCommand(current, command({ kind: 'MAP', commandId: 'pick', expectedBallotRevision: 2 }), connection, NOW + 2).stage;
+    current = applyBallotCommand(current, command({ kind: 'MAP', commandId: 'keep-map', expectedBallotRevision: 3,
+      lock: false }), connection, NOW + 3).stage;
+    expect(current.ballots[0]).toMatchObject({ selection: ['h0'], locked: true });
   });
   it('unreadies a three-pick ballot when cleared and readies its updated third pick', () => {
     const request = command({ selection: ['h0', 'h1', 'h2'], lock: false });
@@ -103,6 +124,7 @@ describe('recipient data and presence', () => {
     const view = projectDraftBallots({ viewerId: players[0].discordId, operators, participants: players, stage: original });
     expect(view.teammates).toEqual([]);
     expect(view.mapTotals?.h0).toBe(10);
+    expect(view.mapTeamTotals?.h0).toEqual({ A: 5, B: 5 });
     expect(view.self?.discordId).toBe(players[0].discordId);
   });
   it('denies an unlisted account and gives a nonplaying operator no private votes', () => {

@@ -44,6 +44,6 @@ export function DraftRoomHeader({ controller, admin, onOpenOperator }: { control
     <ol className="draft-steps" aria-label="밴픽 진행 단계">{labels.map((label, index) => <li key={index} aria-current={step === index ? 'step' : undefined}
       className={step === index ? 'draft-step-current' : step > index ? 'draft-step-done' : ''}><span>{index < step ? '✓' : index + 1}</span>{label}</li>)}</ol>
     <div className="draft-guidance"><p className="text-sm font-medium text-slate-200">{!controller.connected ? '연결 상태를 먼저 확인해 주세요.' : controller.pending ? '요청을 서버에서 확인하고 있습니다.' : getDraftGuidance(snapshot)}</p>
-      <span className="text-xs text-slate-500">{snapshot.mapResult?.map.nameKo ?? '맵 선택 전'}</span></div>
+      <span className="text-xs text-slate-500">{snapshot.phase === 'MAP_RESOLVED' ? '맵 선정 중' : snapshot.mapResult?.map.nameKo ?? '맵 선택 전'}</span></div>
   </header>;
 }
