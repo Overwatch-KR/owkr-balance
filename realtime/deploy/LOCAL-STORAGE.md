@@ -24,3 +24,14 @@ Vercel의 `getRedis()`는 bridge 설정이 있고 `OWKR_STORAGE_BACKEND`가 `ups
 AOF는 정상 서비스 재시작 이후에도 유지된다. 전원 장애에서는 마지막 fsync 이후 약 1초 분량의 쓰기가 유실될 수 있다. 서버 자체 디스크 손실을 대비한 외부 백업을 대체하지 않는다. 96MB가 차면 기존 키를 임의 제거하지 않고 새 저장을 거절한다.
 
 Upstash 복귀 시 임시 저장소에 생긴 자료의 병합·이전 범위를 먼저 정한다. Vercel에 `OWKR_STORAGE_BACKEND=upstash`를 설정해 재배포하고, 밴픽 서버의 보관된 이전 Redis 환경을 복원한 뒤 재시작한다. 복귀가 확인될 때까지 임시 Redis 데이터·AOF를 삭제하지 않는다.
+
+## 2026-10-22 운영 전환 확인
+
+사용자가 데이터 이전 없이 임시로 운영하도록 지정했다. 기존 Upstash 데이터와 비밀값은 보존했으며, 밴픽 서버 환경과 Caddy 설정은 전환 전 파일을 별도로 보관했다. Redis·게이트웨이·밴픽 서비스 모두 자동 시작 enabled, active와 비정상 재시작 0회를 확인했다.
+
+- `fc62c90`의 Vercel Production version.json 일치와 Verify·실시간 서버 자동 배포 성공을 확인했다. 서버 current도 같은 커밋이다.
+- 공개 `/health/ready`는 503에서 200 ready/redis로 복구했다. 실제 Vercel 공개 참여 API에서 저장소를 조회한 뒤 정상적인 미등록 링크 404를 반환했다.
+- 공개 HTTPS 게이트웨이에 서버 전용 유도 토큰으로 PING·JSON/UTF-8·36KB 이상의 본문·TTL 유지·NX·hash·sorted set·Lua·pipeline·transaction·GETDEL을 검사했다. 무인증·브라우저 Origin·설정 명령은 거절했다. 시험 UUID 키는 삭제했다.
+- 새 저장소 재시작 후 보존된 키를 확인하고 시험 키를 삭제했다. 운영 데이터가 없는 전환 전 단계에서 수행했다.
+- 별도 loopback 8788 포트와 UUID 네임스페이스에서 합성 10인 소켓·투표·맵 확정·밴·경기 진행·복구·만료·충돌·명단 변경·방 닫기·유휴 종료를 검증했다. `soakSeconds=0`이며 장시간 부하 시험은 아니다.
+- 전체 508개 테스트·타입·린트·경계·프런트·서버 빌드를 통과했다. 확인 시 Redis 서비스 약 7MB, 게이트웨이 약 19MB를 사용했다. 실제 부하에 따라 달라질 수 있다.

@@ -19,6 +19,9 @@ try {
   assert.equal(await redis.set(keys[0], value, { nx: true, ex: 60 }), 'OK');
   assert.equal(await redis.set(keys[0], 'overwrite', { nx: true }), null);
   assert.deepEqual(await redis.get(keys[0]), value);
+  const large = { text: '한'.repeat(12_000) };
+  await redis.set(keys[0], large, { keepTtl: true });
+  assert.deepEqual(await redis.get(keys[0]), large);
   assert.ok(await redis.pttl(keys[0]) > 0);
   assert.deepEqual(await redis.pipeline().hset(keys[1], { player: '테스트' }).hgetall(keys[1]).incr(keys[2]).exec(),
     [1, { player: '테스트' }, 1]);
