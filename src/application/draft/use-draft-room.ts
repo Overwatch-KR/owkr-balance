@@ -107,6 +107,7 @@ export function useDraftRoom(options: {
     let disposed = false;
     let superseded = false;
     let closed = false;
+    let authenticationRequired = false;
     setRoomClosed(false);
     let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
     let renewalTimer: ReturnType<typeof setTimeout> | undefined;
@@ -117,6 +118,12 @@ export function useDraftRoom(options: {
     const failPending = (message: string) => {
       for (const command of pendingRef.current.values()) { clearTimeout(command.timeout); command.reject(new Error(message)); }
       pendingRef.current.clear(); setPending(false);
+    };
+    const requireParticipantAuth = () => {
+      authenticationRequired = true;
+      clearTimeout(renewalTimer); clearTimeout(reconnectTimer);
+      setParticipantAuthRequired(true); setConnected(false); setReconnecting(false);
+      failPending('참가 인증이 만료되었습니다. Discord로 다시 참여해 주세요.');
     };
     const markReplaced = () => {
       superseded = true;
@@ -142,10 +149,10 @@ export function useDraftRoom(options: {
         socket.send(JSON.stringify({ type: 'auth.renew', ticket: response.ticket }));
         renewalTimer = setTimeout(() => void renew(socket), Math.max(1000, response.expiresAt - Date.now() - 30_000));
       } catch (failure) {
-        if (!disposed && !superseded && !closed) {
+        if (!disposed && !superseded && !closed && socket === socketRef.current) {
           if (isUnavailableRoom(failure)) markClosed();
           else {
-            if (mode === 'participant' && isParticipantAuthFailure(failure)) setParticipantAuthRequired(true);
+            if (mode === 'participant' && isParticipantAuthFailure(failure)) requireParticipantAuth();
             setError(failure instanceof Error ? failure.message : '인증 갱신에 실패했습니다.');
           }
           socket.close();
@@ -164,12 +171,12 @@ export function useDraftRoom(options: {
         socketRef.current = socket;
         cursor = null; awaitingSnapshot = true;
         socket.onopen = () => {
-          if (disposed || closed || superseded) { socket.close(); return; }
+          if (disposed || closed || superseded || authenticationRequired) { socket.close(); return; }
           socket.send(JSON.stringify({ type: 'auth', ticket: response.ticket }));
           renewalTimer = setTimeout(() => void renew(socket), Math.max(1000, response.expiresAt - Date.now() - 30_000));
         };
         socket.onmessage = event => {
-          if (disposed || socket !== socketRef.current) return;
+          if (disposed || authenticationRequired || socket !== socketRef.current) return;
           try {
             const message = JSON.parse(String(event.data)) as Record<string, unknown>;
             if (closed) return;
@@ -222,6 +229,7 @@ export function useDraftRoom(options: {
           if (disposed || socket !== socketRef.current) return;
           if (closed || event.code === DRAFT_ROOM_CLOSED_CLOSE_CODE) { markClosed(); return; }
           if (superseded || event.code === DRAFT_CONNECTION_REPLACED_CLOSE_CODE) { markReplaced(); return; }
+          if (authenticationRequired) return;
           setConnected(false); setReconnecting(true); failPending('연결이 끊겨 저장 여부를 다시 확인해야 합니다.');
           reconnectTimer = setTimeout(() => void connect(), Math.min(15_000, 1000 * 2 ** failures++) + Math.random() * 300);
         };
@@ -229,7 +237,7 @@ export function useDraftRoom(options: {
       } catch (failure) {
         if (disposed) return;
         if (isUnavailableRoom(failure)) { markClosed(); return; }
-        if (mode === 'participant' && isParticipantAuthFailure(failure)) setParticipantAuthRequired(true);
+        if (mode === 'participant' && isParticipantAuthFailure(failure)) requireParticipantAuth();
         setConnected(false); setReconnecting(false); setError(failure instanceof Error ? failure.message : '참가 인증이 필요합니다.');
       }
     };

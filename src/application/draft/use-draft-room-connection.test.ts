@@ -62,6 +62,34 @@ describe('draft connection replacement recovery', () => {
     expect(harness.setters[7]).not.toHaveBeenCalledWith(true);
     expect(app.sockets).toHaveLength(0);
   });
+  it('stops automatic reconnect and late updates when participant renewal is rejected', async () => {
+    const app = await setup();
+    app.fetcher.mockResolvedValueOnce({ ok: false, status: 401,
+      json: async () => ({ code: 'PARTICIPANT_SESSION_EXPIRED', error: '참가 인증이 만료되었습니다.' }) });
+    await vi.advanceTimersByTimeAsync(270000);
+    app.sockets[0].onclose?.({ code: 1006 });
+    app.sockets[0].onmessage?.({ data: JSON.stringify({ type: 'room.snapshot', streamId: 'late', streamSeq: 1,
+      payload: { epoch: 1, stageKind: null } }) });
+    await vi.advanceTimersByTimeAsync(360000);
+    expect(app.fetcher).toHaveBeenCalledTimes(2);
+    expect(app.sockets).toHaveLength(1);
+    expect(harness.setters[7]).toHaveBeenLastCalledWith(true);
+    expect(harness.queryClient.setQueryData).not.toHaveBeenCalled();
+  });
+  it('ignores a late renewal rejection from a socket already replaced by a new connection', async () => {
+    const app = await setup();
+    type EntryResponse = Awaited<ReturnType<typeof app.fetcher>>;
+    let finish!: (response: EntryResponse) => void;
+    app.fetcher.mockReturnValueOnce(new Promise<EntryResponse>(resolve => { finish = resolve; }));
+    await vi.advanceTimersByTimeAsync(270000);
+    app.sockets[0].onclose?.({ code: 1006 });
+    await vi.advanceTimersByTimeAsync(1600);
+    expect(app.sockets).toHaveLength(2);
+    finish({ ok: false, status: 401, json: async () => ({ code: 'PARTICIPANT_SESSION_EXPIRED', error: '이전 연결의 인증 만료' }) });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(harness.setters[7]).not.toHaveBeenCalledWith(true);
+    expect(app.sockets[1].close).not.toHaveBeenCalled();
+  });
   it('stops reconnect and ticket renewal when the server takes the connection over', async () => {
     const app = await setup();
     app.sockets[0].onmessage?.({ data: JSON.stringify({ type: 'connection.replaced' }) });
