@@ -2,10 +2,16 @@ import base64
 import hmac
 import json
 import os
+import sqlite3
 import threading
+import importlib.util
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import redis
+
+spec = importlib.util.spec_from_file_location('storage_sync', os.path.join(os.path.dirname(__file__), 'storage-sync.py'))
+sync_module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(sync_module)
 
 
 MAX_BODY = 2 * 1024 * 1024
@@ -40,6 +46,7 @@ def create_server(token, socket_path, port=8790):
         raise ValueError('A storage token of at least 32 characters is required')
     client = redis.Redis(unix_socket_path=socket_path, socket_timeout=5, socket_connect_timeout=3, max_connections=24)
     client.response_callbacks.clear()
+    sync = sync_module.from_environment(client)
     slots = threading.BoundedSemaphore(16)
 
     class Handler(BaseHTTPRequestHandler):
@@ -63,6 +70,9 @@ def create_server(token, socket_path, port=8790):
             supplied = self.headers.get('Authorization', '').encode()
             if self.headers.get('Origin') or not hmac.compare_digest(supplied, ('Bearer ' + token).encode()):
                 self.reply(401, {'error': 'Unauthorized'})
+                return
+            if self.path == '/status':
+                self.reply(200, sync.status() if sync else {'backend': 'local', 'upstream': 'disabled'})
                 return
             if self.path not in ('', '/', '/pipeline', '/multi-exec'):
                 self.reply(404, {'error': 'Not found'})
@@ -94,7 +104,13 @@ def create_server(token, socket_path, port=8790):
                 return
             try:
                 use_base64 = self.headers.get('Upstash-Encoding') == 'base64'
-                if batch:
+                if sync:
+                    results = sync.execute(commands, batch, self.path == '/multi-exec')
+                    payload = [encode(item, use_base64) if isinstance(item, Exception)
+                               else {'result': encode(item, use_base64)} for item in results]
+                    if not batch:
+                        payload = payload[0]
+                elif batch:
                     with client.pipeline(transaction=self.path == '/multi-exec') as pipeline:
                         for command in commands:
                             pipeline.execute_command(*command)
@@ -106,7 +122,7 @@ def create_server(token, socket_path, port=8790):
                 self.reply(200, payload)
             except redis.ResponseError as error:
                 self.reply(200, {'error': str(error)})
-            except (redis.RedisError, UnicodeError):
+            except (redis.RedisError, UnicodeError, sqlite3.Error):
                 self.reply(503, {'error': 'Storage unavailable'})
             finally:
                 slots.release()

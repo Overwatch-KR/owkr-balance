@@ -9,7 +9,7 @@ let redis: Redis | null = null;
 export const isLocalDataOnly = (): boolean => process.env.OWKR_LOCAL_DATA_ONLY === 'true';
 
 /**
- * @description 임시 서버 저장소 또는 명시적으로 선택한 Upstash에 서버 전용 인증으로 연결한다.
+ * @description Upstash 우선 조회·장애 전환·동기화를 조정하는 게이트웨이에 서버 전용 인증으로 연결한다.
  */
 export const getRedis = (): Redis | null => {
     if (isLocalDataOnly()) return null;

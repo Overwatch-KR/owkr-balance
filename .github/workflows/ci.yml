@@ -34,3 +34,9 @@ jobs:
 
       - name: Check and build
         run: pnpm check
+
+      - name: Verify storage failover with isolated Redis instances
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends redis-server python3-redis
+          /usr/bin/python3 realtime/deploy/storage-sync-test.py
