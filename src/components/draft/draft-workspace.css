@@ -228,12 +228,12 @@
 .draft-score-slots {
     display: flex;
     justify-content: center;
-    gap: 8px;
+    gap: 12px;
 }
 
 .draft-score-portrait {
     display: grid;
-    width: clamp(32px, calc((100dvh - 600px) / 9), 40px);
+    width: clamp(56px, calc(4.444444dvh + 16px), 80px);
     aspect-ratio: 1;
     place-items: center;
     overflow: hidden;
@@ -249,9 +249,9 @@
 
 .draft-score-value {
     display: block;
-    margin-top: 3px;
+    margin-top: 4px;
     color: #67e8f9;
-    font-size: 12px;
+    font-size: 14px;
     font-variant-numeric: tabular-nums;
     text-align: center;
 }
