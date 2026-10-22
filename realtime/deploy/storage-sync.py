@@ -6,6 +6,7 @@ import sqlite3
 import threading
 import time
 import urllib.request
+import urllib.error
 
 PREFIXES = ('user-sheet:', 'scrims:', 'events:', 'match-live:', 'match-shares:', 'player-note:', 'draft:v1:')
 META = 'owkr:storage-sync:v1'
@@ -18,7 +19,10 @@ def managed_key(key):
 
 
 def equivalent(a, b):
-    return a['kind'] == b['kind'] and a['value'] == b['value'] and abs(a['expires'] - b['expires']) <= 3
+    def value(state):
+        raw = state['value']
+        return dict(zip(raw[::2], raw[1::2])) if state['kind'] in ('hash', 'zset') else raw
+    return a['kind'] == b['kind'] and value(a) == value(b) and abs(a['expires'] - b['expires']) <= 3
 
 
 SNAPSHOT = """
@@ -150,21 +154,23 @@ def merge(key, left, lv, right, rv):
         kind = rk if max((x['time'] for x in rv.values()), default=0) >= max((x['time'] for x in lv.values()), default=0) else lk
     if key == 'user-sheet:v2:entries':
         identities = {}
-        for entry_id, value in list(merged.items()):
+        rank = lambda item: (history[item]['time'], item in rp, item)
+        for entry_id in sorted(merged, key=rank, reverse=True):
+            value = merged[entry_id]
             try:
                 entry = json.loads(value)
-                identity = ('discord:' + entry['discordUserId']) if entry.get('discordUserId') else ('tag:' + entry['battleTag'].strip().casefold())
+                names = ['tag:' + entry['battleTag'].strip().lower()]
+                if entry.get('discordUserId'):
+                    names.append('discord:' + entry['discordUserId'])
             except (ValueError, KeyError, TypeError):
                 continue
-            previous = identities.get(identity)
+            previous = next((identities[name] for name in names if name in identities), None)
             if previous:
-                rank = lambda item: (history[item]['time'], item in rp, item)
-                winner, loser = sorted((previous, entry_id), key=rank, reverse=True)
-                merged.pop(loser, None)
-                history[loser] = {'time': history[winner]['time'], 'hash': '', 'deleted': True}
-                identities[identity] = winner
+                merged.pop(entry_id, None)
+                history[entry_id] = {'time': history[previous]['time'], 'hash': '', 'deleted': True}
             else:
-                identities[identity] = entry_id
+                for name in names:
+                    identities[name] = entry_id
     if kind in ('hash', 'zset'):
         value = [part for pair in sorted(merged.items()) for part in pair]
         storage_kind = kind
@@ -199,8 +205,17 @@ class Upstream:
     def execute_command(self, *command):
         request = urllib.request.Request(self.url, data=dumps(command).encode(), headers={
             'Authorization': 'Bearer ' + self.token, 'Content-Type': 'application/json'}, method='POST')
-        with urllib.request.urlopen(request, timeout=self.timeout) as response:
-            result = json.load(response)
+        try:
+            with urllib.request.urlopen(request, timeout=self.timeout) as response:
+                result = json.load(response)
+        except urllib.error.HTTPError as error:
+            with error:
+                try:
+                    result = json.load(error)
+                except ValueError:
+                    raise RuntimeError('Upstream HTTP failure') from None
+            if not isinstance(result, dict) or 'error' not in result:
+                raise RuntimeError('Upstream HTTP failure') from None
         if 'error' in result:
             raise RuntimeError(result['error'])
         return result['result']
@@ -360,18 +375,33 @@ class StorageSync:
             if left['kind'] != 'none' and right['kind'] != 'none' and left['value'] != right['value']:
                 self.db.execute('INSERT INTO conflicts(key,stamp,local,remote) VALUES (?,?,?,?)', (key, now(), dumps(left), dumps(right)))
                 self.db.execute('DELETE FROM conflicts WHERE id <= (SELECT COALESCE(MAX(id),0)-1000 FROM conflicts)')
+            derived = []
+            if key == 'user-sheet:v2:entries':
+                tags = []
+                if result['kind'] == 'hash':
+                    for entry_id, encoded in zip(result['value'][::2], result['value'][1::2]):
+                        tags.extend((json.loads(encoded)['battleTag'].strip().lower(), entry_id))
+                current_index, _ = snapshot(self.client, 'user-sheet:v2:battle-tags')
+                current_tags = dict(zip(current_index['value'][::2], current_index['value'][1::2])) if current_index['kind'] == 'hash' else {}
+                if not equivalent(result, original_left) or dict(zip(tags[::2], tags[1::2])) != current_tags:
+                    local_version = int(self.client.execute_command('GET', 'user-sheet:v2:version') or 0)
+                    remote_version = int(self.upstream.execute_command('GET', 'user-sheet:v2:version') or 0)
+                    derived = [['DEL', 'user-sheet:v2:battle-tags']]
+                    if tags:
+                        derived.append(['HSET', 'user-sheet:v2:battle-tags', *tags])
+                    derived.append(['SET', 'user-sheet:v2:version', max(local_version, remote_version) + 1])
             # Persist the merged result as dirty BEFORE either target is touched.
             # Recovery retries state images, never INCR/GETDEL/Lua commands.
             self.save(key, result, metadata, True)
             if not equivalent(original_left, result) or local_metadata != metadata:
                 self.client.execute_command('EVAL', RESTORE, 2, key, META, dumps(result), dumps(metadata))
+            if derived:
+                # Keep local index/version consistent before allowing any app command,
+                # even if the subsequent upstream restore times out.
+                self.execute(derived, batch=True, transaction=True)
             if not equivalent(right, result) or remote_metadata != metadata:
                 self.upstream.execute_command('EVAL', RESTORE, 2, key, META, dumps(result), dumps(metadata))
             self.save(key, result, metadata, False)
-            if key == 'user-sheet:v2:entries' and result != original_left:
-                local_version = int(self.client.execute_command('GET', 'user-sheet:v2:version') or 0)
-                remote_version = int(self.upstream.execute_command('GET', 'user-sheet:v2:version') or 0)
-                self.execute([['SET', 'user-sheet:v2:version', max(local_version, remote_version) + 1]])
 
     def cycle(self, full=True):
         keys = self.scan(self.upstream) | self.scan(self.client) if full else set()

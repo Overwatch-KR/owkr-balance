@@ -46,5 +46,19 @@ systemctl daemon-reload
 systemctl enable owkr-storage-redis owkr-storage-gateway
 systemctl start owkr-storage-redis
 systemctl restart owkr-storage-gateway
-redis-cli -s /run/owkr-storage-redis/redis.sock ping
+python3 - <<'PYTHON'
+import json, time, urllib.request
+from pathlib import Path
+env = dict(line.split('=', 1) for line in Path('/etc/owkr-storage/gateway.env').read_text().splitlines() if '=' in line)
+for attempt in range(30):
+    try:
+        request = urllib.request.Request('http://127.0.0.1:8790', data=b'["PING"]', headers={'Authorization': 'Bearer ' + env['STORAGE_TOKEN']})
+        with urllib.request.urlopen(request, timeout=2) as response:
+            assert json.load(response)['result'] == 'PONG'
+        break
+    except Exception:
+        if attempt == 29:
+            raise
+        time.sleep(.1)
+PYTHON
 printf '%s\n' 'Storage installed on a Unix socket and loopback REST port 8790. No production endpoints have been switched.'

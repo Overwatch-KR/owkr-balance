@@ -289,6 +289,37 @@ class SyncTest(unittest.TestCase):
         self.sync.cycle()
         self.assertEqual(len(json.loads(self.local.get(key))['participants']), 2)
 
+    def test_background_worker_automatically_recovers_after_outage(self):
+        self.upstream.failed = True
+        self.write('SET', 'scrims:automatic', 'durable')
+        self.sync.start()
+        try:
+            deadline = time.monotonic() + 2
+            while self.sync.last_error is None and time.monotonic() < deadline:
+                time.sleep(.02)
+            self.assertFalse(self.sync.ready)
+            self.upstream.failed = False
+            deadline = time.monotonic() + 5
+            while not self.sync.ready and time.monotonic() < deadline:
+                time.sleep(.02)
+            self.assertTrue(self.sync.ready)
+            self.assertEqual(self.remote.get('scrims:automatic'), b'durable')
+        finally:
+            self.sync.stopped.set()
+            self.sync.wake.set()
+            self.sync.thread.join(timeout=2)
+
+    def test_sheet_index_is_consistent_when_upstream_reply_is_lost(self):
+        entry = {'id': 'new', 'battleTag': 'New#123', 'updatedAt': 2000}
+        self.remote.hset('user-sheet:v2:entries', 'new', m.dumps(entry))
+        self.upstream.ambiguous = True
+        with self.assertRaises(TimeoutError):
+            self.sync.cycle()
+        self.assertEqual(self.local.hget('user-sheet:v2:battle-tags', 'new#123'), b'new')
+        self.assertGreater(int(self.local.get('user-sheet:v2:version')), 0)
+        self.sync.cycle()
+        self.assertTrue(self.sync.ready)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
