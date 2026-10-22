@@ -90,8 +90,8 @@ describe('draft connection replacement recovery', () => {
     expect(app.sockets).toHaveLength(1); expect(app.fetcher).toHaveBeenCalledTimes(1);
     expect(harness.queryClient.setQueryData).not.toHaveBeenCalled();
   });
-  it('recognizes a closed room during initial HTTP session recovery without opening a socket', async () => {
-    const app = await setup('ROOM_CLOSED');
+  it.each(['ROOM_CLOSED', 'ROOM_EXPIRED', 'INACTIVE_ROOM'])('clears an unavailable room (%s) during initial HTTP recovery without opening a socket', async code => {
+    const app = await setup(code);
     await vi.advanceTimersByTimeAsync(360000);
     expect(app.sockets).toHaveLength(0); expect(app.fetcher).toHaveBeenCalledTimes(1);
     expect(harness.setters[6]).toHaveBeenCalledWith(true);

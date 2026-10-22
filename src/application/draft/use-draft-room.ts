@@ -8,6 +8,11 @@ interface ParticipantExchangeResponse { roomCode: string; ticket?: string; expir
 interface EntryResponse { ticket: string; expiresAt: number; realtimeUrl: string }
 interface PendingCommand { resolve: () => void; reject: (error: Error) => void; timeout: ReturnType<typeof setTimeout> }
 
+function isUnavailableRoom(failure: unknown): boolean {
+  return failure instanceof Error && 'code' in failure
+    && ['ROOM_CLOSED', 'ROOM_EXPIRED', 'INACTIVE_ROOM'].includes(String(failure.code));
+}
+
 export async function draftRequest<T>(url: string, body: unknown, headers: Record<string, string> = {}): Promise<T> {
   const response = await fetch(url, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', ...headers },
     body: JSON.stringify(body), signal: AbortSignal.timeout(12_000) });
@@ -132,7 +137,7 @@ export function useDraftRoom(options: {
         renewalTimer = setTimeout(() => void renew(socket), Math.max(1000, response.expiresAt - Date.now() - 30_000));
       } catch (failure) {
         if (!disposed && !superseded && !closed) {
-          if (failure instanceof Error && 'code' in failure && failure.code === 'ROOM_CLOSED') markClosed();
+          if (isUnavailableRoom(failure)) markClosed();
           else setError(failure instanceof Error ? failure.message : '인증 갱신에 실패했습니다.');
           socket.close();
         }
@@ -213,7 +218,7 @@ export function useDraftRoom(options: {
         socket.onerror = () => socket.close();
       } catch (failure) {
         if (disposed) return;
-        if (failure instanceof Error && 'code' in failure && failure.code === 'ROOM_CLOSED') { markClosed(); return; }
+        if (isUnavailableRoom(failure)) { markClosed(); return; }
         setConnected(false); setReconnecting(false); setError(failure instanceof Error ? failure.message : '참가 인증이 필요합니다.');
       }
     };
