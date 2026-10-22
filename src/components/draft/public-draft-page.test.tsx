@@ -5,7 +5,7 @@ import { PublicDraftPage } from './public-draft-page';
 
 vi.mock('@application/draft/use-draft-room', () => ({
   draftRequest: vi.fn(),
-  useDraftRoom: vi.fn(() => ({ snapshot: null, error: 'Discord로 참여해 주세요.', reconnect: vi.fn() })),
+  useDraftRoom: vi.fn(() => ({ snapshot: null, participantAuthRequired: true, error: 'Discord로 참여해 주세요.', reconnect: vi.fn() })),
 }));
 afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); });
 
@@ -16,6 +16,21 @@ function render(path: string) {
 }
 
 describe('participant authentication feedback', () => {
+  it('keeps the login screen hidden while restoring an existing participant session', () => {
+    vi.mocked(useDraftRoom).mockReturnValueOnce({ snapshot: null, connected: false, reconnecting: true,
+      participantAuthRequired: false, pending: false, error: '', command: vi.fn(), reconnect: vi.fn() });
+    const markup = render('/draft/ABCDEF2345');
+    expect(markup).toContain('참가 인증을 확인하고 있습니다');
+    expect(markup).not.toContain('Discord로 이 내전 참여');
+  });
+  it('shows connection recovery instead of logging out on a temporary service failure', () => {
+    vi.mocked(useDraftRoom).mockReturnValueOnce({ snapshot: null, connected: false, reconnecting: false,
+      participantAuthRequired: false, pending: false, error: '저장소 복구 중입니다.', command: vi.fn(), reconnect: vi.fn() });
+    const markup = render('/draft/ABCDEF2345');
+    expect(markup).toContain('저장소 복구 중입니다.');
+    expect(markup).toContain('다시 연결');
+    expect(markup).not.toContain('Discord로 이 내전 참여');
+  });
   it('keeps unlisted users on the entry screen with account and roster guidance', () => {
     const markup = render('/draft/ABCDEF2345?draft_error=NOT_PARTICIPANT');
     expect(markup).toContain('role="alert"');

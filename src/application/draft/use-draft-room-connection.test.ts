@@ -24,7 +24,7 @@ function ConnectionHarness() {
   return null;
 }
 
-async function setup(failureCode?: string) {
+async function setup(failureCode?: string, status = failureCode ? 400 : 200) {
   vi.useFakeTimers();
   const sockets: FakeSocket[] = [];
   class FakeSocket {
@@ -40,7 +40,7 @@ async function setup(failureCode?: string) {
   }
   vi.stubGlobal('WebSocket', FakeSocket);
   vi.stubGlobal('window', { location: { href: 'https://site.invalid/draft/ROOM234567', hostname: 'site.invalid' } });
-  const fetcher = vi.fn(async () => ({ ok: !failureCode, json: async () => failureCode ? { code: failureCode, error: '종료된 내전입니다.' } : ({ ticket: 'ticket', expiresAt: Date.now() + 300000, realtimeUrl: 'https://draft.invalid' }) }));
+  const fetcher = vi.fn(async () => ({ ok: status < 400, status, json: async () => status >= 400 ? { code: failureCode, error: '요청을 확인해 주세요.' } : ({ ticket: 'ticket', expiresAt: Date.now() + 300000, realtimeUrl: 'https://draft.invalid' }) }));
   vi.stubGlobal('fetch', fetcher);
   ConnectionHarness();
   for (const effect of harness.effects.splice(0)) { const dispose = effect(); if (dispose) cleanup.push(dispose); }
@@ -50,6 +50,18 @@ async function setup(failureCode?: string) {
 }
 
 describe('draft connection replacement recovery', () => {
+  it.each([400, 401, 403])('requests participant login only after an authentication rejection (%s)', async status => {
+    const app = await setup('AUTH_REQUIRED', status);
+    await vi.advanceTimersByTimeAsync(360000);
+    expect(harness.setters[7]).toHaveBeenCalledWith(true);
+    expect(app.fetcher).toHaveBeenCalledTimes(1);
+    expect(app.sockets).toHaveLength(0);
+  });
+  it('does not turn a service outage into a participant logout', async () => {
+    const app = await setup('UNAVAILABLE', 503);
+    expect(harness.setters[7]).not.toHaveBeenCalledWith(true);
+    expect(app.sockets).toHaveLength(0);
+  });
   it('stops reconnect and ticket renewal when the server takes the connection over', async () => {
     const app = await setup();
     app.sockets[0].onmessage?.({ data: JSON.stringify({ type: 'connection.replaced' }) });
@@ -102,5 +114,6 @@ describe('draft connection replacement recovery', () => {
     await vi.advanceTimersByTimeAsync(1600);
     expect(app.sockets).toHaveLength(2);
     expect(app.fetcher).toHaveBeenCalledTimes(2);
+    expect(harness.setters[7]).not.toHaveBeenCalledWith(true);
   });
 });

@@ -41,9 +41,15 @@ export function PublicDraftPage() {
         <h2 className="text-xl font-semibold text-white">참가 인증을 다시 시작해 주세요</h2>
         <p className="mt-3 text-sm text-amber-200" role="alert">인증 요청이 만료되었거나 유효한 내전 공유 링크를 확인할 수 없습니다.</p>
         <p className="mt-3 text-sm text-slate-400">공유받은 내전 링크를 다시 열어 주세요. 링크가 없거나 방이 만료되었다면 운영자에게 새 링크를 요청해 주세요.</p>
-      </section> : controller.snapshot
+      </section> : controller.snapshot && !controller.participantAuthRequired
         ? <DraftRoomPanel controller={controller} />
-        : <DraftParticipantEntry pending={pending} error={error || (controller.error === 'Discord로 참여해 주세요.' ? '' : controller.error)} login={login} authFailure={authFailure} reconnect={() => { setAuthFailure(''); controller.reconnect(); }} />}
+        : authFailure || controller.participantAuthRequired
+          ? <DraftParticipantEntry pending={pending} error={error || (controller.error === 'Discord로 참여해 주세요.' ? '' : controller.error)} login={login} authFailure={authFailure} reconnect={() => { setAuthFailure(''); controller.reconnect(); }} />
+          : <section className="mx-auto w-full max-w-lg border-y border-slate-700 py-10 text-center">
+            <h2 className="text-lg font-semibold text-white" role="status">{controller.error && !controller.reconnecting ? '내전 연결을 확인해 주세요' : '참가 인증을 확인하고 있습니다'}</h2>
+            <p className="mt-3 text-sm text-slate-400">{controller.error || '저장된 인증으로 내전에 연결하고 있습니다. 잠시만 기다려 주세요.'}</p>
+            {controller.error && !controller.reconnecting && <button type="button" className="btn-ghost mt-5 min-h-11" onClick={controller.reconnect}>다시 연결</button>}
+          </section>}
       <footer className="mt-2 shrink-0 text-center text-[10px] text-slate-600">Overwatch © Blizzard Entertainment</footer>
     </div>
   </main>;

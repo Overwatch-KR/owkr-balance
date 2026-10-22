@@ -4,6 +4,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import './index.css';
 import { APP_UPDATE_AVAILABLE_EVENT, AppUpdateNotice } from './components/app-update-notice';
 import LoadingScreen from './components/common/loading-screen';
+import { AppRecoveryScreen } from './components/common/app-recovery-screen';
 import { AppNavigationShell } from './components/layout/app-navigation-shell';
 import { AuthProvider } from './hooks/use-auth';
 import { queryClient } from './query-client';
@@ -11,8 +12,7 @@ import { queryClient } from './query-client';
 const rootElement = document.getElementById('root');
 if (!rootElement) throw new Error('애플리케이션 루트 요소를 찾지 못했습니다.');
 
-window.addEventListener('vite:preloadError', (event) => {
-    event.preventDefault();
+window.addEventListener('vite:preloadError', () => {
     window.dispatchEvent(new Event(APP_UPDATE_AVAILABLE_EVENT));
 });
 
@@ -39,7 +39,16 @@ if (normalizedPath === '/discord-login-policy') {
 if (normalizedPath.startsWith('/participate/')) document.title = 'OWKR 내전 참여';
 if (normalizedPath.startsWith('/draft/')) document.title = 'OWKR 실시간 내전 참여';
 
-const root = createRoot(rootElement);
+const root = createRoot(rootElement, {
+    onUncaughtError(error) {
+        console.error('Application screen failed', error);
+        queueMicrotask(showRecoveryScreen);
+    },
+});
+
+function showRecoveryScreen(): void {
+    root.render(<AppRecoveryScreen />);
+}
 
 root.render(
     <StrictMode>
@@ -62,8 +71,4 @@ root.render(
     </StrictMode>,
 );
 
-void pagePromise.catch(() => {
-    root.render(
-        <AppUpdateNotice forceVisible />,
-    );
-});
+void pagePromise.catch(showRecoveryScreen);

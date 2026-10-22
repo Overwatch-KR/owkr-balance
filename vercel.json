@@ -5,6 +5,14 @@
   "outputDirectory": "dist",
   "headers": [
     {
+      "source": "/draft/:roomCode",
+      "headers": [{ "key": "Cache-Control", "value": "no-store, max-age=0, must-revalidate" }]
+    },
+    {
+      "source": "/draft-control",
+      "headers": [{ "key": "Cache-Control", "value": "no-store, max-age=0, must-revalidate" }]
+    },
+    {
       "source": "/",
       "headers": [
         {

@@ -1,18 +1,15 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAppUpdateAvailable } from '../hooks/use-app-update-available';
+import { UpdateAvailableNotice } from './update-available-notice';
 
 export const APP_UPDATE_AVAILABLE_EVENT = 'owkr:app-update-available';
-
-const UpdateAvailableNotice = lazy(() => import('./update-available-notice').then(module => ({
-    default: module.UpdateAvailableNotice,
-})));
 
 interface AppUpdateNoticeProps {
     forceVisible?: boolean;
 }
 
 /**
- * @description 앱 전역에서 새 배포본 감지 상태를 관리하고 필요할 때만 업데이트 안내 UI를 불러온다.
+ * @description 업데이트 안내는 초기 번들에 포함해 이전 배포의 청크가 사라져도 복구 조작을 표시한다.
  */
 export function AppUpdateNotice({ forceVisible = false }: AppUpdateNoticeProps) {
     const isUpdateAvailable = useAppUpdateAvailable();
@@ -28,11 +25,9 @@ export function AppUpdateNotice({ forceVisible = false }: AppUpdateNoticeProps) 
     if ((!forceVisible && !isUpdateAvailable && !isRecoveryUpdateAvailable) || isDismissed) return null;
 
     return (
-        <Suspense fallback={null}>
-            <UpdateAvailableNotice
-                onDismiss={() => setIsDismissed(true)}
-                onReload={() => window.location.reload()}
-            />
-        </Suspense>
+        <UpdateAvailableNotice
+            onDismiss={() => setIsDismissed(true)}
+            onReload={() => window.location.reload()}
+        />
     );
 }

@@ -13,11 +13,15 @@ function isUnavailableRoom(failure: unknown): boolean {
     && ['ROOM_CLOSED', 'ROOM_EXPIRED', 'INACTIVE_ROOM'].includes(String(failure.code));
 }
 
+function isParticipantAuthFailure(failure: unknown): boolean {
+  return failure instanceof Error && 'status' in failure && [400, 401, 403].includes(Number(failure.status));
+}
+
 export async function draftRequest<T>(url: string, body: unknown, headers: Record<string, string> = {}): Promise<T> {
   const response = await fetch(url, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', ...headers },
     body: JSON.stringify(body), signal: AbortSignal.timeout(12_000) });
   const result = await response.json() as T & { error?: string; message?: string; code?: string };
-  if (!response.ok) throw Object.assign(new Error(result.error ?? result.message ?? '요청을 완료하지 못했습니다.'), { code: result.code });
+  if (!response.ok) throw Object.assign(new Error(result.error ?? result.message ?? '요청을 완료하지 못했습니다.'), { code: result.code, status: response.status });
   return result;
 }
 
@@ -65,6 +69,7 @@ export interface DraftRoomController {
   connected: boolean;
   connectionReplaced?: boolean;
   roomClosed?: boolean;
+  participantAuthRequired?: boolean;
   reconnecting?: boolean;
   pending: boolean;
   error: string;
@@ -95,6 +100,7 @@ export function useDraftRoom(options: {
   const [attempt, setAttempt] = useState(0);
   const [reconnecting, setReconnecting] = useState(false);
   const [roomClosed, setRoomClosed] = useState(false);
+  const [participantAuthRequired, setParticipantAuthRequired] = useState(false);
 
   useEffect(() => {
     if (!roomCode) return;
@@ -138,13 +144,17 @@ export function useDraftRoom(options: {
       } catch (failure) {
         if (!disposed && !superseded && !closed) {
           if (isUnavailableRoom(failure)) markClosed();
-          else setError(failure instanceof Error ? failure.message : '인증 갱신에 실패했습니다.');
+          else {
+            if (mode === 'participant' && isParticipantAuthFailure(failure)) setParticipantAuthRequired(true);
+            setError(failure instanceof Error ? failure.message : '인증 갱신에 실패했습니다.');
+          }
           socket.close();
         }
       }
     };
     const connect = async () => {
       setReconnecting(true);
+      setParticipantAuthRequired(false);
       try {
         const response = await entry();
         if (disposed || closed) return;
@@ -219,6 +229,7 @@ export function useDraftRoom(options: {
       } catch (failure) {
         if (disposed) return;
         if (isUnavailableRoom(failure)) { markClosed(); return; }
+        if (mode === 'participant' && isParticipantAuthFailure(failure)) setParticipantAuthRequired(true);
         setConnected(false); setReconnecting(false); setError(failure instanceof Error ? failure.message : '참가 인증이 필요합니다.');
       }
     };
@@ -248,6 +259,6 @@ export function useDraftRoom(options: {
     });
   }, [connected]);
   const currentRoomClosed = roomClosed && (roomCode === null || closedRoomCodeRef.current === roomCode);
-  return { snapshot: query.data ?? null, connected, connectionReplaced, roomClosed: currentRoomClosed, reconnecting, pending, error,
+  return { snapshot: query.data ?? null, connected, connectionReplaced, roomClosed: currentRoomClosed, participantAuthRequired, reconnecting, pending, error,
     reconnect: () => { if (roomClosed) return; setConnectionReplaced(false); setError(''); setAttempt(value => value + 1); }, command };
 }
