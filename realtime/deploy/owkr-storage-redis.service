@@ -1,0 +1,22 @@
+[Unit]
+Description=OWKR temporary persistent Redis
+After=network.target
+
+[Service]
+Type=notify
+User=redis
+Group=redis
+RuntimeDirectory=owkr-storage-redis
+RuntimeDirectoryMode=0770
+ExecStart=/usr/bin/redis-server /etc/owkr-storage/redis.conf --supervised systemd
+Restart=on-failure
+RestartSec=3
+MemoryMax=224M
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/owkr-storage /run/owkr-storage-redis
+
+[Install]
+WantedBy=multi-user.target

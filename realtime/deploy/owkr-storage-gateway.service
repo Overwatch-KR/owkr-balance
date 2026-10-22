@@ -1,0 +1,22 @@
+[Unit]
+Description=OWKR authenticated Redis REST gateway
+Requires=owkr-storage-redis.service
+After=owkr-storage-redis.service
+
+[Service]
+User=owkr-storage
+Group=redis
+EnvironmentFile=/etc/owkr-storage/gateway.env
+ExecStart=/usr/bin/python3 /opt/owkr-storage/storage-gateway.py
+Restart=on-failure
+RestartSec=3
+MemoryMax=96M
+TasksMax=48
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+RestrictAddressFamilies=AF_UNIX AF_INET
+
+[Install]
+WantedBy=multi-user.target

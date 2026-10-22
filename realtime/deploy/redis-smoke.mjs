@@ -11,6 +11,7 @@ import { createLocalDraftFixtures } from '../realtime/src/local-fixtures.js';
 import { DraftParticipantAuth } from '../realtime/src/participant-auth.js';
 import { signDraftTicket, verifyDraftTicket } from '../realtime/src/tickets.js';
 import { SOURCE_POSITIONS } from '../realtime/src/source.js';
+import { getMapRevealDurationMs } from '../domains/draft/shared/public.js';
 
 const namespace = `draft:v1:deploytest:${randomUUID()}:`;
 const redis = new Redis({ url: process.env.UPSTASH_REDIS_REST_URL, token: process.env.UPSTASH_REDIS_REST_TOKEN,
@@ -153,7 +154,7 @@ try {
     throw new Error(`phase timeout: ${phase}`);
   };
   const reveal = await waitForPhase('MAP_RESOLVED');
-  assert.ok(reveal.room.timer.deadlineAt > reveal.now && reveal.room.timer.deadlineAt <= reveal.now + 3000);
+  assert.ok(reveal.room.timer.deadlineAt > reveal.now && reveal.room.timer.deadlineAt <= reveal.now + getMapRevealDurationMs(reveal.room.mapResult));
   await waitForPhase('HERO_VOTING');
   const selection = ['TANK', 'DPS', 'SUPPORT'].map(role => fixture.catalogs.heroes.entries.find(hero => hero.role === role && hero.active).heroId);
   await Promise.all(sockets.map(socket => send(socket, 'ballot.lock', selection)));
@@ -257,7 +258,7 @@ try {
     acknowledgedCommands: timings.length, commandMs: { median: Math.round(timings[Math.floor(timings.length / 2)]),
       p95: Math.round(timings[Math.floor(timings.length * .95)]), max: Math.round(timings.at(-1)) },
     checks: ['actual Redis Lua', 'isolated namespace', 'idempotent creation', base.startsWith('https:') ? '10 TLS WebSockets' : '10 loopback WebSockets', '10 simultaneous locked ballots',
-      '3 second map reveal', 'hero bans without preference', 'game start and finish', 'next game excludes played map', 'fixed expiry', 'revision conflict', 'restart recovery paused', 'sealed resolution preserved',
+      'configured map roll and reveal duration', 'hero bans without preference', 'game start and finish', 'next game excludes played map', 'fixed expiry', 'revision conflict', 'restart recovery paused', 'sealed resolution preserved',
       'expired authentication rejected', 'late ballot rejected', 'stale source write rejected', 'fresh source revision', 'removed identity rejected', 'missing history rejected', 'room closure persisted', 'closed room removed from active index', 'game history retained', 'stale writes cannot reopen closed room', 'idle activity timestamp persisted', 'premature idle closure rejected', 'idle boundary commands rejected', 'modern and legacy idle rooms closed'],
     rssMiB: Math.round(process.memoryUsage().rss / 1048576) }, null, 2));
 } finally {

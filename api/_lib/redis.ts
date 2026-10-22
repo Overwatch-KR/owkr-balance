@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis';
+import { createHmac } from 'node:crypto';
 
 let redis: Redis | null = null;
 
@@ -8,14 +9,20 @@ let redis: Redis | null = null;
 export const isLocalDataOnly = (): boolean => process.env.OWKR_LOCAL_DATA_ONLY === 'true';
 
 /**
- * @description 환경변수가 준비된 경우에만 Upstash Redis 클라이언트를 지연 생성한다.
+ * @description 임시 서버 저장소 또는 명시적으로 선택한 Upstash에 서버 전용 인증으로 연결한다.
  */
 export const getRedis = (): Redis | null => {
     if (isLocalDataOnly()) return null;
     if (redis) return redis;
 
-    const url = process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL;
-    const token = process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN;
+    const serverStorage = process.env.OWKR_STORAGE_BACKEND !== 'upstash'
+        && process.env.DRAFT_REALTIME_URL && process.env.DRAFT_BRIDGE_SECRET;
+    const url = serverStorage
+        ? new URL('/storage', process.env.DRAFT_REALTIME_URL!).toString()
+        : process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL;
+    const token = serverStorage
+        ? createHmac('sha256', process.env.DRAFT_BRIDGE_SECRET!).update('owkr-local-storage-v1').digest('hex')
+        : process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN;
     if (!url || !token) return null;
 
     redis = new Redis({ url, token });

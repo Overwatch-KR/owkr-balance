@@ -26,11 +26,21 @@ civilwar.devbot.me {
 		Referrer-Policy no-referrer
 		Cache-Control no-store
 	}
-	request_body {
-		max_size 16KB
+	@storage path /storage /storage/*
+	handle @storage {
+		uri strip_prefix /storage
+		request_body {
+			max_size 2MB
+		}
+		reverse_proxy 127.0.0.1:8790
 	}
-	reverse_proxy 127.0.0.1:8787 {
-		stream_close_delay 5m
+	handle {
+		request_body {
+			max_size 16KB
+		}
+		reverse_proxy 127.0.0.1:8787 {
+			stream_close_delay 5m
+		}
 	}
 	handle_errors 502 503 {
 		respond "OWKR draft backend is unavailable." 503
