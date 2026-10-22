@@ -82,7 +82,7 @@ export function UserSheetEntryContent({
             className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-5 md:p-8"
             aria-labelledby="user-sheet-entry-title"
         >
-            <div className="mx-auto max-w-3xl">
+            <div className="app-form-content mx-auto">
                 {isEditing ? (
                     <>
                         <div className="grid grid-cols-2 items-center gap-3">

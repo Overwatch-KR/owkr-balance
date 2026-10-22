@@ -486,7 +486,7 @@ const MatchApp = ({
             <main
                 id="main-content"
                 tabIndex={-1}
-                className={`mx-auto max-w-[1600px] scroll-mt-20 px-4 focus:outline-none md:px-8 ${pathname === '/draft-control' ? 'min-h-0 py-4' : 'min-h-screen py-6 md:py-8'}`}
+                className={`app-workspace mx-auto scroll-mt-20 px-4 focus:outline-none md:px-8 ${pathname === '/draft-control' ? 'draft-control-workspace min-h-0 py-4' : 'min-h-screen py-6 md:py-8'}`}
             >
                 {REALTIME_DRAFT_ENABLED && draft.roomCode && pathname !== '/draft-control' && <DraftOperationBar controller={draft.controller} roomCode={draft.roomCode} onOpen={() => navigate('/draft-control')} />}
                 {!isAdminPagePath(pathname) ? (
@@ -513,7 +513,7 @@ const MatchApp = ({
                             />
 
                             <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5 xl:grid-cols-[minmax(300px,340px)_minmax(0,1fr)] xl:items-start">
-                                <aside className="hidden min-h-0 min-w-0 flex-col xl:sticky xl:top-24 xl:order-1 xl:flex xl:h-[calc(100dvh-8rem)]">
+                                <aside className="hidden min-h-0 min-w-0 flex-col xl:sticky xl:top-24 xl:order-1 xl:flex xl:max-h-[max(20rem,calc(100dvh-12rem))]">
                                     <PlayerList {...playerListProps} />
                                 </aside>
 

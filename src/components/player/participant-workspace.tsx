@@ -209,7 +209,7 @@ export const ParticipantWorkspace = ({
                     )}
                 </section>
 
-                <aside className="min-w-0 xl:sticky xl:top-24 xl:h-[calc(100dvh-8rem)]">
+                <aside className="min-w-0 xl:sticky xl:top-24 xl:flex xl:max-h-[max(20rem,calc(100dvh-18rem))] xl:min-h-0 xl:flex-col">
                     <PlayerList {...listProps} />
                 </aside>
             </div>

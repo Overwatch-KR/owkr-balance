@@ -4,7 +4,7 @@
 export function DiscordLoginPolicyPage() {
     return (
         <main className="min-h-screen bg-[#080a0f] px-5 py-10 text-slate-200 sm:py-16">
-            <article className="mx-auto max-w-2xl">
+            <article className="app-readable-content mx-auto">
                 <a
                     href="/"
                     className="inline-flex min-h-10 items-center rounded-md px-2 text-sm text-slate-400 transition-colors hover:bg-white/5 hover:text-white"

@@ -10,6 +10,11 @@
     flex-direction: column;
 }
 
+.draft-preview-content:not(.app-workspace),
+.draft-public-content {
+    max-width: clamp(1500px, 78.125dvw, 2200px);
+}
+
 .draft-room-selecting {
     display: flex;
     min-height: 0;
@@ -120,8 +125,9 @@
 }
 
 .draft-selection {
-    --draft-portrait: clamp(28px, min(calc((100dvh - 600px) / 6), calc((100dvw - 520px) / 12)), 58px);
-    --draft-my-pick: clamp(64px, calc((100dvh - 480px) / 5), 104px);
+    --draft-portrait-max: clamp(58px, calc(3.4375dvw - 8px), 90px);
+    --draft-portrait: clamp(28px, min(calc((100dvh - 600px) / 6), calc((100dvw - 520px) / 12)), var(--draft-portrait-max));
+    --draft-my-pick: clamp(64px, calc((100dvh - 480px) / 5), clamp(104px, 5.416667dvw, 144px));
     --draft-pick: 32px;
     display: grid;
     flex: 1;
@@ -390,6 +396,19 @@
 }
 
 @media (min-width: 1024px) {
+    .draft-control-workspace {
+        display: flex;
+        height: 100dvh;
+        flex-direction: column;
+    }
+
+    .draft-control-page {
+        display: flex;
+        min-height: 0;
+        flex: 1;
+        flex-direction: column;
+    }
+
     .draft-preview,
     .draft-public-page {
         height: 100dvh;

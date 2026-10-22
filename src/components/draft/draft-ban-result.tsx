@@ -38,7 +38,7 @@ export function DraftBanResult({ snapshot, onCopy }: { snapshot: DraftRoomSnapsh
         return <p key={team} className={`flex items-center gap-2 ${appearance.text}`}><span className={`h-1.5 w-5 rounded-full ${appearance.bar}`} />{appearance.label}
           {!!orders.length && <span className="text-slate-500">{orders.join('·')}번 밴</span>}</p>;
       })}</div>
-      {slots.length ? <ol key={replay} aria-label="밴 확정 순서" className="mx-auto grid max-w-3xl grid-cols-4 gap-x-0 gap-y-4">{slots.map((slot, index) => {
+      {slots.length ? <ol key={replay} aria-label="밴 확정 순서" className="mx-auto grid app-form-content grid-cols-4 gap-x-0 gap-y-4">{slots.map((slot, index) => {
         const hero = snapshot.heroes.find(entry => entry.heroId === slot.heroId);
         const appearance = teamAppearance(slot.team, attack);
         const score = slot.team && result.scores[slot.team].find(entry => entry.heroId === slot.heroId)?.effectiveScore;

@@ -52,7 +52,7 @@ export function DraftRoomPanel({ controller, admin = false }: { controller: Draf
     {snapshot.phase === 'LOBBY' && <p className="text-xs text-slate-400">맵 선정: {snapshot.mapSelection.mode === 'VOTE' ? '참가자 투표' : `팟지 · ${snapshot.participants.find(player => player.discordId === snapshot.mapSelection.pickerDiscordId)?.displayName ?? '선수 지정 필요'}`}</p>}
     {snapshot.phase === 'LOBBY' && snapshot.isOperator && <DraftMapSetup key={snapshot.epoch} controller={controller} onNotice={setNotice} />}
     {snapshot.phase === 'MAP_PICKING' && <DraftMapPick key={`${snapshot.gameId}:${snapshot.epoch}`} controller={controller} onNotice={setNotice} />}
-    {snapshot.phase === 'MAP_RESOLVED' && snapshot.mapResult && <section aria-label="확정 맵 확인" className="mx-auto w-full max-w-xl overflow-hidden rounded-md border border-cyan-700 bg-surface-elevated">
+    {snapshot.phase === 'MAP_RESOLVED' && snapshot.mapResult && <section aria-label="확정 맵 확인" className="mx-auto w-full app-compact-content overflow-hidden rounded-md border border-cyan-700 bg-surface-elevated">
       <div className="max-h-48 overflow-hidden"><DraftAsset kind="maps" id={snapshot.mapResult.map.mapId} name={snapshot.mapResult.map.nameKo} /></div>
       <div className="p-4"><h3 className="text-lg font-semibold text-white">{snapshot.mapResult.map.nameKo}</h3>
         <p className="mt-1 text-xs text-slate-400">{snapshot.mapResult.firstAttackTeam ? getDraftSideSummary(snapshot.mapResult.firstAttackTeam) : '공격·수비 구분 없음'}</p>

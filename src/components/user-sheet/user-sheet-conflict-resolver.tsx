@@ -37,7 +37,7 @@ export function UserSheetConflictResolver({
     return (
         <div className="flex min-h-0 flex-1 flex-col bg-surface-elevated" role="dialog" aria-labelledby="user-sheet-conflict-title">
             <header className="shrink-0 border-b border-amber-500/20 bg-amber-500/[0.06] px-4 py-4 md:px-6">
-                <div className="mx-auto flex max-w-5xl flex-wrap items-start justify-between gap-4">
+                <div className="mx-auto flex app-detail-content flex-wrap items-start justify-between gap-4">
                     <div className="flex min-w-0 items-start gap-3">
                         <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-300">
                             <GitMerge size={18} aria-hidden="true" />
@@ -81,7 +81,7 @@ export function UserSheetConflictResolver({
             </header>
 
             <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-6">
-                <div className="mx-auto grid max-w-5xl gap-3">
+                <div className="mx-auto grid app-detail-content gap-3">
                     {conflicts.length === 0 ? (
                         <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.05] p-4 text-sm text-emerald-200">
                             직접 선택할 충돌은 없습니다. 자동 병합된 내용을 확인하고 다시 저장해 주세요.
@@ -158,7 +158,7 @@ export function UserSheetConflictResolver({
             </div>
 
             <footer className="shrink-0 border-t border-slate-800 bg-slate-900/80 px-4 py-3 md:px-6">
-                <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
+                <div className="mx-auto flex app-detail-content flex-wrap items-center justify-between gap-3">
                     <p className="text-[11px] text-slate-400" role="status" aria-live="polite">
                         {unresolvedCount > 0
                             ? `${unresolvedCount}개 항목의 값을 선택해 주세요.`

@@ -55,7 +55,7 @@ export function UserSheetGuide({ onClose, onStartTour }: UserSheetGuideProps) {
             className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-5 md:px-8 md:py-7"
             aria-labelledby="user-sheet-guide-title"
         >
-            <div className="mx-auto w-full max-w-4xl">
+            <div className="app-guide-content mx-auto w-full">
                 <div className="flex items-start gap-3">
                     <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-300">
                         <BookOpen size={20} aria-hidden="true" />

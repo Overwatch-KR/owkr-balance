@@ -4,9 +4,10 @@ import type { DraftHero, DraftParticipant, DraftPhase, DraftRoomSnapshot } from 
 import type { DraftRoomController } from '@application/draft/use-draft-room';
 import { DraftRoomPanel } from './draft-room-panel';
 import { DraftParticipantEntry } from './draft-participant-entry';
+import { DraftControlPage } from './draft-control-page';
 
 const screens = [
-  ['login', '공유 링크 로그인'], ['lobby', '팀 확인·준비'], ['map', '맵 투표'],
+  ['login', '공유 링크 로그인'], ['lobby', '팀 확인·준비'], ['map', '맵 투표'], ['operator-map', '운영자 맵 투표'], ['operator-ban', '운영자 밴 투표'],
   ['potg', '팟지 선택'], ['potg-waiting', '팟지 대기'], ['map-result', '맵 확인 3초'], ['ban', '영웅 밴 투표'], ['result', '맵·밴 결과'], ['operator', '운영자 현황'], ['operator-ready', '10인 준비 완료'], ['operator-result', '운영자 결과'], ['operator-playing', '경기 중 운영'], ['operator-finished', '다음 경기'], ['reconnecting', '연결 복구'], ['replaced', '다른 창 연결'],
 ] as const;
 const participants: DraftParticipant[] = ['하늘', '노을', '바다', '별빛', '새벽', '달빛', '구름', '여울', '이슬', '은하'].map((name, index) => ({
@@ -19,7 +20,7 @@ const candidates = ['grimsvotn', 'kings-row', 'ilios'].map(id => maps.find(map =
 function exampleSnapshot(screen: string, heroes: readonly DraftHero[]): DraftRoomSnapshot {
   const now = Date.now();
   const score = (heroId: string, points: number) => ({ heroId, role: heroes.find(hero => hero.heroId === heroId)!.role, positiveScore: points, effectiveScore: points, lobbyVoterCount: 2 });
-  const phases: Record<string, DraftPhase> = { map: 'MAP_VOTING', potg: 'MAP_PICKING', 'potg-waiting': 'MAP_PICKING', 'map-result': 'MAP_RESOLVED', ban: 'HERO_VOTING', result: 'HERO_RESOLVED' };
+  const phases: Record<string, DraftPhase> = { map: 'MAP_VOTING', 'operator-map': 'MAP_VOTING', 'operator-ban': 'HERO_VOTING', potg: 'MAP_PICKING', 'potg-waiting': 'MAP_PICKING', 'map-result': 'MAP_RESOLVED', ban: 'HERO_VOTING', result: 'HERO_RESOLVED' };
   const phase = phases[screen] ?? (screen === 'operator-result' ? 'HERO_RESOLVED' : ['operator-playing', 'operator-finished'].includes(screen) ? 'COMPLETED' : ['reconnecting', 'replaced'].includes(screen) ? 'HERO_VOTING' : 'LOBBY');
   const stageKind = phase === 'MAP_VOTING' ? 'MAP' : phase === 'HERO_VOTING' ? 'BAN' : null;
   const self = { discordId: participants[0].discordId, ballotRevision: 1, locked: false,
@@ -83,11 +84,12 @@ function DraftPreviewContent({ heroes }: { heroes: readonly DraftHero[] }) {
       }
     } };
   return <main className="draft-preview app-canvas bg-surface text-slate-200">
-    <div className="draft-preview-content mx-auto w-full max-w-[1500px]">
+    <div className={`draft-preview-content mx-auto w-full ${screen.startsWith('operator') ? 'app-workspace draft-control-workspace' : ''}`}>
       <details className="mb-3 text-xs text-slate-500"><summary className="cursor-pointer py-1">개발용 예제 · 가상 참가자 · 실제 내전 아님</summary>
       <nav aria-label="예제 단계" className="my-3 flex flex-wrap gap-2">{screens.map(([id, label]) => <a key={id} href={`?screen=${id}`}
         className={`rounded border px-3 py-2 text-xs ${screen === id ? 'border-cyan-500 text-cyan-200' : 'border-slate-800 text-slate-400'}`}>{label}</a>)}</nav></details>
-      {screen === 'login' ? <DraftParticipantEntry pending={false} error="" login={() => {}} reconnect={() => {}} /> : <DraftRoomPanel controller={controller} admin={screen.startsWith('operator')} />}
+      {screen === 'login' ? <DraftParticipantEntry pending={false} error="" login={() => {}} reconnect={() => {}} /> : screen.startsWith('operator')
+        ? <DraftControlPage controller={controller} onMatching={() => {}} /> : <DraftRoomPanel controller={controller} />}
       <footer className="mt-2 shrink-0 text-center text-[10px] text-slate-600">Overwatch © Blizzard Entertainment · 개발용 미리보기</footer>
     </div>
   </main>;

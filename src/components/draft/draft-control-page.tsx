@@ -3,7 +3,7 @@ import { PageHeader } from '../layout/page-header';
 import { DraftRoomPanel } from './draft-room-panel';
 
 export function DraftControlPage({ controller, onMatching }: { controller: DraftRoomController; onMatching: () => void }) {
-  return <section>
+  return <section className="draft-control-page">
     {!controller.snapshot && <PageHeader title="밴픽 운영" description="대진표에서 팀을 편성한 뒤 실시간 내전 방을 만들어 주세요." />}
     {controller.roomClosed && <button type="button" className="btn-ghost mb-3 text-sm" onClick={onMatching}>대진표에서 새 내전 준비</button>}
     {controller.snapshot || controller.error ? <DraftRoomPanel controller={controller} admin /> : <div className="border-y border-slate-800 py-10 text-sm text-slate-400">

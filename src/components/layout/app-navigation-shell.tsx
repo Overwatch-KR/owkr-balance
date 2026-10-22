@@ -156,7 +156,7 @@ export const LiveSessionStatusBar = ({
             role="status"
             aria-live="polite"
         >
-            <div className="mx-auto flex min-h-12 max-w-[1600px] items-center justify-between gap-3 px-4 md:px-8">
+            <div className="app-workspace mx-auto flex min-h-12 items-center justify-between gap-3 px-4 md:px-8">
                 <div className="flex min-w-0 items-center gap-3">
                     <span className={`inline-flex h-6 shrink-0 items-center gap-1.5 rounded px-2 font-mono text-[10px] font-bold tracking-[0.14em] ${
                         hasError

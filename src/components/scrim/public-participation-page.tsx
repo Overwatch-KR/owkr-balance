@@ -39,14 +39,14 @@ const token = window.location.pathname.split('/').filter(Boolean).at(-1) ?? '';
 type SatisfactionOption = (typeof SATISFACTION_OPTIONS)[number];
 
 const PublicParticipationSkeleton = () => (
-    <main className="mx-auto min-h-screen max-w-3xl p-4 py-8 text-slate-200 md:p-8" role="status" aria-label="내전 참여 정보를 불러오는 중">
+    <main className="mx-auto min-h-screen app-form-content p-4 py-8 text-slate-200 md:p-8" role="status" aria-label="내전 참여 정보를 불러오는 중">
         <header className="mb-6">
             <Skeleton className="h-8 w-52" />
             <Skeleton className="mt-3 h-4 w-72 max-w-full" />
         </header>
         <Skeleton className="h-12 w-full rounded-xl" />
         <section className="card mt-5">
-            <div className="mx-auto max-w-xl text-center">
+            <div className="mx-auto app-compact-content text-center">
                 <Skeleton className="mx-auto h-7 w-52" />
                 <Skeleton className="mx-auto mt-3 h-4 w-64 max-w-full" />
                 <div className="mt-8 flex justify-center gap-3">
@@ -175,7 +175,7 @@ export function PublicParticipationPage() {
     if (scrim && isVoteLink && voteStatus === 'VOTING_CLOSED') return <ParticipationClosed kind="vote" />;
     if (scrim && !isVoteLink && satisfactionStatus === 'SATISFACTION_EXPIRED') return <ParticipationClosed kind="satisfaction" />;
     return (
-        <main className="mx-auto min-h-screen max-w-3xl p-4 py-8 text-slate-200 md:p-8">
+        <main className="mx-auto min-h-screen app-form-content p-4 py-8 text-slate-200 md:p-8">
             <header className="mb-6"><h1 className="text-2xl font-bold text-white">OWKR {isVoteLink ? '영웅 밴 투표' : '내전 만족도 조사'}</h1><p className="mt-1 text-sm text-slate-400">{isVoteLink ? '내전 시작 전, 최대 3명의 영웅을 선택해 주세요.' : '응답은 완전 익명으로 저장됩니다.'}</p></header>
             {!scrim ? (
                 <section className="card flex min-h-64 flex-col items-center justify-center px-6 text-center">
@@ -217,7 +217,7 @@ export function PublicParticipationPage() {
                 {isVoteLink && voteStatus !== 'VOTING_OPEN' && <section className="card"><h2 className="text-lg font-semibold text-white">영웅 밴 투표</h2><p className="mt-2 text-slate-400">영웅 밴 투표가 마감되었습니다.<br />투표 결과는 관리자 확인 후 최종 확정됩니다.</p></section>}
                 {!isVoteLink && satisfactionStatus === 'SATISFACTION_OPEN' ? (
                     <section className="card overflow-hidden">
-                        <div className="mx-auto max-w-xl text-center">
+                        <div className="mx-auto app-compact-content text-center">
                             <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-lg border border-amber-300/20 bg-amber-300/10 text-amber-200">
                                 <Star size={22} fill="currentColor" aria-hidden="true" />
                             </div>
@@ -276,7 +276,7 @@ export function PublicParticipationPage() {
                                     animate={{ opacity: 1, height: 'auto', y: 0 }}
                                     exit={{ opacity: 0, height: 0, y: 8 }}
                                     transition={{ duration: 0.24 }}
-                                    className="mx-auto mt-8 max-w-2xl overflow-hidden"
+                                    className="mx-auto mt-8 app-readable-content overflow-hidden"
                                 >
                                     <div className="border-t border-slate-800 pt-6">
                                         <p id="disappointment-label" className="text-center text-sm font-semibold text-white">어떤 점이 아쉬웠나요?</p>
@@ -313,7 +313,7 @@ export function PublicParticipationPage() {
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: 8 }}
-                                    className="mx-auto mt-6 block max-w-2xl"
+                                    className="mx-auto mt-6 block app-readable-content"
                                 >
                                     <span className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-200">
                                         <MessageSquareText size={16} className="text-cyan-300" aria-hidden="true" />
@@ -338,7 +338,7 @@ export function PublicParticipationPage() {
                         </AnimatePresence>
                         <button
                             type="button"
-                            className="btn-primary mx-auto mt-8 flex w-full max-w-xl items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-40"
+                            className="btn-primary mx-auto mt-8 flex w-full app-compact-content items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-40"
                             disabled={!score || (score < 3 && disappointments.length === 0) || isSubmitting}
                             aria-busy={isSubmitting}
                             onClick={() => void submit('satisfaction')}

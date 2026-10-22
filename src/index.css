@@ -73,6 +73,39 @@
     background-attachment: fixed;
 }
 
+.app-workspace {
+    width: 100%;
+    max-width: 2400px;
+}
+
+.app-detail-content {
+    max-width: clamp(1024px, 53.333333dvw, 1536px);
+}
+
+.app-guide-content {
+    max-width: clamp(896px, 46.666667dvw, 1344px);
+}
+
+.app-form-content {
+    max-width: clamp(768px, 40dvw, 1152px);
+}
+
+.app-readable-content {
+    max-width: clamp(672px, 35dvw, 1008px);
+}
+
+.app-compact-content {
+    max-width: clamp(576px, 30dvw, 864px);
+}
+
+.app-status-content {
+    max-width: clamp(512px, 26.666667dvw, 768px);
+}
+
+.app-login-content {
+    max-width: clamp(448px, 23.333333dvw, 672px);
+}
+
 @layer components {
     .btn-primary {
         @apply inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-white bg-accent px-4 py-2 font-semibold text-slate-950 shadow-[0_1px_2px_rgb(0_0_0_/_0.35)]
