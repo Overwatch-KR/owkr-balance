@@ -885,3 +885,65 @@
     max-height: calc(100dvh - 460px);
     min-height: 140px;
 }
+
+.draft-map-confirmed[data-landslide="true"] .draft-map-confirmed-card {
+    border-color: #22d3ee;
+    box-shadow: 0 0 38px #06b6d433;
+}
+
+.draft-landslide-banner {
+    position: relative;
+    display: flex;
+    overflow: hidden;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    padding: 16px;
+    border-bottom: 1px solid #0891b2;
+    background: linear-gradient(110deg, #083344, #164e63, #083344);
+    color: #cffafe;
+    isolation: isolate;
+}
+
+.draft-landslide-banner strong {
+    font-size: clamp(28px, 4vw, 42px);
+    font-weight: 900;
+    letter-spacing: .12em;
+    text-shadow: 0 0 24px #22d3ee99;
+    animation: draft-landslide-impact 600ms cubic-bezier(.16, 1, .3, 1) both;
+}
+
+.draft-landslide-banner > span:not(.draft-landslide-rays) {
+    z-index: 1;
+    font-size: 12px;
+}
+
+.draft-landslide-score {
+    color: #67e8f9;
+}
+
+.draft-landslide-rays {
+    position: absolute;
+    inset: -200%;
+    z-index: -1;
+    background: repeating-conic-gradient(from 0deg, transparent 0deg 14deg, #22d3ee22 14deg 18deg);
+    animation: draft-landslide-rays 900ms ease-out both;
+}
+
+@keyframes draft-landslide-impact {
+    from { opacity: 0; transform: scale(1.7); filter: blur(5px); }
+    to { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+
+@keyframes draft-landslide-rays {
+    from { opacity: 0; transform: rotate(-12deg) scale(.7); }
+    25% { opacity: 1; }
+    to { opacity: .35; transform: rotate(12deg) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .draft-landslide-banner strong, .draft-landslide-rays {
+        animation: none;
+    }
+}

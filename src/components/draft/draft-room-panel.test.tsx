@@ -317,3 +317,13 @@ describe('draft selection and ban results', () => {
   });
 
 });
+
+
+it('shows a landslide celebration only for the server-confirmed landslide result', () => {
+  const view = snapshot(); view.phase = 'MAP_RESOLVED';
+  view.mapResult = { ...view.mapResult!, method: 'LANDSLIDE', totals: { map: 9 }, selectedOption: 'map', rollDurationMs: 0 };
+  expect(render(<DraftMapReveal snapshot={view} />)).toContain('압승');
+  expect(render(<DraftMapReveal snapshot={view} />)).toContain('9표 · 6표 이상 차이');
+  view.mapResult.method = 'POTG';
+  expect(render(<DraftMapReveal snapshot={view} />)).not.toContain('압승');
+});

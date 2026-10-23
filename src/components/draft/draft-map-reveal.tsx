@@ -52,8 +52,13 @@ export function DraftMapReveal({ snapshot }: { snapshot: DraftRoomSnapshot }) {
     : result.method === 'ALL_ABSTAINED' ? '전원 기권 · 미사용 전체 맵에서 추첨합니다.'
     : drawingMap ? '무작위 당첨 · 표시된 후보를 제외한 미사용 맵에서 추첨합니다.'
     : '각 표가 추첨 칸 하나가 됩니다. 표를 많이 받은 맵일수록 선택될 가능성이 높습니다.';
-  if (finished) return <section className="draft-map-confirmed" aria-label="확정 맵 확인" data-roll-finished="true">
+  if (finished) return <section className="draft-map-confirmed" aria-label="확정 맵 확인" data-roll-finished="true" data-landslide={result.method === 'LANDSLIDE'}>
     <figure className="draft-map-confirmed-card">
+      {result.method === 'LANDSLIDE' && <div className="draft-landslide-banner" role="status">
+        <span className="draft-landslide-rays" aria-hidden="true" />
+        <strong>압승</strong><span>압도적인 득표로 맵 확정</span>
+        <span className="draft-landslide-score">{result.totals[result.selectedOption ?? ''] ?? 0}표 · 6표 이상 차이</span>
+      </div>}
       <DraftAsset kind="maps" id={result.map.mapId} name={result.map.nameKo} />
       <figcaption className="p-4 text-center sm:p-6" aria-live="polite">
         <p className="text-xs font-semibold text-cyan-300">선택된 맵</p>
