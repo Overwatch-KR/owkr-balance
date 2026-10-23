@@ -4,6 +4,7 @@ import type { DraftHero, DraftParticipant, DraftPhase, DraftRoomSnapshot } from 
 import type { DraftRoomController } from '@application/draft/use-draft-room';
 import { DraftRoomPanel } from './draft-room-panel';
 import { DraftParticipantWaiting } from './draft-participant-waiting';
+import { DraftEntryHeader } from './draft-entry-header';
 import { DraftClosedRoom } from './draft-closed-room';
 import { DraftParticipantEntry } from './draft-participant-entry';
 import { DraftControlPage } from './draft-control-page';
@@ -130,11 +131,13 @@ function DraftPreviewContent({ heroes }: { heroes: readonly DraftHero[] }) {
             selection, locked: type === 'ballot.lock' || selection.filter(Boolean).length === (previous.stageKind === 'BAN' ? 3 : 1) } } }));
       }
     } };
-  return <main className="draft-preview app-canvas bg-surface text-slate-200">
-    <div className={`draft-preview-content mx-auto w-full ${screen.startsWith('operator') ? 'app-workspace draft-control-workspace' : ''}`}>
-      <details className="mb-3 text-xs text-slate-500"><summary className="cursor-pointer py-1">개발용 예제 · 가상 참가자 · 실제 내전 아님</summary>
+  const entryScreen = ['login', 'waiting', 'excluded', 'missing'].includes(screen);
+  return <main className={`draft-preview app-canvas bg-surface text-slate-200 ${entryScreen ? 'draft-entry-page' : ''}`}>
+    <div className={`draft-preview-content mx-auto w-full ${screen.startsWith('operator') ? 'app-workspace draft-control-workspace' : ''} ${entryScreen ? 'draft-entry-content' : ''}`}>
+      <details className="draft-preview-navigation mb-3 text-xs text-slate-500"><summary className="cursor-pointer py-1">개발용 예제 · 가상 참가자 · 실제 내전 아님</summary>
       <nav aria-label="예제 단계" className="my-3 flex flex-wrap gap-2">{screens.map(([id, label]) => <a key={id} href={`?screen=${id}`}
         className={`rounded border px-3 py-2 text-xs ${screen === id ? 'border-cyan-500 text-cyan-200' : 'border-slate-800 text-slate-400'}`}>{label}</a>)}</nav></details>
+      {entryScreen && <DraftEntryHeader />}
       {screen === 'map-test' && <section className="mb-3 shrink-0 border-y border-cyan-900 py-3" aria-label="로컬 맵 추첨 테스트">
         <p className="text-sm font-semibold text-cyan-200">맵 추첨 테스트 · 실제 내전과 연결되지 않습니다</p>
         <p className="mt-1 text-xs text-slate-400">맵을 선택한 뒤 추첨을 시작하세요. 2.5~4초 추첨 → 확정 맵 하나를 4초 확인 → 밴 투표 순서로 진행합니다.</p>

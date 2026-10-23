@@ -3,6 +3,7 @@ import { draftRequest, useDraftRoom } from '@application/draft/use-draft-room';
 import { DraftParticipantWaiting } from './draft-participant-waiting';
 import { DraftParticipantEntry } from './draft-participant-entry';
 import { DraftRoomPanel } from './draft-room-panel';
+import { DraftEntryHeader } from './draft-entry-header';
 import { DraftClosedRoom } from './draft-closed-room';
 
 /** @description 공유 링크에서만 해당 방의 참가자 Discord 인증과 투표 화면을 연다. */
@@ -32,12 +33,11 @@ export function PublicDraftPage() {
       setError(failure instanceof Error ? failure.message : '인증을 시작하지 못했습니다.'); setPending(false);
     }
   };
-  return <main className="draft-public-page app-canvas bg-surface text-slate-200">
-    <div className="draft-public-content mx-auto w-full">
-      {!controller.snapshot && <header className="mb-3 flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-3">
-        <div><p className="text-xs text-cyan-400">OWKR MATCH CONTROL</p><h1 className="mt-1 text-2xl font-semibold text-white">실시간 내전 참여</h1></div>
-        <p className="text-xs text-slate-500">공유 링크로 참여 · 참가자 전원 마이크 필수</p>
-      </header>}
+  const entryScreen = !controller.snapshot || controller.roomClosed || controller.participantAuthRequired
+    || Boolean(controller.admission) || Boolean(authFailure) || !validCode;
+  return <main className={`draft-public-page app-canvas bg-surface text-slate-200 ${entryScreen ? 'draft-entry-page' : ''}`}>
+    <div className={`draft-public-content mx-auto w-full ${entryScreen ? 'draft-entry-content' : ''}`}>
+      {entryScreen && <DraftEntryHeader />}
       {controller.roomClosed || ['ROOM_CLOSED', 'ROOM_EXPIRED', 'INACTIVE_ROOM'].includes(authFailure) ? <DraftClosedRoom reason={authFailure || controller.roomUnavailableReason} /> : !validCode ? <section className="app-status-content mx-auto border-y border-slate-700 py-10 text-center">
         <h2 className="text-xl font-semibold text-white">참가 인증을 다시 시작해 주세요</h2>
         <p className="mt-3 text-sm text-amber-200" role="alert">인증 요청이 만료되었거나 유효한 내전 공유 링크를 확인할 수 없습니다.</p>

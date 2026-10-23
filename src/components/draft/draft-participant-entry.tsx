@@ -20,11 +20,11 @@ export function DraftParticipantEntry({ pending, error, login, reconnect, authFa
   return <section className="mx-auto max-w-lg border-y border-slate-700 py-10 text-center">
           <h2 className="text-xl font-semibold text-white">Discord로 미리 로그인하세요</h2>
           <p className="mt-3 text-sm leading-6 text-slate-400">아직 명단이나 티어 입력이 끝나지 않아도 로그인할 수 있습니다. 로그인 후 대기하다가 내 명단과 팀이 정해지면 자동으로 입장합니다.</p>
-          {failureMessage && <p className="mt-5 border-l-2 border-amber-500 bg-amber-500/5 px-3 py-3 text-left text-sm leading-6 text-amber-200" role="alert">{failureMessage}</p>}
+          {failureMessage && <p className="mt-5 border-l-2 border-amber-500 bg-amber-500/5 px-3 py-3 text-center text-sm leading-6 text-amber-200" role="alert">{failureMessage}</p>}
           <button type="button" className="mt-6 min-h-12 w-full rounded-md bg-[#5865f2] px-5 py-3 font-semibold text-white disabled:opacity-50" disabled={pending || roomUnavailable} onClick={() => void login()}>
             {pending ? 'Discord 인증으로 이동 중…' : authFailure ? 'Discord로 다시 인증' : 'Discord로 로그인하고 대기'}
           </button>
-          <p className="mt-4 text-sm text-amber-200" role="status">{error}</p>
+          {error && <p className="mt-4 text-sm text-amber-200" role="status">{error}</p>}
           {!roomUnavailable && <button type="button" className="mt-3 min-h-10 px-3 text-xs text-slate-400 underline" onClick={reconnect}>기존 참가 인증으로 다시 연결</button>}
           <p className="mt-5 text-xs text-slate-500">일반 사이트의 관리자 로그인으로는 참가할 수 없습니다.</p>
         </section>;
