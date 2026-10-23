@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { getDraftStartBlockers } from '#domain/draft';
 import type { DraftRoomController } from '@application/draft/use-draft-room';
-import { getDraftPrimaryAction } from './draft-room-view';
+import { getDraftPrimaryAction, getDraftSideSummary } from './draft-room-view';
 
 export function DraftOperatorActions({ controller, execute }: { controller: DraftRoomController; execute: (type: string, values?: Record<string, unknown>) => void }) {
   const snapshot = controller.snapshot!;
@@ -32,6 +32,11 @@ export function DraftOperatorActions({ controller, execute }: { controller: Draf
       </div>}
     </div>{action && <button type="button" className="btn-primary shrink-0 text-sm" disabled={disabled} onClick={() => execute(action.type,
       action.type === 'draft.start' ? { remainingMapsConfirmed, diversityExceptionReason } : undefined)}>{controller.pending ? '처리 중…' : action.label}</button>}</div>
+    {snapshot.mapResult?.firstAttackTeam && snapshot.playStatus === 'NOT_STARTED' && snapshot.timer.status !== 'ROSTER_CHANGED' && <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-slate-800 pt-3">
+      <p className="text-xs text-slate-300">{getDraftSideSummary(snapshot.mapResult.firstAttackTeam)}</p>
+      <button type="button" className="btn-ghost border border-slate-700 text-xs" disabled={!controller.connected || controller.pending}
+        onClick={() => execute('map.swapSides')}>공격·수비 교대</button>
+    </div>}
     {snapshot.phase === 'LOBBY' && <div className="mt-3 text-xs text-slate-400">
       {remainingConfirmation && <label className="flex min-h-11 items-center gap-2"><input type="checkbox" disabled={!controller.connected || controller.pending} checked={remainingMapsConfirmed} onChange={event => setRemainingMapsConfirmed(event.target.checked)} />남은 맵 {snapshot.availableMapCount}개로 진행 · 무작위 없음</label>}
       <details><summary className="cursor-pointer py-2">고급 맵 설정 · 모드 다양성 예외</summary><label className="mt-1 block">예외 사유 (필요할 때만)

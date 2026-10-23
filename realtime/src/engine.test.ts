@@ -555,3 +555,31 @@ describe('automatic idle room closure', () => {
     expect(closed.history.games).toEqual(before.history.games);
   });
 });
+
+
+describe('operator side swaps', () => {
+  async function mapReady(mapId = 'kings-row') {
+    const app = await setup({ realCatalogs: true }); await app.readyAll();
+    await app.run(0, 'map.configure', { mapMode: 'POTG', pickerDiscordId: app.ids[3] });
+    for (let index = 0; index < 10; index++) await app.run(index, 'ready.set');
+    await app.run(0, 'draft.start'); await app.run(3, 'map.pick', { mapId }); return app;
+  }
+  it('broadcasts the swap without changing roster, ballots or map, and preserves it in applied history', async () => {
+    const app = await mapReady(); const before = await app.engine.snapshot('c0');
+    await expect(app.run(1, 'map.swapSides')).rejects.toThrow('권한');
+    await app.run(0, 'map.swapSides');
+    const after = await app.engine.snapshot('c1');
+    expect(after.mapResult?.firstAttackTeam).not.toBe(before.mapResult?.firstAttackTeam);
+    expect(after.participants).toEqual(before.participants); expect(after.mapResult?.map).toEqual(before.mapResult?.map);
+    await app.finishMapReveal(); await app.lockAll(['ana', 'dva', 'genji']); await app.engine.tick(app.code);
+    await app.run(0, 'game.confirmApplied'); await app.run(0, 'map.swapSides');
+    const bundle = await app.engine.requireRoom(app.code);
+    expect(bundle.history.games[0].firstAttackTeam).toBe(bundle.room.mapResult?.firstAttackTeam);
+    await app.run(0, 'game.markStarted');
+    await expect(app.run(0, 'map.swapSides')).rejects.toThrow('경기 시작 전');
+  });
+  it('rejects maps without attack and defense', async () => {
+    const app = await mapReady('colosseo');
+    await expect(app.run(0, 'map.swapSides')).rejects.toThrow('공격·수비');
+  });
+});

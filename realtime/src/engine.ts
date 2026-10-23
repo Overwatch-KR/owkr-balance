@@ -21,7 +21,7 @@ export interface ConnectedDraftClient extends DraftConnection {
 export interface DraftCommand {
   commandId: string;
   type: 'ready.set' | 'draft.start' | 'draft.pause' | 'draft.resume' | 'draft.restart'
-    | 'map.configure' | 'map.pick' | 'ballot.save' | 'ballot.lock' | 'game.confirmApplied' | 'game.markStarted'
+    | 'map.configure' | 'map.pick' | 'map.swapSides' | 'ballot.save' | 'ballot.lock' | 'game.confirmApplied' | 'game.markStarted'
     | 'game.markFinished' | 'game.markAborted' | 'game.markNotPlayed' | 'game.next' | 'room.close';
   epoch: number;
   expectedRevision: number;
@@ -40,7 +40,7 @@ export function parseDraftCommand(value: unknown): DraftCommand {
   requireDraft(value && typeof value === 'object' && !Array.isArray(value), 'INVALID_COMMAND', '명령 형식을 확인해 주세요.');
   const raw = value as Record<string, unknown>;
   const types: readonly string[] = ['ready.set', 'draft.start', 'draft.pause', 'draft.resume', 'draft.restart',
-    'map.configure', 'map.pick', 'ballot.save', 'ballot.lock', 'game.confirmApplied', 'game.markStarted', 'game.markFinished',
+    'map.configure', 'map.pick', 'map.swapSides', 'ballot.save', 'ballot.lock', 'game.confirmApplied', 'game.markStarted', 'game.markFinished',
     'game.markAborted', 'game.markNotPlayed', 'game.next', 'room.close'];
   requireDraft(typeof raw.commandId === 'string' && /^[\w-]{1,128}$/.test(raw.commandId)
     && typeof raw.type === 'string' && types.includes(raw.type)
@@ -311,6 +311,20 @@ export class DraftEngine {
       room.mapResult = resolvePotgMap({ resolutionId: `${room.gameId}:${room.epoch}:POTG`, catalog: room.mapCatalog,
         usedCanonicalMapIds: this.usedMaps(bundle), mapId: command.mapId, pickerDiscordId: client.discordId, entropy: entropy() });
       room.phase = 'MAP_RESOLVED'; room.timer = { ...room.timer, phase: room.phase, deadlineAt: -1 };
+      guard.expectedSourceRaw = bundle.sourceRaw!;
+    } else if (command.type === 'map.swapSides') {
+      validateDraftSource(bundle.source, room.source, now);
+      requireDraft(room.mapResult?.firstAttackTeam && ['ESCORT', 'HYBRID'].includes(room.mapResult.map.mode),
+        'SIDES_UNAVAILABLE', '공격·수비가 있는 확정 맵에서만 교대할 수 있습니다.');
+      const game = history.games.find(game => game.gameId === room.gameId);
+      requireDraft(!game || game.playStatus === 'NOT_STARTED', 'GAME_ALREADY_STARTED', '경기 시작 전까지만 공수를 교대할 수 있습니다.');
+      requireDraft(room.timer.status !== 'ROSTER_CHANGED', 'SOURCE_OUTDATED', '최신 팀으로 준비를 다시 시작해 주세요.');
+      room.mapResult = { ...room.mapResult, firstAttackTeam: room.mapResult.firstAttackTeam === 'A' ? 'B' : 'A' };
+      if (game) {
+        game.firstAttackTeam = room.mapResult.firstAttackTeam;
+        guard.expectedHistoryRevision = history.mapHistoryRevision;
+        history.mapHistoryRevision++;
+      }
       guard.expectedSourceRaw = bundle.sourceRaw!;
     } else if (command.type === 'ready.set') {
       validateDraftSource(bundle.source, room.source, now);
