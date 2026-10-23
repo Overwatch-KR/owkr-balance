@@ -13,6 +13,7 @@ import {
 } from './utils/user-sheet';
 import { createMatchShareCode, loadMatchShare } from './utils/match-share';
 import type { LoadedMatchLiveSession } from './utils/match-live-share';
+import { useDraftSourceSync } from '@application/draft/use-draft-source-sync';
 import { createIndependentDraftRoom } from '@application/draft/create-independent-draft-room';
 import { useOnboardingGuide } from './hooks/use-onboarding-guide';
 import { useToast } from './hooks/use-toast';
@@ -303,6 +304,9 @@ const MatchApp = ({
     const waitlist = players.slice(10);
     const isReady = participants.length === 10;
     const isResultStale = result ? isMatchResultStale(result, participants) : false;
+    const draftSourceSync = useDraftSourceSync({ sourceId: draft.controller.snapshot?.sourceId, players,
+        result: isResultStale ? null : result, csrfToken });
+    const draftController = { ...draft.controller, pending: draft.controller.pending || draftSourceSync.pending };
     const userSheetByBattleTag = useMemo(
         () => createUserSheetPlayerLookup(userSheet.entries),
         [userSheet.entries],
@@ -488,7 +492,8 @@ const MatchApp = ({
                 tabIndex={-1}
                 className={`app-workspace mx-auto scroll-mt-20 px-4 focus:outline-none md:px-8 ${pathname === '/draft-control' ? 'draft-control-workspace min-h-0 py-4' : 'min-h-screen py-6 md:py-8'}`}
             >
-                {REALTIME_DRAFT_ENABLED && draft.roomCode && pathname !== '/draft-control' && <DraftOperationBar controller={draft.controller} roomCode={draft.roomCode} onOpen={() => navigate('/draft-control')} />}
+                {draftSourceSync.error && <p role="status" className="mb-3 text-sm text-amber-300">밴픽 명단 반영 대기 · {draftSourceSync.error}</p>}
+                {REALTIME_DRAFT_ENABLED && draft.roomCode && pathname !== '/draft-control' && <DraftOperationBar controller={draftController} roomCode={draft.roomCode} onOpen={() => navigate('/draft-control')} />}
                 {!isAdminPagePath(pathname) ? (
                     pathname === '/participants' ? (
                         <ParticipantWorkspace
@@ -577,7 +582,7 @@ const MatchApp = ({
                 {pathname === '/scrims' ? (
                     <ScrimManager csrfToken={csrfToken} players={players} userId={user.id} />
                 ) : null}
-                {pathname === '/draft-control' ? <DraftControlPage controller={draft.controller} onMatching={() => navigate('/')} /> : null}
+                {pathname === '/draft-control' ? <DraftControlPage controller={draftController} onMatching={() => navigate('/')} /> : null}
 
                 {pathname === '/user-sheet' ? (
                     <UserSheetPage

@@ -440,6 +440,7 @@ export class DraftEngine {
       roomCode: room.roomCode, gameId: room.gameId, gameIndex: room.gameIndex, epoch: room.epoch,
       roomRevision: room.revision, expiresAt: room.expiresAt, phase: room.phase, timer: room.timer,
       selfDiscordId: client.discordId, isOperator: operator,
+      ...(operator ? { sourceId: room.source.sourceId } : {}),
       selfReady: room.progress.find(item => item.discordId === client.discordId)?.ready ?? false,
       readyCount: room.progress.filter(item => item.ready).length,
       availableMapCount: new Set(room.mapCatalog.entries.filter(map => map.active

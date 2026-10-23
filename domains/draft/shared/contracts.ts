@@ -11,6 +11,7 @@ export const DRAFT_ROOM_CLOSED_CLOSE_CODE = 4002;
 
 export interface DraftRoomSnapshot {
   roomCode: string;
+  sourceId?: string;
   gameId: string;
   gameIndex: number;
   epoch: number;
