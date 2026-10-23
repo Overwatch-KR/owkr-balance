@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { DRAFT_CONNECTION_REPLACED_CLOSE_CODE, DRAFT_ROOM_CLOSED_CLOSE_CODE, inspectDraftStreamEvent, type DraftRoomSnapshot, type DraftStreamCursor, type DraftStreamEnvelope } from '#domain/draft';
+import { DRAFT_CONNECTION_REPLACED_CLOSE_CODE, DRAFT_ROOM_CLOSED_CLOSE_CODE, inspectDraftStreamEvent, type DraftParticipantAdmission, type DraftRoomSnapshot, type DraftStreamCursor, type DraftStreamEnvelope } from '#domain/draft';
 
 export const REALTIME_DRAFT_ENABLED = import.meta.env.VITE_ENABLE_REALTIME_DRAFT === 'true';
 
-interface ParticipantExchangeResponse { roomCode: string; ticket?: string; expiresAt?: number; realtimeUrl?: string }
+interface ParticipantExchangeResponse { admission?: DraftParticipantAdmission; roomCode: string; ticket?: string; expiresAt?: number; realtimeUrl?: string }
+interface WaitingEntry { admission: DraftParticipantAdmission }
 interface EntryResponse { ticket: string; expiresAt: number; realtimeUrl: string }
 interface PendingCommand { resolve: () => void; reject: (error: Error) => void; timeout: ReturnType<typeof setTimeout> }
 
@@ -27,7 +28,7 @@ export async function draftRequest<T>(url: string, body: unknown, headers: Recor
 
 let exchangePromise: Promise<ParticipantExchangeResponse> | null = null;
 
-export async function participantEntry(roomCode: string): Promise<EntryResponse> {
+export async function participantEntry(roomCode: string): Promise<EntryResponse | WaitingEntry> {
   if (import.meta.env.DEV && import.meta.env.VITE_DRAFT_LOCAL_URL && import.meta.env.VITE_DRAFT_LOCAL_USER_ID
     && ['localhost', '127.0.0.1'].includes(window.location.hostname)) {
     const base = new URL(String(import.meta.env.VITE_DRAFT_LOCAL_URL));
@@ -48,6 +49,7 @@ export async function participantEntry(roomCode: string): Promise<EntryResponse>
   if (exchanging) {
     try {
       const entry = await exchanging;
+      if (entry.roomCode === roomCode && entry.admission) return { admission: entry.admission };
       if (entry.roomCode === roomCode && typeof entry.ticket === 'string' && entry.ticket
         && typeof entry.expiresAt === 'number' && entry.expiresAt > Date.now() && typeof entry.realtimeUrl === 'string') {
         return { ticket: entry.ticket, expiresAt: entry.expiresAt, realtimeUrl: entry.realtimeUrl };
@@ -69,6 +71,8 @@ export interface DraftRoomController {
   connected: boolean;
   connectionReplaced?: boolean;
   roomClosed?: boolean;
+  roomUnavailableReason?: string;
+  admission?: DraftParticipantAdmission | null;
   participantAuthRequired?: boolean;
   reconnecting?: boolean;
   pending: boolean;
@@ -101,6 +105,8 @@ export function useDraftRoom(options: {
   const [reconnecting, setReconnecting] = useState(false);
   const [roomClosed, setRoomClosed] = useState(false);
   const [participantAuthRequired, setParticipantAuthRequired] = useState(false);
+  const [admission, setAdmission] = useState<DraftParticipantAdmission | null>(null);
+  const [roomUnavailableReason, setRoomUnavailableReason] = useState('');
 
   useEffect(() => {
     if (!roomCode) return;
@@ -108,7 +114,7 @@ export function useDraftRoom(options: {
     let superseded = false;
     let closed = false;
     let authenticationRequired = false;
-    setRoomClosed(false);
+    setRoomClosed(false); setRoomUnavailableReason(''); setAdmission(null);
     let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
     let renewalTimer: ReturnType<typeof setTimeout> | undefined;
     let failures = 0;
@@ -122,6 +128,7 @@ export function useDraftRoom(options: {
     const requireParticipantAuth = () => {
       authenticationRequired = true;
       clearTimeout(renewalTimer); clearTimeout(reconnectTimer);
+      setAdmission(null);
       setParticipantAuthRequired(true); setConnected(false); setReconnecting(false);
       failPending('참가 인증이 만료되었습니다. Discord로 다시 참여해 주세요.');
     };
@@ -132,7 +139,8 @@ export function useDraftRoom(options: {
       const message = '다른 창에서 이 내전에 연결해 이 창의 연결을 종료했습니다. 자동 재접속은 중지되었습니다.';
       setError(message); failPending(message);
     };
-    const markClosed = () => {
+    const markClosed = (reason = 'ROOM_CLOSED') => {
+      setAdmission(null); setRoomUnavailableReason(reason);
       closed = true;
       closedRoomCodeRef.current = roomCode;
       clearTimeout(renewalTimer); clearTimeout(reconnectTimer);
@@ -142,15 +150,25 @@ export function useDraftRoom(options: {
       snapshotRef.current = null;
       queryClient.removeQueries({ queryKey, exact: true });
     };
+    const waitForRoster = (entry: WaitingEntry) => {
+      clearTimeout(renewalTimer); clearTimeout(reconnectTimer);
+      setAdmission(entry.admission); setConnected(false); setReconnecting(false); setError('');
+      snapshotRef.current = null; queryClient.setQueryData(queryKey, null);
+      failPending('명단과 팀 배정을 기다리고 있습니다.');
+      reconnectTimer = setTimeout(() => { if (!disposed && !closed) void connect(); }, 5000);
+    };
     const renew = async (socket: WebSocket) => {
       try {
         const response = await entry();
         if (disposed || superseded || closed || socket !== socketRef.current || socket.readyState !== WebSocket.OPEN) return;
+        if ('admission' in response) {
+          socketRef.current = null; socket.close(); waitForRoster(response); return;
+        }
         socket.send(JSON.stringify({ type: 'auth.renew', ticket: response.ticket }));
         renewalTimer = setTimeout(() => void renew(socket), Math.max(1000, response.expiresAt - Date.now() - 30_000));
       } catch (failure) {
         if (!disposed && !superseded && !closed && socket === socketRef.current) {
-          if (isUnavailableRoom(failure)) markClosed();
+          if (isUnavailableRoom(failure)) markClosed(String((failure as Error & { code: string }).code));
           else {
             if (mode === 'participant' && isParticipantAuthFailure(failure)) requireParticipantAuth();
             setError(failure instanceof Error ? failure.message : '인증 갱신에 실패했습니다.');
@@ -165,6 +183,8 @@ export function useDraftRoom(options: {
       try {
         const response = await entry();
         if (disposed || closed) return;
+        if ('admission' in response) { waitForRoster(response); return; }
+        setAdmission(null);
         const endpoint = new URL('/v1/socket', response.realtimeUrl);
         endpoint.protocol = endpoint.protocol === 'https:' ? 'wss:' : 'ws:';
         const socket = new WebSocket(endpoint);
@@ -236,9 +256,10 @@ export function useDraftRoom(options: {
         socket.onerror = () => socket.close();
       } catch (failure) {
         if (disposed) return;
-        if (isUnavailableRoom(failure)) { markClosed(); return; }
+        if (isUnavailableRoom(failure)) { markClosed(String((failure as Error & { code: string }).code)); return; }
         if (mode === 'participant' && isParticipantAuthFailure(failure)) requireParticipantAuth();
         setConnected(false); setReconnecting(false); setError(failure instanceof Error ? failure.message : '참가 인증이 필요합니다.');
+        if (!authenticationRequired) reconnectTimer = setTimeout(() => void connect(), 5000);
       }
     };
     void connect();
@@ -267,6 +288,6 @@ export function useDraftRoom(options: {
     });
   }, [connected]);
   const currentRoomClosed = roomClosed && (roomCode === null || closedRoomCodeRef.current === roomCode);
-  return { snapshot: query.data ?? null, connected, connectionReplaced, roomClosed: currentRoomClosed, participantAuthRequired, reconnecting, pending, error,
+  return { snapshot: query.data ?? null, connected, connectionReplaced, roomClosed: currentRoomClosed, roomUnavailableReason, admission, participantAuthRequired, reconnecting, pending, error,
     reconnect: () => { if (roomClosed) return; setConnectionReplaced(false); setError(''); setAttempt(value => value + 1); }, command };
 }

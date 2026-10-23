@@ -11,7 +11,7 @@ const keys = generateKeyPairSync('rsa', { modulusLength: 2048,
 });
 const contextHash = createHash('sha256').update('browser-only-context').digest('hex');
 
-async function setup(discordId?: string, siteAdminParticipant = false) {
+async function setup(discordId?: string, siteAdminParticipant = false, waitingCount?: number) {
   const fixture = createLocalDraftFixtures(Date.now(), { syntheticCatalogs: true });
   if (siteAdminParticipant) {
     fixture.identities[1].discordUserId = '464712715487805442';
@@ -19,6 +19,9 @@ async function setup(discordId?: string, siteAdminParticipant = false) {
       participants: fixture.identities.map((identity, index) => ({ discordUserId: identity.discordUserId, position: SOURCE_POSITIONS[index] })),
     });
   }
+  if (waitingCount !== undefined) fixture.store.setSource('LOCAL23456', { revision: 1, expiresAt: Date.now() + 3 * 60 * 60 * 1000,
+    participants: fixture.identities.slice(0, waitingCount).map(identity => ({ discordUserId: identity.discordUserId, position: null })),
+  });
   await fixture.store.acquireLease();
   const engine = new DraftEngine(fixture.store, fixture.catalogs);
   const now = Math.floor(Date.now() / 1000);
@@ -39,6 +42,61 @@ async function setup(discordId?: string, siteAdminParticipant = false) {
 }
 
 describe('participant-specific OAuth and same-site recovery', () => {
+  it('opens an empty room and upgrades a waiting login through roster collection and team assignment', async () => {
+    const app = await setup(undefined, false, 0);
+    const redirect = new URL(await app.auth.callback('code', app.state, 'https://discord.com'));
+    const session = await app.auth.exchange(redirect.searchParams.get('draft_code')!, contextHash);
+    expect(session.admission).toMatchObject({ status: 'WAITING', participantCount: 0 });
+    expect(session.ticket).toBeUndefined();
+    const expiresAt = (await app.engine.requireRoom(app.roomCode)).room.expiresAt;
+    for (const count of [5, 10]) {
+      app.fixture.store.setSource('LOCAL23456', { revision: count, expiresAt,
+        participants: app.fixture.identities.slice(0, count).map(identity => ({ discordUserId: identity.discordUserId, position: null })),
+      });
+      const entry = await app.auth.refresh(session.handle, app.roomCode);
+      expect(entry.admission).toMatchObject({ status: 'WAITING', participantCount: count });
+      expect(entry.ticket).toBeUndefined();
+    }
+    app.fixture.store.setSource('LOCAL23456', { revision: 11, expiresAt,
+      participants: app.fixture.identities.map((identity, i) => ({ discordUserId: identity.discordUserId, position: SOURCE_POSITIONS[i] })),
+    });
+    await app.engine.tick(app.roomCode);
+    const entry = await app.auth.refresh(session.handle, app.roomCode);
+    expect(entry.admission).toBeUndefined();
+    const ticket = verifyDraftTicket(entry.ticket!, keys.publicKey, 'realtime-entry', Date.now());
+    await app.engine.connect(ticket, 'formerly-waiting');
+    expect((await app.engine.snapshot('formerly-waiting')).selfReady).toBe(true);
+    expect((await app.engine.requireRoom(app.roomCode)).room.expiresAt).toBe(expiresAt);
+  });
+  it('excludes a waiting identity at ten roster entries and admits it later without another OAuth flow', async () => {
+    const discordId = '999999999999999999'; const app = await setup(discordId, false, 0);
+    const redirect = new URL(await app.auth.callback('code', app.state, 'https://discord.com'));
+    const session = await app.auth.exchange(redirect.searchParams.get('draft_code')!, contextHash);
+    const expiresAt = (await app.engine.requireRoom(app.roomCode)).room.expiresAt;
+    app.fixture.store.setSource('LOCAL23456', { revision: 2, expiresAt,
+      participants: app.fixture.identities.map(identity => ({ discordUserId: identity.discordUserId, position: null })),
+    });
+    expect(await app.auth.refresh(session.handle, app.roomCode)).toMatchObject({ admission: { status: 'EXCLUDED', participantCount: 10 } });
+    app.fixture.store.identities.push({ id: 'new-sheet', discordUserId: discordId, battleTag: '추가참가자#1234' });
+    app.fixture.store.setSource('LOCAL23456', { revision: 3, expiresAt,
+      participants: app.fixture.identities.slice(0, 10).map((identity, i) => ({ discordUserId: i === 1 ? discordId : identity.discordUserId, position: SOURCE_POSITIONS[i] })),
+    });
+    const admitted = await app.auth.refresh(session.handle, app.roomCode);
+    expect(verifyDraftTicket(admitted.ticket!, keys.publicKey, 'realtime-entry', Date.now()).sub).toBe(discordId);
+    expect(app.calls).toHaveLength(2);
+  });
+  it('still refuses draft start with fewer than ten assigned players and denies waiting identities socket access', async () => {
+    const app = await setup(undefined, false, 2); const now = Math.floor(Date.now() / 1000);
+    const base = { iss: 'owkr-realtime' as const, aud: 'owkr-draft' as const, purpose: 'realtime-entry' as const,
+      displayName: '시험', roomCode: app.roomCode, scope: 'join' as const, jti: 'waiting-test', iat: now, exp: now + 60 };
+    await expect(app.engine.connect({ ...base, sub: app.fixture.identities[1].discordUserId }, 'waiting')).rejects.toMatchObject({ code: 'ROOM_ACCESS_DENIED' });
+    await app.engine.connect({ ...base, sub: app.fixture.identities[0].discordUserId }, 'operator');
+    const snapshot = await app.engine.snapshot('operator');
+    expect(snapshot.rosterCount).toBe(2); expect(snapshot.participants).toHaveLength(0);
+    await expect(app.engine.command('operator', parseDraftCommand({ type: 'draft.start', commandId: 'start',
+      epoch: snapshot.epoch, expectedRevision: snapshot.roomRevision }))).rejects.toMatchObject({ code: 'ROSTER_SIZE' });
+  });
+
   it('uses only identify and returns only a short one-time code to the existing site', async () => {
     const app = await setup();
     expect(app.redirect.origin).toBe('https://discord.com'); expect(app.redirect.searchParams.get('scope')).toBe('identify');
@@ -55,7 +113,7 @@ describe('participant-specific OAuth and same-site recovery', () => {
     const redirect = new URL(await app.auth.callback('discord-code', app.state, 'https://discord.com'));
     const code = redirect.searchParams.get('draft_code')!;
     const session = await app.auth.exchange(code, contextHash);
-    const firstEntry = verifyDraftTicket(session.ticket, keys.publicKey, 'realtime-entry', Date.now());
+    const firstEntry = verifyDraftTicket(session.ticket!, keys.publicKey, 'realtime-entry', Date.now());
     expect(firstEntry.sub).toBe(app.fixture.identities[1].discordUserId);
     expect(firstEntry.roomCode).toBe(app.roomCode);
     expect(firstEntry.scope).toBe('join');
@@ -65,10 +123,10 @@ describe('participant-specific OAuth and same-site recovery', () => {
     expect(session.ticketExpiresAt).toBeLessThan(session.expiresAt);
     await expect(app.auth.exchange(code, contextHash)).rejects.toThrow('이미 사용');
     const refreshed = await app.auth.refresh(session.handle, app.roomCode);
-    const identity = verifyDraftTicket(refreshed.ticket, keys.publicKey, 'realtime-entry', Date.now());
+    const identity = verifyDraftTicket(refreshed.ticket!, keys.publicKey, 'realtime-entry', Date.now());
     expect(identity.sub).toBe(app.fixture.identities[1].discordUserId);
     expect(identity.scope).toBe('join'); expect(identity.iss).toBe('owkr-realtime');
-    await expect(app.auth.refresh(session.handle, 'OTHER23456')).rejects.toThrow('이 방');
+    await expect(app.auth.refresh(session.handle, 'OTHER23456')).rejects.toMatchObject({ code: 'ROOM_EXPIRED' });
   });
   it('revokes pending OAuth exchanges and existing recovery sessions when the room closes', async () => {
     const app = await setup();
@@ -95,7 +153,7 @@ describe('participant-specific OAuth and same-site recovery', () => {
     const redirect = new URL(await app.auth.callback('discord-code', app.state, 'https://discord.com'));
     const session = await app.auth.exchange(redirect.searchParams.get('draft_code')!, contextHash);
     const refreshed = await app.auth.refresh(session.handle, app.roomCode);
-    const identity = verifyDraftTicket(refreshed.ticket, keys.publicKey, 'realtime-entry', Date.now());
+    const identity = verifyDraftTicket(refreshed.ticket!, keys.publicKey, 'realtime-entry', Date.now());
     await app.engine.connect(identity, 'site-admin-participant');
     let snapshot = await app.engine.snapshot('site-admin-participant');
     expect(snapshot.selfDiscordId).toBe('464712715487805442');
@@ -114,7 +172,7 @@ describe('participant-specific OAuth and same-site recovery', () => {
     const redirect = new URL(await app.auth.callback('discord-code', app.state, 'https://discord.com'));
     await expect(app.auth.exchange(redirect.searchParams.get('draft_code')!, 'a'.repeat(64))).rejects.toThrow('브라우저');
   });
-  it('denies unlisted Discord identities and foreign issuers', async () => {
+  it('authenticates an unlisted identity without a participant ticket and rejects foreign issuers', async () => {
     const app = await setup('999999999999999999');
     const foreign = new URL(await app.auth.callback('code', app.state, 'https://malicious.invalid'));
     expect(foreign.origin).toBe('https://site.invalid');
@@ -123,8 +181,10 @@ describe('participant-specific OAuth and same-site recovery', () => {
     expect(app.calls).toHaveLength(0);
     const denied = new URL(await app.auth.callback('code', app.state, 'https://discord.com'));
     expect(denied.pathname).toBe(`/draft/${app.roomCode}`);
-    expect(denied.searchParams.get('draft_error')).toBe('NOT_PARTICIPANT');
-    expect(denied.searchParams.has('draft_code')).toBe(false);
+    expect(denied.searchParams.has('draft_error')).toBe(false);
+    const excluded = await app.auth.exchange(denied.searchParams.get('draft_code')!, contextHash);
+    expect(excluded.admission?.status).toBe('EXCLUDED');
+    expect(excluded.ticket).toBeUndefined();
     expect(denied.toString()).not.toContain('999999999999999999');
     await expect(app.auth.refresh('a'.repeat(43), app.roomCode)).rejects.toThrow('다시 진행');
   });
@@ -163,7 +223,7 @@ describe('participant-specific OAuth and same-site recovery', () => {
     const source = JSON.parse((await app.fixture.store.readSource('LOCAL23456')).raw!);
     source.participants[1].discordUserId = app.fixture.identities[0].discordUserId; source.revision++;
     app.fixture.store.setSource('LOCAL23456', source);
-    await expect(app.auth.refresh(session.handle, app.roomCode)).rejects.toThrow('제외');
+    await expect(app.auth.refresh(session.handle, app.roomCode)).rejects.toThrow('명단');
   });
   it('rechecks membership before issuing the first ticket after the OAuth callback', async () => {
     const app = await setup();

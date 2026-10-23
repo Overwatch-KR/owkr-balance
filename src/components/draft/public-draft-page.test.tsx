@@ -21,7 +21,7 @@ describe('participant authentication feedback', () => {
       participantAuthRequired: false, pending: false, error: '', command: vi.fn(), reconnect: vi.fn() });
     const markup = render('/draft/ABCDEF2345');
     expect(markup).toContain('참가 인증을 확인하고 있습니다');
-    expect(markup).not.toContain('Discord로 이 내전 참여');
+    expect(markup).not.toContain('Discord로 로그인하고 대기');
   });
   it('shows connection recovery instead of logging out on a temporary service failure', () => {
     vi.mocked(useDraftRoom).mockReturnValueOnce({ snapshot: null, connected: false, reconnecting: false,
@@ -29,7 +29,7 @@ describe('participant authentication feedback', () => {
     const markup = render('/draft/ABCDEF2345');
     expect(markup).toContain('저장소 복구 중입니다.');
     expect(markup).toContain('다시 연결');
-    expect(markup).not.toContain('Discord로 이 내전 참여');
+    expect(markup).not.toContain('Discord로 로그인하고 대기');
   });
   it('keeps unlisted users on the entry screen with account and roster guidance', () => {
     const markup = render('/draft/ABCDEF2345?draft_error=NOT_PARTICIPANT');
@@ -59,10 +59,11 @@ describe('participant authentication feedback', () => {
   it('disables authentication for expired rooms and restores normal entry without an error', () => {
     const expired = render('/draft/ABCDEF2345?draft_error=ROOM_EXPIRED');
     expect(expired).toContain('운영자에게 새 공유 링크');
-    expect(expired).toContain('disabled=""');
+    expect(expired).toContain('참여할 수 있는 내전 방이 없습니다');
+    expect(expired).not.toContain('Discord로 로그인');
     expect(expired).not.toContain('기존 참가 인증으로 다시 연결');
     const normal = render('/draft/ABCDEF2345');
-    expect(normal).toContain('Discord로 이 내전 참여');
+    expect(normal).toContain('Discord로 로그인하고 대기');
     expect(useDraftRoom).toHaveBeenLastCalledWith({ roomCode: 'ABCDEF2345', mode: 'participant' });
   });
 });

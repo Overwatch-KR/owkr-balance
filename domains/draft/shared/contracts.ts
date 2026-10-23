@@ -9,7 +9,14 @@ import type { ParticipantBallotView } from './views.js';
 export const DRAFT_CONNECTION_REPLACED_CLOSE_CODE = 4001;
 export const DRAFT_ROOM_CLOSED_CLOSE_CODE = 4002;
 
+export interface DraftParticipantAdmission {
+  status: 'WAITING' | 'EXCLUDED';
+  displayName: string;
+  participantCount: number;
+}
+
 export interface DraftRoomSnapshot {
+  rosterCount?: number;
   roomCode: string;
   sourceId?: string;
   previousGame?: { gameIndex: number; map: DraftMap; firstAttackTeam: DraftTeam | null; bans: readonly DraftHero[] };

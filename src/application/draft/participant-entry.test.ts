@@ -21,11 +21,19 @@ describe('participant first entry request', () => {
     expect(app.location.href).not.toContain('draft_code');
   });
 
+  it('returns a waiting session after exchange without forcing a second login or refresh', async () => {
+    const app = setup(); const admission = { status: 'WAITING', displayName: '먼저 온 참가자', participantCount: 0 };
+    app.fetcher.mockResolvedValueOnce(response({ roomCode: 'ROOM234567', admission }));
+    expect(await participantEntry('ROOM234567')).toEqual({ admission });
+    expect(app.fetcher).toHaveBeenCalledTimes(1);
+    expect(app.location.href).not.toContain('draft_code');
+  });
+
   it('refreshes on subsequent reconnects instead of reusing the initial ticket', async () => {
     const app = setup(); app.fetcher.mockResolvedValueOnce(response(entry()));
     await participantEntry('ROOM234567');
     app.fetcher.mockResolvedValueOnce(response({ ...entry(), ticket: 'fresh-ticket' }));
-    expect((await participantEntry('ROOM234567')).ticket).toBe('fresh-ticket');
+    expect(await participantEntry('ROOM234567')).toMatchObject({ ticket: 'fresh-ticket' });
     expect(JSON.parse(app.fetcher.mock.calls[1][1].body).action).toBe('refresh');
   });
 

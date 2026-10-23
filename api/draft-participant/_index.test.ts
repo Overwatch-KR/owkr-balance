@@ -77,9 +77,29 @@ describe('same-site participant session bridge', () => {
     expect(res.json).toHaveBeenCalledWith({ roomCode: 'ROOM234567' });
   });
   it('requires the participant cookie, ignoring a surviving administrator cookie', async () => {
-    configure(); const fetcher = vi.fn(); vi.stubGlobal('fetch', fetcher);
+    configure(); const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ active: true }))); vi.stubGlobal('fetch', fetcher);
     const res = response(); await handler(request({ action: 'refresh', roomCode: 'ROOM234567' }, { cookie: 'owkr_session=administrator-cookie' }), res);
-    expect(res.status).toHaveBeenCalledWith(401); expect(fetcher).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(fetcher.mock.calls[0][0]).toContain('/status');
+  });
+  it('shows missing or inactive rooms before asking a signed-out visitor to log in', async () => {
+    configure();
+    for (const code of ['ROOM_EXPIRED', 'INACTIVE_ROOM', 'ROOM_CLOSED']) {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ code }), { status: 400 })));
+      const res = response(); await handler(request({ action: 'refresh', roomCode: 'ROOM234567' }), res);
+      expect(res.status).toHaveBeenCalledWith(410);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code }));
+    }
+  });
+  it('persists the waiting session cookie without exposing the handle or issuing a participant ticket', async () => {
+    configure(); const admission = { status: 'WAITING', displayName: '대기 참가자', participantCount: 2 };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      handle: 'h'.repeat(43), roomCode: 'ROOM234567', expiresAt: Date.now() + 100_000, admission,
+    }))));
+    const res = response();
+    await handler(request({ action: 'exchange', code: 'c'.repeat(43) }, { cookie: `owkr_draft_oauth_context=${'b'.repeat(43)}` }), res);
+    expect(res.json).toHaveBeenCalledWith({ roomCode: 'ROOM234567', admission });
+    expect(res.setHeader).toHaveBeenCalledWith('Set-Cookie', expect.arrayContaining([expect.stringContaining('HttpOnly')]));
   });
   it('returns the first short-lived ticket while keeping the recovery handle in an HttpOnly cookie', async () => {
     configure();

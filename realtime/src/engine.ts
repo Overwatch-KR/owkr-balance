@@ -107,7 +107,7 @@ export class DraftEngine {
     if (previous) { await this.requireRoom(previous); return previous; }
     const { source, raw, now } = await this.store.readSource(sourceId);
     requireDraft(source && raw, 'SOURCE_EXPIRED', '유효한 원본 공동 작업이 필요합니다.');
-    validateDraftSource(source, source, now);
+    validateDraftSource(source, source, now, true);
     const history = createDraftHistory(randomUUID(), ticket.sub, now);
     const code = Array.from(randomBytes(10), byte => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[byte % 32]).join('');
     const expiresAt = getDraftRoomExpiry(now, source.expiresAt, history.expiresAt);
@@ -459,7 +459,7 @@ export class DraftEngine {
       roomCode: room.roomCode, gameId: room.gameId, gameIndex: room.gameIndex, epoch: room.epoch,
       roomRevision: room.revision, expiresAt: room.expiresAt, phase: room.phase, timer: room.timer,
       selfDiscordId: client.discordId, isOperator: operator,
-      ...(operator ? { sourceId: room.source.sourceId } : {}),
+      ...(operator ? { sourceId: room.source.sourceId, rosterCount: room.source.pendingRosterDiscordIds?.length ?? room.source.participants.length } : {}),
       selfReady: this.progress(room, bundle.now).find(item => item.discordId === client.discordId)?.ready ?? false,
       readyCount: this.progress(room, bundle.now).filter(item => item.ready).length,
       availableMapCount: new Set(room.mapCatalog.entries.filter(map => map.active

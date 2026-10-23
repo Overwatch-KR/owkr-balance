@@ -19,6 +19,14 @@ describe('independent draft room source', () => {
     expect(vi.mocked(createMatchLiveSession).mock.invocationCallOrder[0]).toBeLessThan(createRoom.mock.invocationCallOrder[0]);
   });
 
+  it('creates an empty waiting source before ten players or a match result exist', async () => {
+    const createRoom = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(createMatchLiveSession).mockResolvedValue({ code: 'DRAFT23456' } as Awaited<ReturnType<typeof createMatchLiveSession>>);
+    await createIndependentDraftRoom([], null, 'csrf', createRoom);
+    expect(createMatchLiveSession).toHaveBeenCalledWith([], null, 'csrf');
+    expect(createRoom).toHaveBeenCalledWith('DRAFT23456');
+  });
+
   it('does not create a room if saving its independent source fails', async () => {
     const createRoom = vi.fn();
     vi.mocked(createMatchLiveSession).mockRejectedValue(new Error('source unavailable'));

@@ -34,15 +34,17 @@ export function getDraftRoomExpiry(now: number, sourceExpiresAt: number, session
   return expiresAt;
 }
 
-/** @description 실제 저장소 원자 연산 안에서 읽은 원본을 시작 기대값과 대조한다. */
+/** @description 최신 원본과 기대값을 대조하며 방 생성만 미배정을 허용하고 시작·투표는 10인 배정을 요구한다. */
 export function validateDraftSource(
   source: DraftSource | null,
   expected: Pick<DraftSource, 'sourceId' | 'revision' | 'rosterHash'>,
   now: number,
+  allowWaiting = false,
 ): asserts source is DraftSource {
   requireDraft(source && source.expiresAt > now, 'SOURCE_EXPIRED', '원본 공동 작업이 만료되었습니다.');
   requireDraft(source.sourceId === expected.sourceId && source.revision === expected.revision
     && source.rosterHash === expected.rosterHash,
   'SOURCE_OUTDATED', '최신 팀을 다시 확인해 주세요.');
+  if (allowWaiting && source.participants.length === 0) return;
   validateDraftRoster(source.participants);
 }

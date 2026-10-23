@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { DraftRuleError, requireDraft } from '../../domains/draft/shared/public.js';
+import { DraftRuleError, requireDraft, type DraftParticipantAdmission } from '../../domains/draft/shared/public.js';
+import type { RoomBundle } from './model.js';
 import type { DraftEngine } from './engine.js';
 import { signDraftTicket } from './tickets.js';
 
@@ -11,7 +12,8 @@ interface ParticipantIdentity {
 }
 
 interface ParticipantTicket {
-  ticket: string;
+  ticket?: string;
+  admission?: DraftParticipantAdmission;
   expiresAt: number;
 }
 
@@ -19,8 +21,9 @@ interface ParticipantExchange {
   handle: string;
   roomCode: string;
   expiresAt: number;
-  ticket: string;
-  ticketExpiresAt: number;
+  ticket?: string;
+  ticketExpiresAt?: number;
+  admission?: DraftParticipantAdmission;
 }
 
 interface OAuthContext {
@@ -103,10 +106,10 @@ export class DraftParticipantAuth {
     requireDraft(typeof user.id === 'string' && /^\d{17,20}$/.test(user.id), 'DISCORD_AUTH_FAILED', 'Discord 계정을 확인해 주세요.');
     const bundle = await this.options.engine.requireRoom(context.roomCode);
     const participant = bundle.source?.participants.find(player => player.discordId === user.id);
-    requireDraft(participant, 'NOT_PARTICIPANT', '이 내전 명단에 등록된 Discord 계정으로 참여해 주세요.');
+
     const exchangeCode = opaque();
     await this.options.engine.store.putTransient(`code:${hash(exchangeCode)}`, JSON.stringify({ ...context,
-      discordId: user.id, displayName: participant.displayName, expiresAt: Math.min(Date.now() + 60_000, bundle.room.expiresAt),
+      discordId: user.id, displayName: participant?.displayName ?? (user.global_name || user.username || 'Discord 참가자').slice(0, 100), expiresAt: Math.min(Date.now() + 60_000, bundle.room.expiresAt),
     }), Math.min(Date.now() + 60_000, bundle.room.expiresAt));
     return `${this.options.appOrigin}/draft/${context.roomCode}?draft_code=${encodeURIComponent(exchangeCode)}`;
   }
@@ -118,25 +121,41 @@ export class DraftParticipantAuth {
     const identity = JSON.parse(raw) as ParticipantIdentity & OAuthContext;
     requireDraft(identity.contextHash === contextHash && identity.expiresAt > Date.now(), 'INVALID_AUTH_CONTEXT', '인증을 시작한 브라우저에서 계속해 주세요.');
     const bundle = await this.options.engine.requireRoom(identity.roomCode);
-    requireDraft(bundle.source?.participants.some(player => player.discordId === identity.discordId), 'NOT_PARTICIPANT', '현재 명단에 없습니다.');
+    requireDraft(bundle.source, 'SOURCE_OUTDATED', '현재 명단을 확인하지 못했습니다. 잠시 후 다시 확인해 주세요.');
     const handle = opaque();
     const session: ParticipantIdentity = { discordId: identity.discordId, displayName: identity.displayName,
       roomCode: identity.roomCode, expiresAt: bundle.room.expiresAt };
     await this.options.engine.store.putTransient(`session:${hash(handle)}`, JSON.stringify(session), session.expiresAt);
-    const entry = this.issueTicket(session, bundle.room.expiresAt);
+    const entry = this.entry(session, bundle);
     return { handle, roomCode: identity.roomCode, expiresAt: session.expiresAt,
-      ticket: entry.ticket, ticketExpiresAt: entry.expiresAt };
+      ...(entry.ticket ? { ticket: entry.ticket, ticketExpiresAt: entry.expiresAt } : { admission: entry.admission }) };
   }
 
   async refresh(handle: string, roomCode: string): Promise<ParticipantTicket> {
     requireDraft(/^[\w-]{43}$/.test(handle) && /^[A-Z2-9]{10}$/.test(roomCode), 'INVALID_SESSION', '참가자 세션을 확인해 주세요.');
+    const bundle = await this.options.engine.requireRoom(roomCode);
     const raw = await this.options.engine.store.getTransient(`session:${hash(handle)}`);
     requireDraft(raw, 'PARTICIPANT_SESSION_EXPIRED', '참가 인증을 다시 진행해 주세요.');
     const session = JSON.parse(raw) as ParticipantIdentity;
     requireDraft(session.roomCode === roomCode && session.expiresAt > Date.now(), 'INVALID_SESSION', '이 방의 참가 인증이 필요합니다.');
-    const bundle = await this.options.engine.requireRoom(roomCode);
-    requireDraft(bundle.source?.participants.some(player => player.discordId === session.discordId), 'NOT_PARTICIPANT', '현재 명단에서 제외되었습니다.');
-    return this.issueTicket(session, bundle.room.expiresAt);
+    return this.entry(session, bundle);
+  }
+
+  /** @description 방의 존재만 확인하며 인증 전에는 명단과 참가자 정보를 공개하지 않는다. */
+  async status(roomCode: string): Promise<void> {
+    requireDraft(/^[A-Z2-9]{10}$/.test(roomCode), 'INVALID_SESSION', '방 코드를 확인해 주세요.');
+    await this.options.engine.requireRoom(roomCode);
+  }
+
+  private entry(session: ParticipantIdentity, bundle: RoomBundle): ParticipantTicket {
+    requireDraft(bundle.source, 'SOURCE_OUTDATED', '현재 명단을 확인하지 못했습니다. 잠시 후 다시 확인해 주세요.');
+    const participant = bundle.source.participants.find(player => player.discordId === session.discordId);
+    if (participant) return this.issueTicket({ ...session, displayName: participant.displayName }, bundle.room.expiresAt);
+    const ids = bundle.source.pendingRosterDiscordIds ?? bundle.source.participants.map(player => player.discordId);
+    return { expiresAt: session.expiresAt, admission: {
+      status: (ids.length >= 10 && !ids.includes(session.discordId)) || bundle.room.phase !== 'LOBBY' ? 'EXCLUDED' : 'WAITING',
+      displayName: session.displayName, participantCount: ids.length,
+    } };
   }
 
   private issueTicket(session: ParticipantIdentity, roomExpiresAt: number): ParticipantTicket {

@@ -20,6 +20,7 @@ export interface DraftParticipant {
 }
 
 export interface DraftSource {
+  pendingRosterDiscordIds?: readonly string[];
   sourceId: string;
   revision: number;
   rosterHash: string;

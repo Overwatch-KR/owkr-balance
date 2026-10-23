@@ -3,11 +3,13 @@ import { DEFAULT_DRAFT_MAP_CATALOG, DEFAULT_DRAFT_HERO_CATALOG, DEFAULT_DRAFT_TI
 import type { DraftHero, DraftParticipant, DraftPhase, DraftRoomSnapshot } from '#domain/draft';
 import type { DraftRoomController } from '@application/draft/use-draft-room';
 import { DraftRoomPanel } from './draft-room-panel';
+import { DraftParticipantWaiting } from './draft-participant-waiting';
+import { DraftClosedRoom } from './draft-closed-room';
 import { DraftParticipantEntry } from './draft-participant-entry';
 import { DraftControlPage } from './draft-control-page';
 
 const screens = [
-  ['login', '공유 링크 로그인'], ['lobby', '팀 확인·준비'], ['map', '맵 투표'], ['map-test', '맵 추첨 직접 테스트'], ['operator-map', '운영자 맵 투표'], ['operator-ban', '운영자 밴 투표'],
+  ['waiting', '사전 로그인 대기'], ['excluded', '명단 제외'], ['missing', '없는 방'], ['login', '공유 링크 로그인'], ['lobby', '팀 확인·준비'], ['map', '맵 투표'], ['map-test', '맵 추첨 직접 테스트'], ['operator-map', '운영자 맵 투표'], ['operator-ban', '운영자 밴 투표'],
   ['potg', '팟지 선택'], ['potg-waiting', '팟지 대기'], ['map-result', '맵 추첨'], ['operator-map-result', '운영자 맵 추첨'], ['ban', '영웅 밴 투표'], ['result', '맵·밴 결과'], ['operator', '운영자 현황'], ['operator-ready', '10인 준비 완료'], ['operator-result', '운영자 결과'], ['operator-playing', '경기 중 운영'], ['operator-finished', '다음 경기'], ['reconnecting', '연결 복구'], ['replaced', '다른 창 연결'],
 ] as const;
 const participants: DraftParticipant[] = ['하늘', '노을', '바다', '별빛', '새벽', '달빛', '구름', '여울', '이슬', '은하'].map((name, index) => ({
@@ -151,7 +153,7 @@ function DraftPreviewContent({ heroes }: { heroes: readonly DraftHero[] }) {
           <button type="button" className="btn-ghost text-xs" onClick={() => { setOtherVotes(exampleOtherVotes); setSnapshot(exampleSnapshot('map-test', heroes)); }}>다시 투표</button>
         </div>
       </section>}
-      {screen === 'login' ? <DraftParticipantEntry pending={false} error="" login={() => {}} reconnect={() => {}} /> : screen.startsWith('operator')
+      {screen === 'waiting' || screen === 'excluded' ? <DraftParticipantWaiting admission={{ status: screen === 'waiting' ? 'WAITING' : 'EXCLUDED', displayName: '하늘', participantCount: screen === 'waiting' ? 4 : 10 }} error="" login={() => {}} /> : screen === 'missing' ? <DraftClosedRoom reason="ROOM_EXPIRED" /> : screen === 'login' ? <DraftParticipantEntry pending={false} error="" login={() => {}} reconnect={() => {}} /> : screen.startsWith('operator')
         ? <DraftControlPage controller={controller} onMatching={() => {}} /> : <DraftRoomPanel controller={controller} />}
       <footer className="mt-2 shrink-0 text-center text-[10px] text-slate-600">Overwatch © Blizzard Entertainment · 개발용 미리보기</footer>
     </div>

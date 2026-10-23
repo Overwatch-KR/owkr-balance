@@ -78,6 +78,10 @@ export async function createRealtimeServer(options: RealtimeServerOptions) {
         requireDraft(healthy && options.participantAuth && expected.length >= 32 && received.length === expected.length
           && timingSafeEqual(received, expected) && !request.headers.origin, 'BRIDGE_ACCESS_DENIED', '서버 간 인증이 필요합니다.');
         const body = await readBody(request);
+        if (url.pathname.endsWith('/status')) {
+          await options.participantAuth.status(String(body.roomCode ?? ''));
+          respond(response, 200, { active: true }); return;
+        }
         if (url.pathname.endsWith('/start')) {
           const redirect = await options.participantAuth.begin(String(body.roomCode ?? ''), String(body.contextHash ?? ''));
           respond(response, 200, { redirect }); return;

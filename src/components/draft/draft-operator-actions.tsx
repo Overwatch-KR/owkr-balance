@@ -25,7 +25,7 @@ export function DraftOperatorActions({ controller, execute }: { controller: Draf
         ? `접속 ${progress.filter(player => player.connectionStatus === 'CONNECTED').length}/10 · 자동 준비 ${snapshot.readyCount}/10`
         : '참가자 상태 확인 중' : action?.label ?? '밴픽 진행 중 · 참가자의 선택을 기다리고 있습니다.'}</p>
       {snapshot.phase === 'LOBBY' && controller.connected && <div className="mt-2 space-y-1 text-xs text-amber-200" aria-label="시작 조건">
-        {progress.length !== 10 ? <p>참가자 10명의 최신 상태를 확인하고 있습니다.</p> : problems.map(problem => <p key={problem}>{problem}</p>)}
+        {progress.length !== 10 ? <p>명단 {snapshot.rosterCount ?? snapshot.participants.length}/10 · 대진표에서 참가자와 팀을 배정해 주세요.</p> : problems.map(problem => <p key={problem}>{problem}</p>)}
         {snapshot.availableMapCount === 0 && <p>미사용 맵이 없습니다.</p>}{pickerMissing && <p>맵을 선택할 팟지 선수를 지정해 주세요.</p>}
         {!startBlocked && <p className="text-emerald-400">10명 모두 준비되었습니다. 밴픽을 시작할 수 있습니다.</p>}
       </div>}

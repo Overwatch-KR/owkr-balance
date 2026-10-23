@@ -24,7 +24,7 @@ function ConnectionHarness() {
   return null;
 }
 
-async function setup(failureCode?: string, status = failureCode ? 400 : 200) {
+async function setup(failureCode?: string, status = failureCode ? 400 : 200, admission?: { status: 'WAITING' | 'EXCLUDED'; displayName: string; participantCount: number }) {
   vi.useFakeTimers();
   const sockets: FakeSocket[] = [];
   class FakeSocket {
@@ -40,7 +40,7 @@ async function setup(failureCode?: string, status = failureCode ? 400 : 200) {
   }
   vi.stubGlobal('WebSocket', FakeSocket);
   vi.stubGlobal('window', { location: { href: 'https://site.invalid/draft/ROOM234567', hostname: 'site.invalid' } });
-  const fetcher = vi.fn(async () => ({ ok: status < 400, status, json: async () => status >= 400 ? { code: failureCode, error: '요청을 확인해 주세요.' } : ({ ticket: 'ticket', expiresAt: Date.now() + 300000, realtimeUrl: 'https://draft.invalid' }) }));
+  const fetcher = vi.fn(async () => ({ ok: status < 400, status, json: async (): Promise<Record<string, unknown>> => status >= 400 ? { code: failureCode, error: '요청을 확인해 주세요.' } : admission ? { admission } : ({ ticket: 'ticket', expiresAt: Date.now() + 300000, realtimeUrl: 'https://draft.invalid' }) }));
   vi.stubGlobal('fetch', fetcher);
   ConnectionHarness();
   for (const effect of harness.effects.splice(0)) { const dispose = effect(); if (dispose) cleanup.push(dispose); }
@@ -50,6 +50,28 @@ async function setup(failureCode?: string, status = failureCode ? 400 : 200) {
 }
 
 describe('draft connection replacement recovery', () => {
+  it('polls waiting and excluded status without sockets or another login and connects when assigned', async () => {
+    const app = await setup(undefined, 200, { status: 'WAITING', displayName: '하늘', participantCount: 0 });
+    expect(app.sockets).toHaveLength(0);
+    expect(harness.setters[8]).toHaveBeenCalledWith(expect.objectContaining({ status: 'WAITING' }));
+    app.fetcher.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ admission: { status: 'EXCLUDED', displayName: '하늘', participantCount: 10 } }) });
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(harness.setters[8]).toHaveBeenCalledWith(expect.objectContaining({ status: 'EXCLUDED' }));
+    expect(app.sockets).toHaveLength(0);
+    app.fetcher.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ ticket: 'new-ticket', expiresAt: Date.now() + 300000, realtimeUrl: 'https://draft.invalid' }) });
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(app.sockets).toHaveLength(1);
+    expect(harness.setters[7]).not.toHaveBeenCalledWith(true);
+    expect(app.fetcher.mock.calls).toHaveLength(3);
+  });
+  it('stops waiting polls and shows room absence when the waiting room disappears', async () => {
+    const app = await setup(undefined, 200, { status: 'WAITING', displayName: '하늘', participantCount: 0 });
+    app.fetcher.mockResolvedValueOnce({ ok: false, status: 410, json: async () => ({ code: 'ROOM_EXPIRED', error: '없는 방' }) });
+    await vi.advanceTimersByTimeAsync(360000);
+    expect(app.fetcher).toHaveBeenCalledTimes(2); expect(app.sockets).toHaveLength(0);
+    expect(harness.setters[9]).toHaveBeenCalledWith('ROOM_EXPIRED');
+    expect(harness.setters[7]).not.toHaveBeenCalledWith(true);
+  });
   it.each([400, 401, 403])('requests participant login only after an authentication rejection (%s)', async status => {
     const app = await setup('AUTH_REQUIRED', status);
     await vi.advanceTimersByTimeAsync(360000);

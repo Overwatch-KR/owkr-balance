@@ -31,9 +31,13 @@ local function readSource(sourceKey, entriesKey, versionKey)
       table.insert(identities, {id=row.id, discordUserId=row.discordUserId, battleTag=row.battleTag})
     end
   end
-  local minimal = {revision=source.revision, expiresAt=source.expiresAt, participants=assigned,
+  local minimal = {revision=source.revision, expiresAt=source.expiresAt, participants=source.participants or {},
     sheetVersion=tonumber(redis.call('GET',versionKey) or '0')}
-  return {value=cjson.encode(minimal), identities=identities}
+  local minimalJson = cjson.encode(minimal)
+  if #minimal.participants == 0 then
+    minimalJson = string.gsub(minimalJson, '"participants":{}', '"participants":[]')
+  end
+  return {value=minimalJson, identities=identities}
 end
 `;
 

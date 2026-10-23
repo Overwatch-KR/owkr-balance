@@ -22,6 +22,15 @@ export function parseDraftSource(sourceId: string, raw: string | null, identitie
   'INVALID_SOURCE_ROSTER', '원본 공동 작업 정보를 확인해 주세요.');
   const participants: DraftParticipant[] = [];
   const assigned = source.participants.filter(player => player.position !== null);
+  if (assigned.length === 0) {
+    const ids = source.participants.map(player => player.discordUserId);
+    requireDraft(ids.every(id => typeof id === 'string' && /^\d{17,20}$/.test(id))
+      && new Set(ids).size === ids.length, 'INVALID_SOURCE_ROSTER', '대기 명단의 Discord 계정을 확인해 주세요.');
+    const pendingRosterDiscordIds = ids.slice(0, 10);
+    return { sourceId, revision: source.revision, expiresAt: source.expiresAt, participants: [], pendingRosterDiscordIds,
+      rosterHash: createHash('sha256').update(JSON.stringify(pendingRosterDiscordIds)).digest('hex') };
+  }
+  requireDraft(assigned.length === 10, 'INVALID_SOURCE_ROSTER', '원본의 10인 배정을 확인해 주세요.');
   for (const position of SOURCE_POSITIONS) {
     const matches = assigned.filter(player => player.position === position);
     requireDraft(matches.length === 1, 'INVALID_SOURCE_ROSTER', '원본의 10인 배정을 확인해 주세요.');

@@ -562,14 +562,13 @@ const MatchApp = ({
                                         onStartLive={handleStartLiveSession}
                                     />
                                     {REALTIME_DRAFT_ENABLED && <div className="border-t border-slate-800 pt-4 text-sm">
-                                        <button type="button" disabled={!result || isResultStale || draft.creating || Boolean(draft.roomCode)}
+                                        <button type="button" disabled={!canStartLiveSession || draft.creating || Boolean(draft.roomCode)}
                                             className="min-h-10 rounded-md border border-cyan-700 px-4 text-cyan-200 disabled:opacity-40"
                                             onClick={() => { void (async () => {
-                                                if (!result || isResultStale) return;
-                                                await createIndependentDraftRoom(players, result, csrfToken, draft.createRoom);
+                                                await createIndependentDraftRoom(players, isResultStale ? null : result, csrfToken, draft.createRoom);
                                                 navigate('/draft-control');
                                             })().catch(error => showToast('error', getErrorMessage(error, '실시간 방을 만들지 못했습니다.'))); }}>
-                                            {draft.creating ? '방 생성 중…' : '실시간 밴픽 방 만들기'}
+                                            {draft.creating ? '방 생성 중…' : '내전 대기방 만들기'}
                                         </button>
                                         {draft.error && <p className="mt-2 text-xs text-amber-200" role="status">{draft.error}</p>}
                                     </div>}
