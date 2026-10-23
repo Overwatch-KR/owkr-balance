@@ -5,7 +5,8 @@ import { DraftParticipantWaiting } from './draft-participant-waiting';
 describe('participant admission screen', () => {
   it('shows successful login while waiting for a roster without a ready or voting action', () => {
     const html = renderToStaticMarkup(<DraftParticipantWaiting admission={{ status: 'WAITING', displayName: '하늘', participantCount: 4 }} error="" login={() => {}} />);
-    expect(html).toContain('Discord 로그인 완료'); expect(html).toContain('내전 시작을 기다리고 있습니다');
+    expect(html).toContain('Discord 로그인 완료'); expect(html).toContain('아직 내전 명단이 작성되지 않았습니다.');
+    expect(html).toContain('티어를 아직 작성하지 않았다면 Discord 내전티어 작성방에 티어를 작성해 주세요.');
     expect(html).toContain('자동으로 입장'); expect(html).toContain('4');
     expect(html).not.toContain('준비 완료'); expect(html).not.toContain('투표하기');
   });
