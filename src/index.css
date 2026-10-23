@@ -145,6 +145,32 @@
         line-height: 1.5;
     }
 
+    .match-workspace #matchup-table [data-assigned-tier-icon] {
+        width: 30px;
+        height: 30px;
+    }
+
+    .match-workspace #matchup-table [data-assigned-tier-icon] svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    .match-workspace #matchup-table [data-assigned-rank] {
+        width: 48px;
+        font-size: 17px;
+        line-height: 1.4;
+    }
+
+    .match-workspace [data-battle-tag-copy] {
+        width: 36px;
+        height: 36px;
+    }
+
+    .match-workspace [data-battle-tag-copy] svg {
+        width: 18px;
+        height: 18px;
+    }
+
     .match-workspace .matchup-player-content {
         min-height: 80px;
         justify-content: center;
@@ -160,7 +186,11 @@
         margin-left: auto;
     }
 
-    .match-workspace [data-player-rank-summary] > span,
+    .match-workspace [data-player-rank-summary] > span {
+        font-size: 15px;
+        line-height: 1.4;
+    }
+
     .match-workspace [data-match-note] {
         font-size: 13px;
         line-height: 1.4;
@@ -171,8 +201,12 @@
         min-height: 20px;
     }
 
-    .match-workspace [data-rank-role] > span:first-child svg,
     .match-workspace [data-player-rank-summary] svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    .match-workspace [data-rank-role] > span:first-child svg {
         width: 14px;
         height: 14px;
     }

@@ -111,6 +111,7 @@ const renderTierIcon = (tier: Tier, size: 20 | 24): ReactNode => {
                 className={`inline-flex shrink-0 items-center justify-center rounded-md border border-slate-600/70 bg-slate-800/80 text-slate-300 ${
                     size === 24 ? 'h-6 w-6' : 'h-5 w-5'
                 }`}
+                data-assigned-tier-icon
                 data-tier-icon="unranked"
                 aria-hidden="true"
             >
@@ -124,6 +125,7 @@ const renderTierIcon = (tier: Tier, size: 20 | 24): ReactNode => {
 
     return (
         <img
+            data-assigned-tier-icon
             src={tierImage}
             alt=""
             width={size}
@@ -311,7 +313,7 @@ const MatchupTable = ({
                                                 />
                                                 <div className="flex shrink-0 items-center gap-1.5">
                                                     {renderTierIcon(rankA.tier, 24)}
-                                                    <span className="w-10 text-left font-mono text-sm text-slate-200">
+                                                    <span data-assigned-rank className="w-10 text-left font-mono text-sm text-slate-200">
                                                         {formatRank(rankA).replace('★', '').replace('?', '')}
                                                     </span>
                                                 </div>
@@ -398,7 +400,7 @@ const MatchupTable = ({
                                         <>
                                             <div className="hidden w-full min-w-0 items-center gap-2 sm:flex">
                                                 <div className="flex shrink-0 items-center gap-1.5">
-                                                    <span className="w-10 text-right font-mono text-sm text-slate-200">
+                                                    <span data-assigned-rank className="w-10 text-right font-mono text-sm text-slate-200">
                                                         {formatRank(rankB).replace('★', '').replace('?', '')}
                                                     </span>
                                                     {renderTierIcon(rankB.tier, 24)}

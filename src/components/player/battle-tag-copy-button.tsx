@@ -40,6 +40,7 @@ export const BattleTagCopyButton = ({ battleTag, className = '' }: BattleTagCopy
     return (
         <button
             type="button"
+            data-battle-tag-copy
             data-exclude-export
             data-html2canvas-ignore="true"
             onClick={(event) => {
