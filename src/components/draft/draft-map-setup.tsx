@@ -24,7 +24,7 @@ export function DraftMapSetup({ controller, onNotice }: { controller: DraftRoomC
           .catch(error => { const reason = error instanceof Error ? error.message : '방식을 적용하지 못했습니다.'; if (onNotice) onNotice(reason); else setMessage(reason); });
       }}>맵 방식 적용</button>
     </div>
-    <p className="mt-2 text-[11px] text-slate-500">방식을 바꾸면 전원이 다시 준비합니다. 이미 플레이한 맵은 두 방식 모두 제외합니다.</p>
+    <p className="mt-2 text-[11px] text-slate-500">방식을 바꾸면 대기실로 돌아가며 접속 중인 참가자는 자동 준비됩니다. 이미 플레이한 맵은 두 방식 모두 제외합니다.</p>
     {message && <p role="status" className="mt-2 text-xs text-amber-300">{message}</p>}
   </section>;
 }

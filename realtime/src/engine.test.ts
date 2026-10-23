@@ -24,7 +24,7 @@ async function setup(options: { realCatalogs?: boolean } = {}) {
       selection: [], ready: true, reason: '시험', ...extra }));
   };
   const connect = async (index: number) => engine.connect(ticket(ids[index], code), `c${index}`);
-  const readyAll = async () => { for (let index = 0; index < 10; index++) { await connect(index); await run(index, 'ready.set'); } };
+  const readyAll = async () => { for (let index = 0; index < 10; index++) await connect(index); };
   const lockAll = async (selection: string[]) => { for (let index = 0; index < 10; index++) await run(index, 'ballot.lock', { selection }); };
   const finishMapReveal = async () => {
     const { room } = await engine.requireRoom(code);
@@ -144,10 +144,14 @@ describe('local server persisted flow', () => {
     await expect(app.engine.createRoom(app.ticket(), 'LOCAL23456', 'create-1')).rejects.toMatchObject({ code: 'ROOM_CLOSED' });
   });
 
-  it('blocks starting with nine ready participants, including an unready playing operator', async () => {
+  it('automatically readies joined players and blocks starting when one disconnects', async () => {
     const app = await setup(); await app.readyAll();
     await app.run(0, 'ready.set', { ready: false });
-    await expect(app.run(0, 'draft.start')).rejects.toThrow('미준비');
+    expect((await app.engine.snapshot('c0')).readyCount).toBe(10);
+    await app.engine.disconnect('c9');
+    await expect(app.run(0, 'draft.start')).rejects.toThrow('미접속');
+    await app.connect(9);
+    expect((await app.engine.snapshot('c0')).readyCount).toBe(10);
     expect((await app.engine.requireRoom(app.code)).room.phase).toBe('LOBBY');
   });
 
@@ -346,7 +350,7 @@ describe('POTG selection with the bundled catalog', () => {
         await app.run(0, 'game.next');
         const reset = await app.engine.snapshot('c3');
         expect(reset.roomCode).toBe(app.code); expect(reset.gameIndex).toBe(index + 1);
-        expect(reset.phase).toBe('LOBBY'); expect(reset.readyCount).toBe(0);
+        expect(reset.phase).toBe('LOBBY'); expect(reset.readyCount).toBe(10);
         expect(reset.mapResult).toBeNull(); expect(reset.heroResult).toBeNull();
         expect(reset.expiresAt).toBe(original.room.expiresAt);
         for (let player = 0; player < 10; player++) await app.run(player, 'ready.set');

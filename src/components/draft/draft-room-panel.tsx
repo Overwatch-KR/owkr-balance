@@ -44,11 +44,10 @@ export function DraftRoomPanel({ controller, admin = false }: { controller: Draf
     <DraftRoomHeader controller={controller} admin={admin} onOpenOperator={() => setOperatorOpen(true)} />
     <DraftConnectionStatus controller={controller} notice={notice} />
     {snapshot.isOperator && <DraftOperatorActions key={`${snapshot.gameId}:${snapshot.epoch}`} controller={controller} execute={execute} />}
-    {self && snapshot.phase === 'LOBBY' && <section className="flex flex-wrap items-center justify-between gap-4 border-y border-slate-800 py-5">
-      <div><h3 className="font-semibold text-white">내 팀·역할을 확인해 주세요</h3><p className="mt-2 text-sm text-slate-400">{self.displayName} · {getDraftTeamLabel(self.team, snapshot.mapResult?.firstAttackTeam)} · {ROLE_LABELS[self.role]} · 준비 {snapshot.readyCount}/10</p>
-        <p className="mt-2 text-xs text-slate-500">참가자 전원 마이크 필수 · 팀이 바뀌면 다시 준비합니다.</p></div>
-      <button type="button" className={`${buttonClass} border-cyan-600 text-cyan-200`} disabled={controlsDisabled || !snapshot.inputConnected || !phaseReady}
-        onClick={() => execute('ready.set', { ready: !snapshot.selfReady })}>{snapshot.selfReady ? '준비 취소' : '준비 완료'}</button>
+    {self && snapshot.phase === 'LOBBY' && <section className="border-y border-slate-800 py-5">
+      <h3 className="font-semibold text-white">입장 완료 · 자동 준비 상태입니다</h3>
+      <p className="mt-2 text-sm text-slate-400">{self.displayName} · {getDraftTeamLabel(self.team, snapshot.mapResult?.firstAttackTeam)} · {ROLE_LABELS[self.role]} · 입장 {snapshot.readyCount}/10</p>
+      <p className="mt-2 text-xs text-slate-500">내 팀과 역할을 확인해 주세요. 참가자 전원 마이크 필수입니다.</p>
     </section>}
     {snapshot.phase === 'LOBBY' && <p className="text-xs text-slate-400">맵 선정: {snapshot.mapSelection.mode === 'VOTE' ? '참가자 투표' : `팟지 · ${snapshot.participants.find(player => player.discordId === snapshot.mapSelection.pickerDiscordId)?.displayName ?? '선수 지정 필요'}`}</p>}
     {snapshot.phase === 'LOBBY' && snapshot.isOperator && <DraftMapSetup key={snapshot.epoch} controller={controller} onNotice={setNotice} />}

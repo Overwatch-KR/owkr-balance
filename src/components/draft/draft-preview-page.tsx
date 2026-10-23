@@ -96,9 +96,9 @@ function DraftPreviewContent({ heroes }: { heroes: readonly DraftHero[] }) {
   }, [snapshot.phase, snapshot.timer.deadlineAt, heroes]);
   const controller: DraftRoomController = { snapshot, connected: !['reconnecting', 'replaced'].includes(screen), connectionReplaced: screen === 'replaced', reconnecting: screen === 'reconnecting', pending: false, error: '', reconnect: () => {},
     command: async (type, values) => {
-      if (type === 'map.configure') setSnapshot(previous => ({ ...previous, epoch: previous.epoch + 1, selfReady: false, readyCount: 0,
+      if (type === 'map.configure') setSnapshot(previous => ({ ...previous, epoch: previous.epoch + 1,
         mapSelection: { mode: values?.mapMode === 'POTG' ? 'POTG' : 'VOTE', pickerDiscordId: typeof values?.pickerDiscordId === 'string' ? values.pickerDiscordId : null },
-        progress: previous.progress?.map(player => ({ ...player, ready: false })) }));
+        progress: previous.progress?.map(player => ({ ...player, ready: player.connectionStatus === 'CONNECTED' && player.inputConnected })) }));
       if (type === 'map.pick') setSnapshot(previous => {
         const map = maps.find(entry => entry.mapId === values?.mapId)!; const now = Date.now();
         return { ...previous, phase: 'MAP_RESOLVED', serverNow: now, timer: { ...previous.timer, phase: 'MAP_RESOLVED', deadlineAt: now + DRAFT_LIMITS.mapRevealMs },
@@ -116,8 +116,8 @@ function DraftPreviewContent({ heroes }: { heroes: readonly DraftHero[] }) {
       if (type === 'game.markStarted') setSnapshot(previous => ({ ...previous, playStatus: 'PLAYING' }));
       if (type === 'game.markFinished') setSnapshot(previous => ({ ...previous, playStatus: 'FINISHED' }));
       if (type === 'game.next') setSnapshot(previous => ({ ...exampleSnapshot('operator', heroes), gameIndex: previous.gameIndex + 1,
-        selfReady: false, readyCount: 0, previousGame: previous.mapResult && previous.heroResult ? { gameIndex: previous.gameIndex, map: previous.mapResult.map, firstAttackTeam: previous.mapResult.firstAttackTeam, bans: previous.heroResult.bannedHeroIds.map(id => heroes.find(hero => hero.heroId === id)!) } : undefined,
-        progress: previous.progress?.map(player => ({ ...player, ready: false, confirmed: false })) }));
+        selfReady: true, readyCount: previous.readyCount, previousGame: previous.mapResult && previous.heroResult ? { gameIndex: previous.gameIndex, map: previous.mapResult.map, firstAttackTeam: previous.mapResult.firstAttackTeam, bans: previous.heroResult.bannedHeroIds.map(id => heroes.find(hero => hero.heroId === id)!) } : undefined,
+        progress: previous.progress?.map(player => ({ ...player, ready: player.connectionStatus === 'CONNECTED' && player.inputConnected, confirmed: false })) }));
       if ((type === 'ballot.save' || type === 'ballot.lock') && Array.isArray(values?.selection)) {
         const selection = values.selection.filter((value): value is string => typeof value === 'string');
         setSnapshot(previous => ({ ...previous, ballots: previous.ballots && { ...previous.ballots,

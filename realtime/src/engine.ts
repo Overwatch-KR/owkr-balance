@@ -329,7 +329,7 @@ export class DraftEngine {
     } else if (command.type === 'ready.set') {
       validateDraftSource(bundle.source, room.source, now);
       requireDraft(room.phase === 'LOBBY' && room.timer.status === 'ACTIVE', 'INVALID_PHASE', '준비 단계에서만 준비를 변경할 수 있습니다.');
-      room.progress = room.progress.map(item => item.discordId === client.discordId ? { ...item, ready: command.ready } : item);
+      // 이전 화면의 준비 명령은 허용하되 입장 연결에서 계산하는 준비 상태를 바꾸지 않는다.
     } else if (command.type === 'draft.start') {
       requireDraft(room.phase === 'LOBBY' && room.timer.status === 'ACTIVE', 'INVALID_PHASE', '준비 단계에서만 시작할 수 있습니다.');
       validateDraftSource(bundle.source, room.source, now);
@@ -430,13 +430,14 @@ export class DraftEngine {
   private statuses(bundle: RoomBundle, viewerId: string) {
     return getOperatorParticipantStatuses({ viewerId, operators: bundle.history.operators, participants: roster(bundle.room),
       connections: this.roomConnections(bundle.room.roomCode), inputConnections: this.inputConnections(bundle.room.roomCode, bundle.now),
-      history: bundle.room.presenceHistory, progress: this.progress(bundle.room), now: bundle.now,
+      history: bundle.room.presenceHistory, progress: this.progress(bundle.room, bundle.now), now: bundle.now,
       recoveryUntil: this.recoveryUntilByRoom.get(bundle.room.roomCode) ?? null, viewerConnected: true });
   }
 
-  private progress(room: DraftRoomRecord): ParticipantProgress[] {
+  private progress(room: DraftRoomRecord, now: number): ParticipantProgress[] {
+    const inputs = this.inputConnections(room.roomCode, now);
     return roster(room).map(player => ({ discordId: player.discordId,
-      ready: room.progress.find(entry => entry.discordId === player.discordId)?.ready ?? false,
+      ready: Boolean(inputs[player.discordId]),
       confirmed: room.stage?.ballots.find(ballot => ballot.discordId === player.discordId)?.locked ?? false,
     }));
   }
@@ -459,8 +460,8 @@ export class DraftEngine {
       roomRevision: room.revision, expiresAt: room.expiresAt, phase: room.phase, timer: room.timer,
       selfDiscordId: client.discordId, isOperator: operator,
       ...(operator ? { sourceId: room.source.sourceId } : {}),
-      selfReady: room.progress.find(item => item.discordId === client.discordId)?.ready ?? false,
-      readyCount: room.progress.filter(item => item.ready).length,
+      selfReady: this.progress(room, bundle.now).find(item => item.discordId === client.discordId)?.ready ?? false,
+      readyCount: this.progress(room, bundle.now).filter(item => item.ready).length,
       availableMapCount: new Set(room.mapCatalog.entries.filter(map => map.active
         && !this.usedMaps(bundle).includes(map.canonicalMapId)).map(map => map.canonicalMapId)).size,
       availableMaps: getEligibleDraftMaps(room.mapCatalog, this.usedMaps(bundle)), mapSelection: { ...room.mapSelection },

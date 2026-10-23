@@ -276,7 +276,7 @@ describe('draft selection and ban results', () => {
     const controller = { snapshot: view, connected: true, pending: false, error: '', command: vi.fn(), reconnect: vi.fn() };
     let markup = render(<DraftOperatorActions controller={controller} execute={vi.fn()} />);
     expect(markup).toContain('미접속: 확인대상');
-    expect(markup).toContain('미준비: 확인대상');
+    expect(markup).not.toContain('미준비: 확인대상');
     expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>밴픽 시작/);
     view.progress = view.progress.map(player => ({ ...player, connectionStatus: 'CONNECTED', inputConnected: true, ready: true }));
     view.readyCount = 10;
@@ -340,4 +340,13 @@ it('keeps the map, sides and bans visible after applying settings and shows the 
   markup = render(<DraftGameSummary snapshot={view} />);
   expect(markup).toContain('직전 1경기 결과'); expect(markup).toContain('왕의 길'); expect(markup).toContain('아나');
   expect(markup).toContain('다음 경기의 맵·밴은 새로 선정');
+});
+
+
+it('automatically prepares lobby participants without a ready toggle', () => {
+  const view = snapshot(); view.phase = 'LOBBY'; view.ballots = null; view.heroResult = null; view.mapResult = null;
+  const controller = { snapshot: view, connected: true, pending: false, error: '', command: vi.fn(), reconnect: vi.fn() };
+  const markup = render(<DraftRoomPanel controller={controller} />);
+  expect(markup).toContain('입장 완료 · 자동 준비 상태');
+  expect(markup).not.toContain('준비 취소'); expect(markup).not.toMatch(/<button[^>]*>준비 완료/);
 });

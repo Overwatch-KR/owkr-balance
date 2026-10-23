@@ -10,7 +10,7 @@ export function getDraftSideSummary(firstAttackTeam: DraftTeam): string {
 }
 
 export const DRAFT_PHASE_LABELS: Record<DraftRoomSnapshot['phase'], string> = {
-  LOBBY: '팀 확인·준비', MAP_VOTING: '맵 투표', MAP_PICKING: '팟지 맵 선택', MAP_RESOLVED: '선택 맵 확인',
+  LOBBY: '대기실·팀 확인', MAP_VOTING: '맵 투표', MAP_PICKING: '팟지 맵 선택', MAP_RESOLVED: '선택 맵 확인',
   HERO_VOTING: '영웅 밴 투표', HERO_RESOLVED: '맵·밴 결과', COMPLETED: '게임 설정 적용 완료',
 };
 
@@ -30,8 +30,8 @@ export function getDraftGuidance(snapshot: DraftRoomSnapshot): string {
   if (snapshot.playStatus === 'PLAYING') return '경기 진행 중 · 종료 후 운영자가 다음 경기를 준비합니다.';
   if (['FINISHED', 'ABORTED_PLAYED', 'NOT_PLAYED'].includes(snapshot.playStatus)) return '경기 기록 완료 · 운영자가 다음 경기를 준비합니다.';
   const self = snapshot.participants.some(player => player.discordId === snapshot.selfDiscordId);
-  if (snapshot.phase === 'LOBBY') return !self ? '참가자 10명의 접속과 준비를 확인한 뒤 밴픽을 시작하세요.'
-    : snapshot.selfReady ? '준비 완료 · 다른 참가자를 기다리는 중' : '내 팀과 역할을 확인하고 준비 완료를 눌러 주세요.';
+  if (snapshot.phase === 'LOBBY') return !self ? '참가자 10명이 입장하면 자동 준비됩니다. 접속 상태를 확인한 뒤 시작하세요.'
+    : snapshot.selfReady ? '입장 완료 · 자동 준비 상태입니다. 다른 참가자를 기다리고 있습니다.' : '입력 연결을 복구하면 자동 준비됩니다.';
   if (snapshot.phase === 'MAP_PICKING') {
     const picker = snapshot.participants.find(player => player.discordId === snapshot.mapSelection.pickerDiscordId);
     return snapshot.selfDiscordId === picker?.discordId ? '플레이할 맵을 고른 뒤 확정해 주세요.' : `${picker?.displayName ?? '지정 선수'}님의 맵 선택을 기다리는 중`;
