@@ -18,8 +18,8 @@ const maps = DEFAULT_DRAFT_MAP_CATALOG.entries;
 const candidates = ['grimsvotn', 'kings-row', 'ilios'].map(id => maps.find(map => map.mapId === id)!);
 const exampleOtherVotes = ['grimsvotn', 'grimsvotn', 'kings-row', 'kings-row', 'kings-row', 'ilios', 'ilios', 'ilios', 'RANDOM'];
 
-function previewMapTotals(selection: readonly string[]) {
-  const votes = [selection[0], ...exampleOtherVotes];
+function previewMapTotals(selection: readonly string[], otherVotes: readonly string[] = exampleOtherVotes) {
+  const votes = [selection[0], ...otherVotes];
   const options = [...candidates.map(map => map.mapId), 'RANDOM'];
   return {
     mapTotals: Object.fromEntries(options.map(id => [id, votes.filter(vote => vote === id).length])),
@@ -75,6 +75,7 @@ function DraftPreviewContent({ heroes }: { heroes: readonly DraftHero[] }) {
   const screen = new URLSearchParams(window.location.search).get('screen') ?? 'login';
   const initial = useMemo(() => exampleSnapshot(screen, heroes), [screen, heroes]);
   const [snapshot, setSnapshot] = useState(initial);
+  const [otherVotes, setOtherVotes] = useState<readonly string[]>(exampleOtherVotes);
   const testReveal = (variant: 'vote' | 'random' | 'landslide' | 'abstained') => {
     const now = Date.now();
     const entropy = Array.from(crypto.getRandomValues(new Uint32Array(64)), value => value / 4294967296);
@@ -83,6 +84,7 @@ function DraftPreviewContent({ heroes }: { heroes: readonly DraftHero[] }) {
     const ownChoice = snapshot.stageKind === 'MAP' ? snapshot.ballots?.self?.selection[0] ?? null : null;
     const votes = variant === 'abstained' ? Array<string | null>(10).fill(null)
       : variant === 'landslide' ? Array<string | null>(10).fill('kings-row')
+      : variant === 'vote' ? [ownChoice, ...otherVotes]
       : ['grimsvotn', 'grimsvotn', 'kings-row', 'kings-row', 'kings-row', 'ilios', 'ilios', 'ilios', 'RANDOM', variant === 'random' ? 'RANDOM' : ownChoice];
     const mapResult = resolveMapVote(candidateSnapshot, votes, 1, entropy);
     setSnapshot(previous => ({ ...previous, epoch: previous.epoch + 1, phase: 'MAP_RESOLVED', stageKind: null,
@@ -121,7 +123,7 @@ function DraftPreviewContent({ heroes }: { heroes: readonly DraftHero[] }) {
       if ((type === 'ballot.save' || type === 'ballot.lock') && Array.isArray(values?.selection)) {
         const selection = values.selection.filter((value): value is string => typeof value === 'string');
         setSnapshot(previous => ({ ...previous, ballots: previous.ballots && { ...previous.ballots,
-          ...(previous.stageKind === 'MAP' ? previewMapTotals(selection) : {}),
+          ...(previous.stageKind === 'MAP' ? previewMapTotals(selection, otherVotes) : {}),
           self: previous.ballots.self && { ...previous.ballots.self, ballotRevision: previous.ballots.self.ballotRevision + 1,
             selection, locked: type === 'ballot.lock' || selection.filter(Boolean).length === (previous.stageKind === 'BAN' ? 3 : 1) } } }));
       }
@@ -139,7 +141,14 @@ function DraftPreviewContent({ heroes }: { heroes: readonly DraftHero[] }) {
           <button type="button" className="btn-ghost text-xs" onClick={() => testReveal('random')}>무작위 당첨 테스트</button>
           <button type="button" className="btn-ghost text-xs" onClick={() => testReveal('landslide')}>압도적 득표 테스트</button>
           <button type="button" className="btn-ghost text-xs" onClick={() => testReveal('abstained')}>전원 기권 테스트</button>
-          <button type="button" className="btn-ghost text-xs" onClick={() => setSnapshot(exampleSnapshot('map-test', heroes))}>다시 투표</button>
+          <button type="button" className="btn-ghost text-xs" onClick={() => {
+            const votes = [...Array<string>(7).fill(candidates[0].mapId), ...Array<string>(2).fill(candidates[1].mapId)];
+            setOtherVotes(votes);
+            const view = exampleSnapshot('map-test', heroes);
+            setSnapshot(previous => ({ ...view, epoch: previous.epoch + 1,
+              ballots: { ...view.ballots!, ...previewMapTotals([], votes) } }));
+          }}>압승 경계 테스트 · 첫 맵 선택·해제</button>
+          <button type="button" className="btn-ghost text-xs" onClick={() => { setOtherVotes(exampleOtherVotes); setSnapshot(exampleSnapshot('map-test', heroes)); }}>다시 투표</button>
         </div>
       </section>}
       {screen === 'login' ? <DraftParticipantEntry pending={false} error="" login={() => {}} reconnect={() => {}} /> : screen.startsWith('operator')

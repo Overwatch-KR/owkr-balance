@@ -1,11 +1,12 @@
 import { useRef, useState } from 'react';
 import { Check, RotateCcw } from 'lucide-react';
-import type { DraftRole } from '#domain/draft';
+import { getMapVoteLead, MAP_LANDSLIDE_MARGIN, type DraftRole } from '#domain/draft';
 import type { DraftRoomController } from '@application/draft/use-draft-room';
 import { DraftAsset } from './draft-asset';
 import { clearDraftBanRank, getDraftTeamLabel, getDraftSideSummary } from './draft-room-view';
 import { DraftMyBanVote, DraftTeamScores } from './draft-ban-vote';
 import { DraftMapVoteSlots } from './draft-map-vote-slots';
+import { DraftMapLead } from './draft-map-lead';
 
 const ROLE_LABELS = { TANK: '탱커', DPS: '공격', SUPPORT: '지원' } as const;
 
@@ -26,6 +27,8 @@ export function DraftSelection({ controller, onNotice }: { controller: DraftRoom
   const isBan = snapshot.stageKind === 'BAN';
   const isMap = snapshot.stageKind === 'MAP';
   const selectedCount = selection.filter(Boolean).length;
+  const mapTotals = snapshot.ballots?.mapTotals ?? {};
+  const hasLandslide = (id: string) => getMapVoteLead(mapTotals, id) >= MAP_LANDSLIDE_MARGIN;
   const confirmed = readyReceipt && self.ballotRevision < readyReceipt.revision ? readyReceipt.ready : self.locked;
   const closed = snapshot.stageStatus === 'SEALED';
   const autoReady = selectedCount === (isBan ? 3 : 1);
@@ -100,18 +103,19 @@ export function DraftSelection({ controller, onNotice }: { controller: DraftRoom
         onClick={() => setActiveRole(role)}>{ROLE_LABELS[role]}</button>)}</div>}
       {isMap ? <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {snapshot.candidates?.candidates.map(option => <button key={option.map.mapId} type="button" disabled={disabled}
-          aria-pressed={selection[0] === option.map.mapId} onClick={() => pickMap(option.map.mapId)}
-          className={`overflow-hidden rounded-md border bg-surface-elevated text-left transition disabled:opacity-50 ${selection[0] === option.map.mapId ? 'border-cyan-400 ring-1 ring-cyan-400' : 'border-slate-800 hover:border-slate-500'}`}>
+          data-landslide={hasLandslide(option.map.mapId)} aria-pressed={selection[0] === option.map.mapId} onClick={() => pickMap(option.map.mapId)}
+          className={`draft-map-vote-candidate overflow-hidden rounded-md border bg-surface-elevated text-left transition disabled:opacity-50 ${selection[0] === option.map.mapId ? 'border-cyan-400 ring-1 ring-cyan-400' : 'border-slate-800 hover:border-slate-500'}`}>
           <DraftAsset kind="maps" id={option.map.mapId} name={option.map.nameKo} />
           <div className="p-3"><p className="text-sm font-semibold">{option.map.nameKo}</p>
             <p className="mt-1 text-[11px] text-slate-500">{option.firstAttackTeam ? getDraftSideSummary(option.firstAttackTeam) : '공격·수비 구분 없음'}</p>
             <DraftMapVoteSlots optionId={option.map.mapId} name={option.map.nameKo} count={snapshot.ballots?.mapTotals?.[option.map.mapId] ?? 0}
-              teamCounts={snapshot.ballots?.mapTeamTotals?.[option.map.mapId]} firstAttackTeam={option.firstAttackTeam} /></div>
+              teamCounts={snapshot.ballots?.mapTeamTotals?.[option.map.mapId]} firstAttackTeam={option.firstAttackTeam} />
+            <DraftMapLead optionId={option.map.mapId} name={option.map.nameKo} totals={mapTotals} /></div>
         </button>)}
-        {!!snapshot.candidates?.randomPool.length && <button type="button" disabled={disabled} aria-pressed={selection[0] === 'RANDOM'} onClick={() => pickMap('RANDOM')}
-          className={`min-h-12 rounded-md border px-3 py-3 text-sm sm:col-span-2 xl:col-span-3 ${selection[0] === 'RANDOM' ? 'border-cyan-400 text-cyan-200' : 'border-slate-800 text-slate-400'}`}>
+        {!!snapshot.candidates?.randomPool.length && <button type="button" disabled={disabled} data-landslide={hasLandslide('RANDOM')} aria-pressed={selection[0] === 'RANDOM'} onClick={() => pickMap('RANDOM')}
+          className={`draft-map-vote-candidate min-h-12 rounded-md border px-3 py-3 text-sm sm:col-span-2 xl:col-span-3 ${selection[0] === 'RANDOM' ? 'border-cyan-400 text-cyan-200' : 'border-slate-800 text-slate-400'}`}>
           <span>무작위 · 사용한 맵 제외</span><DraftMapVoteSlots optionId="RANDOM" name="무작위" count={snapshot.ballots?.mapTotals?.RANDOM ?? 0}
-            teamCounts={snapshot.ballots?.mapTeamTotals?.RANDOM} /></button>}
+            teamCounts={snapshot.ballots?.mapTeamTotals?.RANDOM} /><DraftMapLead optionId="RANDOM" name="무작위" totals={mapTotals} /></button>}
       </div> : <div className="draft-role-columns">
         {(['TANK', 'DPS', 'SUPPORT'] as const).map(role => <section key={role} data-active={activeRole === role} aria-label={`${ROLE_LABELS[role]} 영웅`}>
           <h4 className="mb-1 border-b border-slate-800 pb-1 text-xs font-semibold text-slate-400">{ROLE_LABELS[role]}</h4>

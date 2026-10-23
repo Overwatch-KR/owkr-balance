@@ -2,6 +2,14 @@ import { validateMapCatalog } from './catalog.js';
 import { DRAFT_LIMITS, requireDraft, type DraftCatalog, type DraftMap, type DraftTeam } from './model.js';
 import { DraftRandom } from './random.js';
 
+export const MAP_LANDSLIDE_MARGIN = 6;
+
+/** @description 다른 모든 후보 중 최다 득표와의 차이를 계산하며 동률·후순위는 0으로 표시한다. */
+export function getMapVoteLead(totals: Readonly<Record<string, number>>, optionId: string): number {
+  const next = Math.max(0, ...Object.entries(totals).filter(([id]) => id !== optionId).map(([, count]) => count));
+  return Math.max(0, (totals[optionId] ?? 0) - next);
+}
+
 export interface MapOption {
   map: DraftMap;
   firstAttackTeam: DraftTeam | null;
@@ -139,7 +147,7 @@ export function resolveMapVote(
     method = 'ALL_ABSTAINED';
     selectedMap = random.pick(snapshot.eligiblePool);
   } else {
-    if (totals[ranked[0]] - (totals[ranked[1]] ?? 0) >= 6) {
+    if (getMapVoteLead(totals, ranked[0]) >= MAP_LANDSLIDE_MARGIN) {
       method = 'LANDSLIDE';
       selectedOption = ranked[0];
     } else {

@@ -947,3 +947,59 @@
         animation: none;
     }
 }
+
+.draft-map-vote-candidate {
+    position: relative;
+}
+
+.draft-map-vote-candidate[data-landslide="true"] {
+    border-color: #22d3ee;
+    box-shadow: 0 0 0 1px #22d3ee66, 0 0 28px #06b6d433;
+}
+
+.draft-map-vote-candidate[data-landslide="true"]::after {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(110deg, transparent 20%, #67e8f918 45%, #cffafe33 50%, transparent 70%);
+    background-size: 250% 100%;
+    animation: draft-map-lead-sweep 2.8s ease-in-out infinite;
+    content: '';
+    pointer-events: none;
+}
+
+.draft-map-dominance {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 1;
+    display: flex;
+    width: 34px;
+    height: 34px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #67e8f999;
+    border-radius: 50%;
+    background: #083344e6;
+    color: #a5f3fc;
+    box-shadow: 0 0 20px #22d3ee66;
+    pointer-events: none;
+}
+
+.draft-map-dominance svg {
+    fill: #22d3ee44;
+    filter: drop-shadow(0 0 5px #22d3ee99);
+}
+
+@keyframes draft-map-lead-sweep {
+    from { background-position: 150% 0; }
+    60%, to { background-position: -100% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .draft-map-vote-candidate[data-landslide="true"]::after {
+        animation: none;
+        background: #22d3ee08;
+    }
+
+}
