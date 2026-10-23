@@ -510,14 +510,14 @@ const MatchApp = ({
                             onContinueToMatching={() => navigate('/')}
                         />
                     ) : (
-                        <div className="grid min-w-0 gap-5">
+                        <div className="match-workspace mx-auto grid min-w-0 gap-5">
                             <MatchWorkspaceHeader
                                 participantCount={participants.length}
                                 waitlistCount={waitlist.length}
                                 onManageParticipants={() => navigate('/participants')}
                             />
 
-                            <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5 xl:grid-cols-[minmax(300px,340px)_minmax(0,1fr)] xl:items-start">
+                            <div className="match-workspace-columns grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5 xl:grid-cols-[minmax(300px,340px)_minmax(0,1fr)] xl:items-start">
                                 <aside className="hidden min-h-0 min-w-0 flex-col xl:sticky xl:top-24 xl:order-1 xl:flex xl:max-h-[max(20rem,calc(100dvh-12rem))]">
                                     <PlayerList {...playerListProps} />
                                 </aside>

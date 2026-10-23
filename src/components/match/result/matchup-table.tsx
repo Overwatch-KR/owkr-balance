@@ -287,7 +287,7 @@ const MatchupTable = ({
                                     aria-pressed={selA}
                                     className="absolute inset-0 z-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-400"
                                 />
-                                <div className="pointer-events-none relative z-10 flex w-full min-w-0 flex-col px-2.5 py-2.5 text-right sm:px-4">
+                                <div className="matchup-player-content pointer-events-none relative z-10 flex w-full min-w-0 flex-col px-2.5 py-2.5 text-right sm:px-4">
                                     {showAllRanks ? (
                                         <>
                                             <PlayerIdentityWithStatus
@@ -381,7 +381,7 @@ const MatchupTable = ({
                                     aria-pressed={selB}
                                     className="absolute inset-0 z-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-red-400"
                                 />
-                                <div className="pointer-events-none relative z-10 flex w-full min-w-0 flex-col px-2.5 py-2.5 text-left sm:px-4">
+                                <div className="matchup-player-content pointer-events-none relative z-10 flex w-full min-w-0 flex-col px-2.5 py-2.5 text-left sm:px-4">
                                     {showAllRanks ? (
                                         <>
                                             <PlayerIdentityWithStatus

@@ -99,9 +99,26 @@ const BalanceSummary = ({ matchResult }: BalanceSummaryProps) => {
             className="border-b border-slate-700/70 pb-3"
             aria-labelledby="balance-summary-title"
         >
-            <h3 id="balance-summary-title" className="text-sm font-semibold text-slate-100">
-                밸런스 요약
-            </h3>
+            <div className="match-balance-heading">
+                <h3 id="balance-summary-title" className="text-sm font-semibold text-slate-100">
+                    밸런스 요약
+                </h3>
+                <div id="balance-exceptions" className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
+                    <span className="text-slate-500">배정 예외</span>
+                    {exceptions.map(({ label, players }) => (
+                        <span
+                            key={label}
+                            className={`tabular-nums ${
+                                players.length === 0
+                                    ? 'text-slate-500'
+                                    : 'font-medium text-amber-300'
+                            }`}
+                        >
+                            {label} {players.length}명
+                        </span>
+                    ))}
+                </div>
+            </div>
 
             <dl className="mt-2 grid grid-cols-2 border-y border-slate-800/90 sm:grid-cols-4">
                 <div className="border-b border-r border-slate-800/80 px-3 py-2.5 sm:border-b-0">
@@ -143,22 +160,6 @@ const BalanceSummary = ({ matchResult }: BalanceSummaryProps) => {
                     </div>
                 ))}
             </dl>
-
-            <div id="balance-exceptions" className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
-                <span className="text-slate-500">배정 예외</span>
-                {exceptions.map(({ label, players }) => (
-                    <span
-                        key={label}
-                        className={`tabular-nums ${
-                            players.length === 0
-                                ? 'text-slate-500'
-                                : 'font-medium text-amber-300'
-                        }`}
-                    >
-                        {label} {players.length}명
-                    </span>
-                ))}
-            </div>
 
             {activeExceptions.length > 0 && (
                 <div className="mt-2 divide-y divide-amber-500/15 border-y border-amber-500/20">

@@ -78,6 +78,109 @@
     max-width: 2400px;
 }
 
+.match-workspace {
+    width: 100%;
+    max-width: 1800px;
+}
+
+.match-result-tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+}
+
+.match-result-tools > #swap-guide {
+    flex: 1 1 18rem;
+}
+
+.match-balance-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+}
+
+.match-balance-heading > #balance-exceptions {
+    margin-top: 0;
+}
+
+@media (min-width: 1600px) {
+    .match-workspace .match-workspace-columns {
+        grid-template-columns: minmax(360px, 400px) minmax(0, 1fr);
+        gap: 28px;
+    }
+
+    .match-workspace .text-sm {
+        font-size: 16px;
+        line-height: 1.5;
+    }
+
+    .match-workspace .text-xs,
+    .match-workspace .text-\[11px\] {
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    .match-workspace .text-base,
+    .match-workspace .text-lg {
+        font-size: 20px;
+        line-height: 1.4;
+    }
+
+    .match-workspace [data-player-name] {
+        font-size: 16px;
+        line-height: 1.5;
+    }
+
+    .match-workspace #matchup-table [data-player-name] {
+        font-size: 20px;
+        line-height: 1.4;
+    }
+
+    .match-workspace [data-player-tag] {
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    .match-workspace .matchup-player-content {
+        padding-top: 14px;
+        padding-bottom: 14px;
+    }
+
+    .match-workspace [data-player-rank-summary] {
+        max-width: 22rem;
+    }
+
+    .match-workspace [data-match-team='1'] [data-player-rank-summary] {
+        margin-left: auto;
+    }
+
+    .match-workspace [data-player-rank-summary] > span,
+    .match-workspace [data-match-note] {
+        font-size: 14px;
+        line-height: 1.4;
+    }
+
+    .match-workspace [data-match-note],
+    .match-workspace [data-match-note-spacer] {
+        min-height: 20px;
+    }
+
+    .match-workspace [data-rank-role] > span:first-child svg,
+    .match-workspace [data-player-rank-summary] svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    .match-workspace #balance-summary dt,
+    .match-workspace #balance-exceptions {
+        color: #94a3b8;
+    }
+}
+
 .app-detail-content {
     max-width: clamp(1024px, 53.333333dvw, 1536px);
 }

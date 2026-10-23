@@ -86,98 +86,100 @@ const MatchResult = ({
 
             <BalanceSummary matchResult={matchResult} />
 
-            <div
-                id="swap-guide"
-                data-exclude-export
-                className={`flex min-h-10 flex-wrap items-center justify-between gap-2 border-l px-3 py-2 text-xs ${
-                    selectedSwapPlayer
-                        ? 'border-cyan-400 bg-cyan-500/[0.08] text-cyan-100'
-                        : 'border-slate-700 text-slate-400'
-                }`}
-                role="status"
-                aria-live="polite"
-            >
-                <div className="flex min-w-0 items-center gap-2">
-                    <ArrowLeftRight
-                        size={14}
-                        className={selectedSwapPlayer ? 'shrink-0 text-cyan-300' : 'shrink-0 text-slate-400'}
-                        aria-hidden="true"
-                    />
-                    <p className="min-w-0">
-                        {selectedSwapPlayer ? (
-                            <>
-                                <span className="font-semibold">
-                                    {selectedSwapPlayer.discordName ?? selectedSwapPlayer.name}
-                                </span>
-                                {' '}선택됨 · 바꿀 플레이어를 선택하세요
-                            </>
-                        ) : (
-                            '결과표에서 플레이어 두 명을 차례로 선택하면 자리를 바꿀 수 있습니다'
-                        )}
-                    </p>
+            <div className="match-result-tools">
+                <div
+                    id="swap-guide"
+                    data-exclude-export
+                    className={`flex min-h-10 flex-wrap items-center justify-between gap-2 border-l px-3 py-2 text-xs ${
+                        selectedSwapPlayer
+                            ? 'border-cyan-400 bg-cyan-500/[0.08] text-cyan-100'
+                            : 'border-slate-700 text-slate-400'
+                    }`}
+                    role="status"
+                    aria-live="polite"
+                >
+                    <div className="flex min-w-0 items-center gap-2">
+                        <ArrowLeftRight
+                            size={14}
+                            className={selectedSwapPlayer ? 'shrink-0 text-cyan-300' : 'shrink-0 text-slate-400'}
+                            aria-hidden="true"
+                        />
+                        <p className="min-w-0">
+                            {selectedSwapPlayer ? (
+                                <>
+                                    <span className="font-semibold">
+                                        {selectedSwapPlayer.discordName ?? selectedSwapPlayer.name}
+                                    </span>
+                                    {' '}선택됨 · 바꿀 플레이어를 선택하세요
+                                </>
+                            ) : (
+                                '플레이어 두 명을 차례로 선택해 자리 교체'
+                            )}
+                        </p>
+                    </div>
+                    {selectedSwapPlayer && (
+                        <button
+                            type="button"
+                            onClick={onCancelSwap}
+                            className="inline-flex min-h-8 shrink-0 touch-manipulation items-center gap-1 rounded-md px-2 text-cyan-200 transition-colors hover:bg-cyan-400/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70"
+                        >
+                            <X size={13} aria-hidden="true" />
+                            선택 취소
+                        </button>
+                    )}
                 </div>
-                {selectedSwapPlayer && (
-                    <button
-                        type="button"
-                        onClick={onCancelSwap}
-                        className="inline-flex min-h-8 shrink-0 touch-manipulation items-center gap-1 rounded-md px-2 text-cyan-200 transition-colors hover:bg-cyan-400/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70"
-                    >
-                        <X size={13} aria-hidden="true" />
-                        선택 취소
-                    </button>
-                )}
-            </div>
 
-            <div
-                id="result-share-controls"
-                data-exclude-export
-                className="flex flex-wrap items-center justify-end gap-2"
-            >
-                <div className="flex flex-wrap items-center gap-1" aria-label="결과 표시 옵션">
-                    <button
-                        type="button"
-                        role="switch"
-                        aria-checked={showSheetNotes}
-                        onClick={() => onShowSheetNotesChange?.(!showSheetNotes)}
-                        className="inline-flex min-h-10 touch-manipulation items-center gap-2 rounded-lg px-2.5 text-xs text-slate-300 transition-colors hover:bg-slate-800/70 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
-                    >
-                        <span>특이사항 표시</span>
-                        <span
-                            className={`relative h-5 w-9 shrink-0 rounded-full border transition-colors motion-reduce:transition-none ${
-                                showSheetNotes
-                                    ? 'border-cyan-400/70 bg-cyan-500/70'
-                                    : 'border-slate-600 bg-slate-800'
-                            }`}
-                            aria-hidden="true"
+                <div
+                    id="result-share-controls"
+                    data-exclude-export
+                    className="flex flex-wrap items-center justify-end gap-2"
+                >
+                    <div className="flex flex-wrap items-center gap-1" aria-label="결과 표시 옵션">
+                        <button
+                            type="button"
+                            role="switch"
+                            aria-checked={showSheetNotes}
+                            onClick={() => onShowSheetNotesChange?.(!showSheetNotes)}
+                            className="inline-flex min-h-10 touch-manipulation items-center gap-2 rounded-lg px-2.5 text-xs text-slate-300 transition-colors hover:bg-slate-800/70 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
                         >
-                            <span className={`absolute left-0.5 top-0.5 h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform motion-reduce:transition-none ${
-                                showSheetNotes ? 'translate-x-4' : 'translate-x-0'
-                            }`} />
-                        </span>
-                    </button>
-                    <button
-                        type="button"
-                        role="switch"
-                        aria-checked={showAllRanks}
-                        onClick={() => onShowAllRanksChange?.(!showAllRanks)}
-                        className="inline-flex min-h-10 touch-manipulation items-center gap-2 rounded-lg px-2.5 text-xs text-slate-300 transition-colors hover:bg-slate-800/70 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
-                    >
-                        <span>전체 티어 표시</span>
-                        <span
-                            className={`relative h-5 w-9 shrink-0 rounded-full border transition-colors motion-reduce:transition-none ${
-                                showAllRanks
-                                    ? 'border-cyan-400/70 bg-cyan-500/70'
-                                    : 'border-slate-600 bg-slate-800'
-                            }`}
-                            aria-hidden="true"
+                            <span>특이사항 표시</span>
+                            <span
+                                className={`relative h-5 w-9 shrink-0 rounded-full border transition-colors motion-reduce:transition-none ${
+                                    showSheetNotes
+                                        ? 'border-cyan-400/70 bg-cyan-500/70'
+                                        : 'border-slate-600 bg-slate-800'
+                                }`}
+                                aria-hidden="true"
+                            >
+                                <span className={`absolute left-0.5 top-0.5 h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform motion-reduce:transition-none ${
+                                    showSheetNotes ? 'translate-x-4' : 'translate-x-0'
+                                }`} />
+                            </span>
+                        </button>
+                        <button
+                            type="button"
+                            role="switch"
+                            aria-checked={showAllRanks}
+                            onClick={() => onShowAllRanksChange?.(!showAllRanks)}
+                            className="inline-flex min-h-10 touch-manipulation items-center gap-2 rounded-lg px-2.5 text-xs text-slate-300 transition-colors hover:bg-slate-800/70 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
                         >
-                            <span className={`absolute left-0.5 top-0.5 h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform motion-reduce:transition-none ${
-                                showAllRanks ? 'translate-x-4' : 'translate-x-0'
-                            }`} />
-                        </span>
-                    </button>
+                            <span>전체 티어 표시</span>
+                            <span
+                                className={`relative h-5 w-9 shrink-0 rounded-full border transition-colors motion-reduce:transition-none ${
+                                    showAllRanks
+                                        ? 'border-cyan-400/70 bg-cyan-500/70'
+                                        : 'border-slate-600 bg-slate-800'
+                                }`}
+                                aria-hidden="true"
+                            >
+                                <span className={`absolute left-0.5 top-0.5 h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform motion-reduce:transition-none ${
+                                    showAllRanks ? 'translate-x-4' : 'translate-x-0'
+                                }`} />
+                            </span>
+                        </button>
+                    </div>
+                    <CopyButton status={copyStatus} onClick={handleCopyImage} />
                 </div>
-                <CopyButton status={copyStatus} onClick={handleCopyImage} />
             </div>
 
             <div
