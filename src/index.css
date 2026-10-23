@@ -114,40 +114,42 @@
     }
 
     .match-workspace .text-sm {
-        font-size: 16px;
+        font-size: 15px;
         line-height: 1.5;
     }
 
     .match-workspace .text-xs,
     .match-workspace .text-\[11px\] {
-        font-size: 14px;
+        font-size: 13px;
         line-height: 1.5;
     }
 
     .match-workspace .text-base,
     .match-workspace .text-lg {
-        font-size: 20px;
+        font-size: 18px;
         line-height: 1.4;
     }
 
     .match-workspace [data-player-name] {
-        font-size: 16px;
+        font-size: 15px;
         line-height: 1.5;
     }
 
     .match-workspace #matchup-table [data-player-name] {
-        font-size: 20px;
+        font-size: 18px;
         line-height: 1.4;
     }
 
     .match-workspace [data-player-tag] {
-        font-size: 14px;
+        font-size: 13px;
         line-height: 1.5;
     }
 
     .match-workspace .matchup-player-content {
-        padding-top: 14px;
-        padding-bottom: 14px;
+        min-height: 80px;
+        justify-content: center;
+        padding-top: 18px;
+        padding-bottom: 18px;
     }
 
     .match-workspace [data-player-rank-summary] {
@@ -160,7 +162,7 @@
 
     .match-workspace [data-player-rank-summary] > span,
     .match-workspace [data-match-note] {
-        font-size: 14px;
+        font-size: 13px;
         line-height: 1.4;
     }
 
