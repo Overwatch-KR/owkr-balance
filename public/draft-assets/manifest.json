@@ -965,15 +965,17 @@
       "modes": [
         "push"
       ],
-      "sourcePage": "https://overwatch.blizzard.com/en-us/media/screenshots/",
-      "sourceUrl": "https://overfast-api.tekrop.fr/static/maps/colosseo.jpg",
+      "sourcePage": "https://blizzard.gamespress.com/en-GB/Overwatch-2-Launch",
+      "sourceUrl": "https://blizzard.gamespress.com/en-GB/Overwatch-2-Launch",
       "localPath": "/draft-assets/maps/colosseo.webp",
       "mime": "image/webp",
-      "bytes": 52912,
-      "sha256": "25f61b84d456ce96651876f42b9dcd4a9bdc7876c24801d8b2c166779bba0db9",
+      "bytes": 82248,
+      "sha256": "1b4e25075ed2bd82a71314e92413057d0cdef5660ccdf59b7a3510d07c3ef62a",
       "sourceMime": "image/jpeg",
-      "sourceBytes": 140233,
-      "sourceSha256": "e17512f616113ae38fb1b1731ea206103d4f297d87a3d727f60188c49302f1d1"
+      "sourceBytes": 1024362,
+      "sourceSha256": "07ffac81ff57688863626686f72caee75d50a34bcfe15175cf9cd9053ee3e89a",
+      "pressAsset": "Rome_Colosseo_04.png",
+      "reviewedAt": "2026-10-23"
     },
     {
       "kind": "maps",
@@ -1401,5 +1403,18 @@
       "sourceBytes": 124597,
       "sourceSha256": "146f8ae45a2052b1922c99c387599e57a292cb10e26bb1b9c43585464e7c6b60"
     }
-  ]
+  ],
+  "mapImageReview": {
+    "date": "2026-10-23",
+    "count": 31,
+    "checks": [
+      "visual identity and recognizable scene",
+      "catalog ID and local path",
+      "image decode, dimensions and SHA-256"
+    ],
+    "changed": [
+      "colosseo"
+    ],
+    "note": "Colosseo uses the official Rome_Colosseo_04 landmark view. Other 30 map images retained after visual review."
+  }
 }

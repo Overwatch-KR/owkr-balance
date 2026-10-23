@@ -34,3 +34,7 @@ pnpm assets:overwatch
 `domains/draft/shared/default-catalog.ts`에 기본 내전 맵 31개와 영웅 54명을 고정했다. 그림스뵈튼은 `grimsvotn`/호위로 포함하고, 기존 맵 투표의 후보 3개+무작위 추첨도 이 31개 풀을 사용한다. 실제 서버와 로컬 실행의 기본 목록이 같으며 `DRAFT_CATALOG_PATH`는 선택적 덮어쓰기다. 카탈로그의 `active`는 이 사이트 내전 풀에서 사용한다는 의미이며 Blizzard의 경쟁전 로테이션을 의미하지 않는다.
 
 새 맵·영웅의 출시 및 역할은 [6월](https://overwatch.blizzard.com/en-us/news/patch-notes/live/2026/06/), [8월](https://overwatch.blizzard.com/en-us/news/patch-notes/live/2026/08/), [10월 공식 패치](https://overwatch.blizzard.com/en-us/news/patch-notes/live/2026/10/)와 시즌 5 발표를 확인했다. 그림스뵈튼·네온 정션·D.Mon·Doctrine을 포함하고 솜브라는 현재 지원 역할로 연결한다. 이름·분류의 색인은 수집 manifest와 출처를 공유하되, 파일은 별도로 고정해 이미지 갱신만으로 운영 중 목록이 바뀌지 않게 했다. `repository-config`는 이 저장소의 내전 설정을 뜻하며 Blizzard의 승인 표기가 아니다.
+
+## 2026-10-23 맵 이미지 검토
+
+31개 맵의 이미지·ID·이름·경로를 모아 시각 검토하고, 디코딩·크기·SHA-256을 확인했다. 다른 30개는 유지했다. 콜로세오는 공식 자료의 골목 구도 `Rome_Colosseo_01`에서 콜로세움이 크게 보이는 `Rome_Colosseo_04`로 교체했다. 출처는 [Blizzard Press Center](https://blizzard.gamespress.com/en-GB/Overwatch-2-Launch)이며, 재수집 시 `pressAsset` 이름으로 새 공개 미리보기 주소를 해석한다. 만료되는 다운로드 서명 주소는 manifest에 저장하지 않는다.

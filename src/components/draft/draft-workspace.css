@@ -881,6 +881,7 @@
 }
 
 .draft-map-confirmed-card > .aspect-video {
+    width: 100%;
     max-height: calc(100dvh - 460px);
     min-height: 140px;
 }

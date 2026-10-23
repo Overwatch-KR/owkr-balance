@@ -7,5 +7,10 @@
   "neon-junction": {
     "sourcePage": "https://news.blizzard.com/it-it/article/24271881/preparati-a-sfoderare-gli-artigli-per-il-regno-di-talon-stagione-3-nella-tana-della-tigre",
     "sourceUrl": "https://bnetcmsus-a.akamaihd.net/cms/page_media/fk/FKMOU1K95QU91781145184691.png"
+  },
+  "colosseo": {
+    "sourcePage": "https://blizzard.gamespress.com/en-GB/Overwatch-2-Launch",
+    "sourceUrl": "https://blizzard.gamespress.com/en-GB/Overwatch-2-Launch",
+    "pressAsset": "Rome_Colosseo_04.png"
   }
 }

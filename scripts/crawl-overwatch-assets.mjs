@@ -12,7 +12,7 @@ const indexUrls = {
   maps: 'https://overfast-api.tekrop.fr/maps?locale=ko-kr',
 };
 const imageHosts = new Set(['d15f34w2p8l1cc.cloudfront.net', 'overfast-api.tekrop.fr',
-  'blz-contentstack-assets.akamaized.net', 'bnetcmsus-a.akamaihd.net']);
+  'blz-contentstack-assets.akamaized.net', 'bnetcmsus-a.akamaihd.net', 'fservus20221227.blob.core.windows.net']);
 const basicModes = new Set(['control', 'escort', 'hybrid', 'push', 'flashpoint']);
 const overrides = JSON.parse(await readFile(new URL('./overwatch-asset-overrides.json', import.meta.url), 'utf8'));
 
@@ -24,11 +24,21 @@ async function request(url) {
 
 async function download(item) {
   if (!/^[a-z0-9-]+$/.test(item.id)) throw new Error(`Invalid asset ID: ${item.id}`);
-  const url = new URL(item.sourceUrl);
+  let sourceUrl = item.sourceUrl;
+  if (item.pressAsset) {
+    if (item.sourcePage !== 'https://blizzard.gamespress.com/en-GB/Overwatch-2-Launch'
+      || !/^[A-Za-z0-9_]+\.(png|jpg)$/.test(item.pressAsset)) throw new Error('Unapproved press asset');
+    const html = await (await request(item.sourcePage)).text();
+    const tag = [...html.matchAll(/<img[^>]+>/g)].find(match => match[0].includes(`alt="${item.pressAsset}"`))?.[0];
+    sourceUrl = tag?.match(/data-preview="([^"]+)"/)?.[1]?.replaceAll('&amp;', '&');
+    if (!sourceUrl) throw new Error('Press asset is unavailable');
+  }
+  const url = new URL(sourceUrl);
   if (url.protocol !== 'https:' || !imageHosts.has(url.hostname)) throw new Error(`Unapproved image origin: ${url.origin}`);
   const response = await request(url);
-  const mime = response.headers.get('content-type')?.split(';')[0];
-  if (!['image/png', 'image/jpeg', 'image/webp'].includes(mime)) throw new Error(`Unexpected image type: ${mime}`);
+  let mime = response.headers.get('content-type')?.split(';')[0];
+  const pressBinary = Boolean(item.pressAsset) && ['application/octet-stream', 'application/octet-strem'].includes(mime);
+  if (!pressBinary && !['image/png', 'image/jpeg', 'image/webp'].includes(mime)) throw new Error(`Unexpected image type: ${mime}`);
   if (Number(response.headers.get('content-length') ?? 0) > 20_000_000) throw new Error('Image exceeds size limit');
   const reader = response.body.getReader();
   const chunks = [];
@@ -41,6 +51,7 @@ async function download(item) {
     chunks.push(value);
   }
   const bytes = Buffer.concat(chunks);
+  if (pressBinary) mime = bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) ? 'image/png' : 'image/jpeg';
   const signature = mime === 'image/png' ? bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
     : mime === 'image/jpeg' ? bytes[0] === 255 && bytes[1] === 216
       : bytes.toString('ascii', 0, 4) === 'RIFF' && bytes.toString('ascii', 8, 12) === 'WEBP';
