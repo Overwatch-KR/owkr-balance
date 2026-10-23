@@ -16,18 +16,22 @@ export async function publishDraftSource(sourceId: string, players: Player[], re
 export function useDraftSourceSync({ sourceId, players, result, csrfToken }: {
   sourceId?: string; players: Player[]; result: MatchResultData | null; csrfToken: string;
 }) {
-  const baseline = useRef<{ sourceId: string; fingerprint: string } | null>(null);
+  const observed = useRef<{ sourceId: string; fingerprint: string } | null>(null);
+  const latestInput = useRef({ players, result, csrfToken });
   const queue = useRef<Promise<unknown>>(Promise.resolve());
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
   const fingerprint = JSON.stringify(createMatchLiveParticipants(players, result));
+  useEffect(() => { latestInput.current = { players, result, csrfToken }; }, [players, result, csrfToken]);
   useEffect(() => {
-    if (!sourceId) { baseline.current = null; return; }
-    if (baseline.current?.sourceId !== sourceId) {
-      baseline.current = { sourceId, fingerprint };
+    if (!sourceId) { observed.current = null; return; }
+    if (observed.current?.sourceId !== sourceId) {
+      observed.current = { sourceId, fingerprint };
       queueMicrotask(() => { setPending(false); setError(''); }); return;
     }
-    if (baseline.current.fingerprint === fingerprint) return;
+    if (observed.current.fingerprint === fingerprint) return;
+    observed.current = { sourceId, fingerprint };
+    const input = latestInput.current;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout>;
     queueMicrotask(() => { if (!cancelled) setPending(true); });
@@ -35,9 +39,9 @@ export function useDraftSourceSync({ sourceId, players, result, csrfToken }: {
       queue.current = queue.current.catch(() => undefined).then(async () => {
         if (cancelled) return;
         try {
-          await publishDraftSource(sourceId, players, result, csrfToken);
+          await publishDraftSource(sourceId, input.players, input.result, latestInput.current.csrfToken);
           if (!cancelled) {
-            baseline.current = { sourceId, fingerprint }; setPending(false); setError('');
+            setPending(false); setError('');
           }
         } catch (failure) {
           if (!cancelled) {
@@ -49,6 +53,6 @@ export function useDraftSourceSync({ sourceId, players, result, csrfToken }: {
     };
     timer = setTimeout(publish, 350);
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [sourceId, fingerprint, players, result, csrfToken]);
+  }, [sourceId, fingerprint]);
   return { pending: Boolean(sourceId) && pending, error: sourceId ? error : '' };
 }

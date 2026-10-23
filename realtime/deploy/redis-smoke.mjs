@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { randomUUID, generateKeyPairSync } from 'node:crypto';
+import { randomUUID, generateKeyPairSync, createHash } from 'node:crypto';
 import { performance } from 'node:perf_hooks';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { Redis } from '@upstash/redis';
@@ -11,7 +11,7 @@ import { createLocalDraftFixtures } from '../realtime/src/local-fixtures.js';
 import { DraftParticipantAuth } from '../realtime/src/participant-auth.js';
 import { signDraftTicket, verifyDraftTicket } from '../realtime/src/tickets.js';
 import { SOURCE_POSITIONS } from '../realtime/src/source.js';
-import { getMapRevealDurationMs } from '../domains/draft/shared/public.js';
+import { getMapRevealDurationMs, getMapVoteLead, MAP_LANDSLIDE_MARGIN, resolveMapVote } from '../domains/draft/shared/public.js';
 
 const namespace = `draft:v1:deploytest:${randomUUID()}:`;
 const redis = new Redis({ url: process.env.UPSTASH_REDIS_REST_URL, token: process.env.UPSTASH_REDIS_REST_TOKEN,
@@ -33,6 +33,10 @@ const scoped = new Proxy(redis, { get(target, name) {
   throw new Error(`Unscoped Redis operation denied: ${String(name)}`);
 } });
 const fixture = createLocalDraftFixtures();
+fixture.catalogs.maps.entries = fixture.catalogs.maps.entries.filter(map => ['kings-row', 'dorado', 'colosseo', 'ilios'].includes(map.mapId));
+const verification = [];
+const checked = (order, item, details) => { verification.push({ order, item, status: 'passed', details }); console.log(`${order}. ${item}: passed`); };
+
 const origin = process.env.DRAFT_APP_ORIGIN;
 const base = process.env.DRAFT_SMOKE_URL ?? 'https://civilwar.devbot.me';
 const port = Number(process.env.DRAFT_SMOKE_PORT ?? 8788);
@@ -91,7 +95,7 @@ const send = async (socket, type, selection = [], extra = {}) => {
     };
     socket.on('message', listener);
     socket.send(JSON.stringify({ type, commandId, epoch: room.epoch, expectedRevision: room.revision,
-      expectedBallotRevision: 0, ready: true, selection, ...extra }));
+      expectedBallotRevision: room.stage?.ballots.find(ballot => ballot.discordId === socket.snapshot.selfDiscordId)?.ballotRevision ?? 0, ready: true, selection, ...extra }));
   });
   timings.push(performance.now() - began);
 };
@@ -131,10 +135,37 @@ try {
   }
   await Promise.all(fixture.identities.map(connect));
   assert.equal(sockets.length, 10);
-  for (const socket of sockets) await send(socket, 'ready.set');
-  await send(sockets[0], 'draft.start');
+  const operatorConnection = () => [...engine.clients.values()].find(client => client.discordId === fixture.identities[0].discordUserId).connectionId;
+  const entrySnapshot = await engine.snapshot(operatorConnection());
+  assert.equal(entrySnapshot.readyCount, 10);
+  assert.equal(entrySnapshot.sourceId, 'LOCAL23456');
+  const editedSource = JSON.parse(await redis.get(key('match-live:v1:LOCAL23456')));
+  [editedSource.participants[0].position, editedSource.participants[5].position] = [editedSource.participants[5].position, editedSource.participants[0].position];
+  editedSource.revision++;
+  await redis.set(key('match-live:v1:LOCAL23456'), JSON.stringify(editedSource), { keepTtl: true });
+  await engine.serial(() => engine.tick(roomCode));
+  const changedSnapshot = await engine.snapshot(operatorConnection());
+  assert.equal(changedSnapshot.participants.find(player => player.discordId === fixture.identities[0].discordUserId).team, 'B');
+  assert.equal(changedSnapshot.phase, 'LOBBY');
+  checked(1, 'bracket roster synchronization', 'independent source ID exposed to operator; changed tank assignments reflected in room without collaboration');
+  const website = 'https://owkr-internal-balance.vercel.app';
+  const manifest = await (await fetch(website + '/draft-assets/manifest.json')).json();
+  const maps = manifest.assets.filter(asset => asset.kind === 'maps');
+  assert.equal(maps.length, 31);
+  assert.equal(maps.find(map => map.id === 'colosseo').pressAsset, 'Rome_Colosseo_04.png');
+  assert.equal(maps.find(map => map.id === 'colosseo').sha256, '1b4e25075ed2bd82a71314e92413057d0cdef5660ccdf59b7a3510d07c3ef62a');
+  let imageCursor = 0;
+  await Promise.all(Array.from({length: 3}, async () => {
+    while (imageCursor < maps.length) {
+      const asset = maps[imageCursor++]; const response = await fetch(website + asset.localPath);
+      assert.equal(response.status, 200);
+      assert.equal(createHash('sha256').update(Buffer.from(await response.arrayBuffer())).digest('hex'), asset.sha256);
+    }
+  }));
+  checked(2, 'map images', 'all 31 published files match their manifest hashes; Colosseo is official landmark image 04');
+  await send(sockets[0], 'draft.start', [], { remainingMapsConfirmed: true });
   const { room } = await engine.requireRoom(roomCode);
-  const mapId = room.candidates.candidates[0].map.mapId;
+  const mapId = room.candidates.candidates.find(candidate => candidate.firstAttackTeam).map.mapId;
   await Promise.all(sockets.map(socket => send(socket, 'ballot.lock', [mapId])));
   const sealed = await engine.requireRoom(roomCode);
   assert.equal(sealed.room.stage.sealed.ballots.length, 10);
@@ -154,17 +185,70 @@ try {
     throw new Error(`phase timeout: ${phase}`);
   };
   const reveal = await waitForPhase('MAP_RESOLVED');
+  const attackBefore = reveal.room.mapResult.firstAttackTeam;
+  const playersBefore = (await engine.snapshot(operatorConnection())).participants;
+  await assert.rejects(send(sockets[1], 'map.swapSides'), /OPERATOR_REQUIRED/);
+  await send(sockets[0], 'map.swapSides');
+  const swapSnapshot = await engine.snapshot(operatorConnection());
+  assert.notEqual(swapSnapshot.mapResult.firstAttackTeam, attackBefore);
+  assert.deepEqual(swapSnapshot.participants, playersBefore);
+  assert.equal(swapSnapshot.mapResult.map.mapId, mapId);
+  checked(3, 'operator attack-defense swap', 'operator swap broadcast without altering players or map; participant permission denied');
+  assert.equal(reveal.room.mapResult.method, 'LANDSLIDE');
+  assert.equal(reveal.room.mapResult.rollDurationMs ?? 0, 0);
+  const optionIds = [...reveal.room.candidates.candidates.map(option => option.map.mapId), 'RANDOM'];
+  const atFive = [ ...Array(7).fill(optionIds[0]), ...Array(2).fill(optionIds[1]), optionIds[2] ];
+  const atSix = [ ...Array(8).fill(optionIds[0]), ...Array(2).fill(optionIds[1]) ];
+  assert.equal(resolveMapVote(reveal.room.candidates, atFive, reveal.history.mapHistoryRevision, Array(64).fill(.3)).method, 'WEIGHTED');
+  assert.equal(resolveMapVote(reveal.room.candidates, atSix, reveal.history.mapHistoryRevision, Array(64).fill(.3)).method, 'LANDSLIDE');
+  checked(4, 'landslide map reveal', 'sealed unanimous vote resolves LANDSLIDE; 5-vote lead is weighted and 6-vote lead is landslide; four-second reveal retained');
   assert.ok(reveal.room.timer.deadlineAt > reveal.now && reveal.room.timer.deadlineAt <= reveal.now + getMapRevealDurationMs(reveal.room.mapResult));
   await waitForPhase('HERO_VOTING');
   const selection = ['TANK', 'DPS', 'SUPPORT'].map(role => fixture.catalogs.heroes.entries.find(hero => hero.role === role && hero.active).heroId);
   await Promise.all(sockets.map(socket => send(socket, 'ballot.lock', selection)));
   await waitForPhase('HERO_RESOLVED');
   await send(sockets[0], 'game.confirmApplied');
+  const appliedSnapshot = await engine.snapshot(operatorConnection());
+  assert.equal(appliedSnapshot.phase, 'COMPLETED');
+  assert.equal(appliedSnapshot.mapResult.map.mapId, mapId);
+  assert.ok(appliedSnapshot.heroResult.bannedHeroIds.length > 0);
+  const appliedHistory = await engine.requireRoom(roomCode);
+  assert.equal(appliedHistory.history.games[0].firstAttackTeam, swapSnapshot.mapResult.firstAttackTeam);
   await send(sockets[0], 'game.markStarted');
+  await assert.rejects(send(sockets[0], 'map.swapSides'), /GAME_ALREADY_STARTED/);
   await send(sockets[0], 'game.markFinished');
   await send(sockets[0], 'game.next');
-  for (const socket of sockets) await send(socket, 'ready.set');
-  await send(sockets[0], 'draft.start');
+  const nextSnapshot = await engine.snapshot(operatorConnection());
+  assert.equal(nextSnapshot.previousGame.map.mapId, mapId);
+  assert.deepEqual(nextSnapshot.previousGame.bans.map(hero => hero.heroId), appliedSnapshot.heroResult.bannedHeroIds);
+  assert.equal(nextSnapshot.previousGame.firstAttackTeam, swapSnapshot.mapResult.firstAttackTeam);
+  assert.equal(nextSnapshot.mapResult, null);
+  checked(5, 'map-ban summary after next', 'map and bans retained after apply; previous-game map, sides and bans survive next-game transition');
+  assert.equal(nextSnapshot.readyCount, 10);
+  assert.ok(nextSnapshot.progress.every(player => player.ready));
+  sockets[9].terminate(); sockets.splice(9, 1);
+  const disconnectDeadline = Date.now() + 5000;
+  while (Date.now() < disconnectDeadline && [...engine.clients.values()].some(client => client.discordId === fixture.identities[9].discordUserId)) await new Promise(resolve => setTimeout(resolve, 25));
+  assert.equal((await engine.snapshot(operatorConnection())).readyCount, 9);
+  await connect(fixture.identities[9]);
+  assert.equal((await engine.snapshot(operatorConnection())).readyCount, 10);
+  const inputClient = [...engine.clients.values()].find(client => client.discordId === fixture.identities[8].discordUserId);
+  inputClient.input = false;
+  await assert.rejects(send(sockets[0], 'draft.start', [], {remainingMapsConfirmed: true}), /PARTICIPANTS_NOT_READY/);
+  inputClient.input = true;
+  checked(6, 'automatic lobby readiness', 'all 10 ready without ready commands on entry and next game; disconnect removes readiness, reconnect restores it; missing input blocks start');
+  await send(sockets[0], 'draft.start', [], {remainingMapsConfirmed: true});
+  const secondRoom = (await engine.requireRoom(roomCode)).room;
+  const leader = secondRoom.candidates.candidates[0].map.mapId;
+  const runner = secondRoom.candidates.candidates[1].map.mapId;
+  for (let index = 0; index < 7; index++) await send(sockets[index], 'ballot.save', [leader]);
+  await send(sockets[7], 'ballot.save', [runner]);
+  assert.equal(getMapVoteLead((await engine.snapshot(operatorConnection())).ballots.mapTotals, leader), MAP_LANDSLIDE_MARGIN);
+  await send(sockets[8], 'ballot.save', [runner]);
+  assert.equal(getMapVoteLead((await engine.snapshot(operatorConnection())).ballots.mapTotals, leader), 5);
+  await send(sockets[8], 'ballot.save', []);
+  assert.equal(getMapVoteLead((await engine.snapshot(operatorConnection())).ballots.mapTotals, leader), MAP_LANDSLIDE_MARGIN);
+  checked(7, 'live dominance effect input', 'authoritative live totals transition 6 to 5 to 6 before seal, matching crown-only threshold and effect removal');
   const nextGame = await engine.requireRoom(roomCode);
   assert.equal(nextGame.room.gameIndex, 2);
   assert.equal(nextGame.room.expiresAt, sealed.room.expiresAt);
@@ -195,7 +279,7 @@ try {
   const sourceKey = key('match-live:v1:LOCAL23456');
   const source = JSON.parse(await redis.get(sourceKey));
   source.revision++;
-  await redis.set(sourceKey, JSON.stringify(source), { keepttl: true });
+  await redis.set(sourceKey, JSON.stringify(source), { keepTtl: true });
   await assert.rejects(engine.store.commit(recovered, guard), error => error.code === 'SOURCE_OUTDATED');
   const fresh = await engine.requireRoom(roomCode);
   assert.equal(fresh.source.revision, source.revision);
@@ -254,7 +338,7 @@ try {
   }
   timings.sort((a, b) => a - b);
   console.log(JSON.stringify({ status: 'passed', transport: base, sockets: 10, soakSeconds,
-    authentication, roomReads,
+    authentication, roomReads, requestedChecks: verification,
     acknowledgedCommands: timings.length, commandMs: { median: Math.round(timings[Math.floor(timings.length / 2)]),
       p95: Math.round(timings[Math.floor(timings.length * .95)]), max: Math.round(timings.at(-1)) },
     checks: ['actual Redis Lua', 'isolated namespace', 'idempotent creation', base.startsWith('https:') ? '10 TLS WebSockets' : '10 loopback WebSockets', '10 simultaneous locked ballots',
