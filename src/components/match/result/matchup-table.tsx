@@ -313,7 +313,7 @@ const MatchupTable = ({
                                                 />
                                                 <div className="flex shrink-0 items-center gap-1.5">
                                                     {renderTierIcon(rankA.tier, 24)}
-                                                    <span data-assigned-rank className="w-10 text-left font-mono text-sm text-slate-200">
+                                                    <span data-matchup-rank className="w-10 text-left font-mono text-sm text-slate-200">
                                                         {formatRank(rankA).replace('★', '').replace('?', '')}
                                                     </span>
                                                 </div>
@@ -400,7 +400,7 @@ const MatchupTable = ({
                                         <>
                                             <div className="hidden w-full min-w-0 items-center gap-2 sm:flex">
                                                 <div className="flex shrink-0 items-center gap-1.5">
-                                                    <span data-assigned-rank className="w-10 text-right font-mono text-sm text-slate-200">
+                                                    <span data-matchup-rank className="w-10 text-right font-mono text-sm text-slate-200">
                                                         {formatRank(rankB).replace('★', '').replace('?', '')}
                                                     </span>
                                                     {renderTierIcon(rankB.tier, 24)}

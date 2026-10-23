@@ -155,7 +155,7 @@
         height: 20px;
     }
 
-    .match-workspace #matchup-table [data-assigned-rank] {
+    .match-workspace #matchup-table [data-matchup-rank] {
         width: 48px;
         font-size: 17px;
         line-height: 1.4;
