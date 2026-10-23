@@ -93,6 +93,28 @@ const createRedis = () => {
 describe('match live store', () => {
     afterEach(() => vi.useRealTimers());
 
+    it('이미 저장된 빈 객체 명단을 빈 배열로 복구해 같은 코드로 10인 명단을 반영한다', async () => {
+        const { redis, set } = createRedis();
+        const created = (await createMatchLiveSession(redis, [], actor))!;
+        await set(`match-live:v1:${created.code}`, { ...created.session, participants: {} });
+        expect((await getMatchLiveSession(redis, created.code))?.participants).toEqual([]);
+        expect((await getMatchLiveSession(redis, created.code, actor))?.participants).toEqual([]);
+        const roster = Array.from({ length: 10 }, (_, index) => ({
+            discordUserId: `111111111111111${String(index).padStart(2, '0')}`, position: MATCH_SHARE_POSITIONS[index],
+        }));
+        const updated = await updateMatchLiveSession(redis, created.code, 1, roster, actor);
+        expect(updated.status).toBe('OK');
+        expect(updated.status === 'OK' && updated.session.participants).toEqual(roster);
+        expect(updated.status === 'OK' && updated.session.expiresAt).toBe(created.session.expiresAt);
+    });
+
+    it('비어 있지 않은 잘못된 객체 명단은 정상 명단으로 취급하지 않는다', async () => {
+        const { redis, set } = createRedis();
+        const created = (await createMatchLiveSession(redis, [], actor))!;
+        await set(`match-live:v1:${created.code}`, { ...created.session, participants: { unexpected: true } });
+        expect(await getMatchLiveSession(redis, created.code)).toBeNull();
+    });
+
     it('밤 11시 30분에 시작하면 다음 날 2시 30분까지 유지되고 수정·접속으로 연장되지 않는다', async () => {
         vi.useFakeTimers();
         vi.setSystemTime(new Date('2026-10-12T23:30:00+09:00'));

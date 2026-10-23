@@ -51,16 +51,23 @@ export type MatchLiveMutationResult =
     | { status: 'INVALID' }
     | { status: 'NOT_FOUND' };
 
-const TOUCH_MATCH_LIVE_SCRIPT = `
+const MATCH_LIVE_JSON_SCRIPT = `
+local function encodeMatchLive(value)
+    local encoded = string.gsub(cjson.encode(value), '"participants":{}', '"participants":[]')
+    return encoded
+end
+`;
+
+const TOUCH_MATCH_LIVE_SCRIPT = MATCH_LIVE_JSON_SCRIPT + `
 local currentJson = redis.call('GET', KEYS[1])
 if not currentJson then
-    return cjson.encode({ status = 'NOT_FOUND' })
+    return encodeMatchLive({ status = 'NOT_FOUND' })
 end
 
 local current = cjson.decode(currentJson)
 if not current.expiresAt or tonumber(current.expiresAt) <= tonumber(ARGV[2]) then
     redis.call('DEL', KEYS[1])
-    return cjson.encode({ status = 'NOT_FOUND' })
+    return encodeMatchLive({ status = 'NOT_FOUND' })
 end
 local actor = cjson.decode(ARGV[1])
 local now = tonumber(ARGV[2])
@@ -97,24 +104,24 @@ end
 current.collaborators = collaborators
 
 if shouldWrite then
-    redis.call('SET', KEYS[1], cjson.encode(current), 'KEEPTTL')
+    redis.call('SET', KEYS[1], encodeMatchLive(current), 'KEEPTTL')
 end
-return cjson.encode({ status = 'OK', session = current })
+return encodeMatchLive({ status = 'OK', session = current })
 `;
 
-const UPDATE_MATCH_LIVE_SCRIPT = `
+const UPDATE_MATCH_LIVE_SCRIPT = MATCH_LIVE_JSON_SCRIPT + `
 local currentJson = redis.call('GET', KEYS[1])
 if not currentJson then
-    return cjson.encode({ status = 'NOT_FOUND' })
+    return encodeMatchLive({ status = 'NOT_FOUND' })
 end
 
 local current = cjson.decode(currentJson)
 if not current.expiresAt or tonumber(current.expiresAt) <= tonumber(ARGV[4]) then
     redis.call('DEL', KEYS[1])
-    return cjson.encode({ status = 'NOT_FOUND' })
+    return encodeMatchLive({ status = 'NOT_FOUND' })
 end
 if tonumber(current.revision) ~= tonumber(ARGV[1]) then
-    return cjson.encode({ status = 'CONFLICT', session = current })
+    return encodeMatchLive({ status = 'CONFLICT', session = current })
 end
 
 local actor = cjson.decode(ARGV[3])
@@ -143,9 +150,9 @@ local nextSession = {
         updatedAt = tonumber(ARGV[4])
     }
 }
-local nextJson = cjson.encode(nextSession)
+local nextJson = encodeMatchLive(nextSession)
 redis.call('SET', KEYS[1], nextJson, 'KEEPTTL')
-return cjson.encode({ status = 'OK', session = nextSession })
+return encodeMatchLive({ status = 'OK', session = nextSession })
 `;
 
 /**
@@ -236,7 +243,10 @@ const getChangeKind = (
 const normalizeStoredMatchLiveSession = (value: unknown): StoredMatchLiveSession | null => {
     if (!value || typeof value !== 'object') return null;
     const source = value as Partial<StoredMatchLiveSession>;
-    const participants = normalizeMatchLiveParticipants(source.participants);
+    const rawParticipants: unknown = source.participants;
+    const legacyEmpty = rawParticipants !== null && typeof rawParticipants === 'object'
+        && !Array.isArray(rawParticipants) && Object.keys(rawParticipants).length === 0;
+    const participants = normalizeMatchLiveParticipants(legacyEmpty ? [] : rawParticipants);
     if (
         !participants
         || typeof source.expiresAt !== 'number'
