@@ -5,6 +5,7 @@ import { DEFAULT_DRAFT_MAP_CATALOG } from '#domain/draft';
 import { DraftMapPick } from './draft-map-pick';
 import type { DraftRoomSnapshot } from '#domain/draft';
 import { DraftSelection } from './draft-selection';
+import { DraftGameSummary } from './draft-game-summary';
 import { DraftBanResult } from './draft-ban-result';
 import { DraftMapReveal } from './draft-map-reveal';
 import { DraftMapVoteSlots } from './draft-map-vote-slots';
@@ -326,4 +327,17 @@ it('shows a landslide celebration only for the server-confirmed landslide result
   expect(render(<DraftMapReveal snapshot={view} />)).toContain('9표 · 6표 이상 차이');
   view.mapResult.method = 'POTG';
   expect(render(<DraftMapReveal snapshot={view} />)).not.toContain('압승');
+});
+
+
+it('keeps the map, sides and bans visible after applying settings and shows the previous result in the next lobby', () => {
+  const view = snapshot(); view.phase = 'COMPLETED';
+  let markup = render(<DraftGameSummary snapshot={view} />);
+  expect(markup).toContain('1경기 확정 맵·밴'); expect(markup).toContain('왕의 길'); expect(markup).toContain('아나');
+  view.phase = 'LOBBY'; view.gameIndex = 2;
+  view.previousGame = { gameIndex: 1, map: view.mapResult!.map, firstAttackTeam: 'B', bans: view.heroes.slice(0, 1) };
+  view.mapResult = null; view.heroResult = null;
+  markup = render(<DraftGameSummary snapshot={view} />);
+  expect(markup).toContain('직전 1경기 결과'); expect(markup).toContain('왕의 길'); expect(markup).toContain('아나');
+  expect(markup).toContain('다음 경기의 맵·밴은 새로 선정');
 });

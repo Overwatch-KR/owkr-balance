@@ -6,6 +6,7 @@ import { DraftMapPick } from './draft-map-pick';
 import { DraftMapReveal } from './draft-map-reveal';
 import { DraftSelection } from './draft-selection';
 import { DraftOperatorDialog } from './draft-operator-dialog';
+import { DraftGameSummary } from './draft-game-summary';
 import { DraftBanResult } from './draft-ban-result';
 import { DraftRoomHeader } from './draft-room-header';
 import { DraftConnectionStatus } from './draft-connection-status';
@@ -54,6 +55,7 @@ export function DraftRoomPanel({ controller, admin = false }: { controller: Draf
     {snapshot.phase === 'MAP_PICKING' && <DraftMapPick key={`${snapshot.gameId}:${snapshot.epoch}`} controller={controller} onNotice={setNotice} />}
     {snapshot.phase === 'MAP_RESOLVED' && snapshot.mapResult && <DraftMapReveal key={snapshot.mapResult.resolutionId} snapshot={snapshot} />}
     {snapshot.ballots?.self && <DraftSelection key={`${snapshot.gameId}:${snapshot.epoch}:${snapshot.stageKind}`} controller={controller} onNotice={setNotice} />}
+    <DraftGameSummary snapshot={snapshot} />
     {snapshot.heroResult && <DraftBanResult key={snapshot.heroResult.resolutionId} snapshot={snapshot} onCopy={() => void copyResult()} />}
     {!snapshot.ballots?.self && !['MAP_PICKING', 'MAP_RESOLVED'].includes(snapshot.phase) && <section aria-label="배정된 팀" className={`grid gap-4 md:grid-cols-2 ${snapshot.heroResult ? 'draft-result-roster' : ''}`}>
       {(['A', 'B'] as const).map(team => <div key={team} className={`border-t-2 pt-3 ${team === (snapshot.mapResult?.firstAttackTeam ?? 'A') ? 'border-red-500' : 'border-blue-500'}`}>

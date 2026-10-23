@@ -2,7 +2,7 @@ import type { BallotKind, BallotStage } from './ballots.js';
 import type { HeroResolution } from './heroes.js';
 import type { DraftTimer } from './lifecycle.js';
 import type { MapCandidateSnapshot, MapResolution } from './maps.js';
-import type { DraftHero, DraftMap, DraftMapSelection, DraftParticipant, DraftPhase, PlayStatus } from './model.js';
+import type { DraftHero, DraftMap, DraftMapSelection, DraftParticipant, DraftPhase, DraftTeam, PlayStatus } from './model.js';
 import type { OperatorParticipantStatus } from './presence.js';
 import type { ParticipantBallotView } from './views.js';
 
@@ -12,6 +12,7 @@ export const DRAFT_ROOM_CLOSED_CLOSE_CODE = 4002;
 export interface DraftRoomSnapshot {
   roomCode: string;
   sourceId?: string;
+  previousGame?: { gameIndex: number; map: DraftMap; firstAttackTeam: DraftTeam | null; bans: readonly DraftHero[] };
   gameId: string;
   gameIndex: number;
   epoch: number;

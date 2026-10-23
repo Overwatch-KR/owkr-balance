@@ -74,7 +74,9 @@ describe('local server persisted flow', () => {
     await app.run(0, 'game.confirmApplied');
     expect((await app.engine.requireRoom(app.code)).history.games[0].startedAt).toBeNull();
     await app.run(0, 'game.markStarted'); await app.run(0, 'game.markFinished');
+    const lastResult = (await app.engine.snapshot('c0')).mapResult;
     await app.run(0, 'game.next');
+    expect((await app.engine.snapshot('c1')).previousGame).toMatchObject({ gameIndex: 1, map: lastResult!.map });
     bundle = await app.engine.requireRoom(app.code);
     expect(bundle.room.gameIndex).toBe(2); expect(bundle.room.progress.every(progress => !progress.ready)).toBe(true);
     for (let index = 0; index < 10; index++) await app.run(index, 'ready.set');

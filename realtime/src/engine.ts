@@ -450,7 +450,11 @@ export class DraftEngine {
     const { room, history } = bundle;
     const operator = isDraftOperator(history.operators, client.discordId);
     requireDraft(operator || bundle.source?.participants.some(player => player.discordId === client.discordId), 'ROOM_ACCESS_DENIED', '현재 방 명단에 없습니다.');
+    const previous = history.games.at(-1);
     return {
+      ...(previous && previous.gameId !== room.gameId ? { previousGame: {
+        gameIndex: room.gameIndex - 1, map: previous.map, firstAttackTeam: previous.firstAttackTeam, bans: previous.bans,
+      } } : {}),
       roomCode: room.roomCode, gameId: room.gameId, gameIndex: room.gameIndex, epoch: room.epoch,
       roomRevision: room.revision, expiresAt: room.expiresAt, phase: room.phase, timer: room.timer,
       selfDiscordId: client.discordId, isOperator: operator,
