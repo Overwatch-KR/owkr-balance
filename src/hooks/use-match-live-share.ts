@@ -259,13 +259,14 @@ export const useMatchLiveShare = ({
         if (!enabled || !session) return;
         let disposed = false;
         let pollTimeoutId: number | undefined;
+        let consecutiveErrors = 0;
 
         const scheduleNextPoll = () => {
             if (disposed) return;
             if (pollTimeoutId !== undefined) window.clearTimeout(pollTimeoutId);
             pollTimeoutId = window.setTimeout(
                 () => void poll(),
-                getMatchLivePollDelay(Date.now(), activeUntilRef.current),
+                getMatchLivePollDelay(Date.now(), activeUntilRef.current, consecutiveErrors),
             );
         };
 
@@ -284,6 +285,7 @@ export const useMatchLiveShare = ({
             try {
                 const remote = await fetchMatchLiveSession(session.code);
                 if (disposed) return;
+                consecutiveErrors = 0;
                 setSyncError('');
                 if (getCollaborationSignature(remote) !== getCollaborationSignature(session)) {
                     setSession(current => current?.code === remote.code
@@ -303,6 +305,7 @@ export const useMatchLiveShare = ({
                 await applyRemoteSession(remote);
             } catch (error) {
                 if (!disposed) {
+                    consecutiveErrors += 1;
                     if (findApiError(error)?.status === 404) {
                         forgetSessionCode();
                         resetSessionState();

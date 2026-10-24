@@ -28,9 +28,9 @@ const createRedis = () => {
     const set = vi.fn(async (
         key: string,
         value: unknown,
-        options?: { ex?: number },
+        options?: { pxat?: number; nx?: boolean },
     ) => {
-        void options;
+        if (options?.nx && values.has(key)) return null;
         values.set(key, structuredClone(value));
         return 'OK';
     });
@@ -93,6 +93,16 @@ const createRedis = () => {
 describe('match live store', () => {
     afterEach(() => vi.useRealTimers());
 
+    it('코드 충돌 시 기존 세션을 덮어쓰지 않고 생성 재시도 횟수를 제한한다', async () => {
+        const { redis, get, set } = createRedis();
+        set.mockResolvedValueOnce(null);
+        expect(await createMatchLiveSession(redis, participants, actor)).not.toBeNull();
+        expect(set).toHaveBeenCalledTimes(2);
+        expect(get).not.toHaveBeenCalled();
+        set.mockResolvedValue(null);
+        await expect(createMatchLiveSession(redis, participants, actor)).rejects.toThrow('고유한');
+    });
+
     it('이미 저장된 빈 객체 명단을 빈 배열로 복구해 같은 코드로 10인 명단을 반영한다', async () => {
         const { redis, set } = createRedis();
         const created = (await createMatchLiveSession(redis, [], actor))!;
@@ -154,7 +164,7 @@ describe('match live store', () => {
         expect(created?.session.participants).toEqual(participants);
         expect(created?.session.collaborators[0]).toMatchObject(actor);
         expect(created?.session.expiresAt).toBe(getMatchLiveExpiresAt(created!.session.updatedAt));
-        expect(set.mock.calls[0]?.[2]).toEqual({ ex: 3 * 60 * 60 });
+        expect(set.mock.calls[0]?.[2]).toEqual({ pxat: created!.session.expiresAt, nx: true });
     });
 
     it('기대 revision이 맞을 때만 다음 revision으로 갱신한다', async () => {

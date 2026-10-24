@@ -11,7 +11,7 @@ afterEach(() => { for (const directory of directories.splice(0)) rmSync(director
 const script = fileURLToPath(new URL('../../.github/scripts/deploy-realtime.sh', import.meta.url));
 const commit = 'a'.repeat(40);
 
-function fixture() {
+function fixture(withStorage = false) {
   const directory = realpathSync(mkdtempSync(join(tmpdir(), 'owkr-deploy-test-'))); directories.push(directory);
   const root = join(directory, 'app'); const bin = join(directory, 'bin'); const config = join(directory, 'config');
   const previous = join(root, 'releases', 'previous'); const payload = join(directory, 'payload');
@@ -20,6 +20,15 @@ function fixture() {
   writeFileSync(join(config, 'server.env'), ''); writeFileSync(join(config, 'participant-oauth.env'), '');
   writeFileSync(join(payload, '.release-sha'), `${commit}\n`);
   writeFileSync(join(payload, 'realtime/src/index.js'), 'export {};\n');
+  const storage = join(directory, 'storage');
+  if (withStorage) {
+    mkdirSync(storage); mkdirSync(join(payload, 'deploy'));
+    for (const file of ['storage-sync.py', 'storage-gateway.py']) {
+      writeFileSync(join(storage, file), 'old gateway');
+      writeFileSync(join(payload, 'deploy', file), 'new gateway');
+    }
+    writeFileSync(join(config, 'gateway.env'), 'STORAGE_TOKEN=test-only');
+  }
   const archive = join(directory, 'release.tar.gz');
   expect(spawnSync('tar', ['-czf', archive, '-C', payload, '.']).status).toBe(0);
   const checksum = createHash('sha256').update(readFileSync(archive)).digest('hex');
@@ -28,6 +37,7 @@ function fixture() {
   shell('id', 'echo 0'); shell('uname', 'echo "Linux x86_64"');
   shell('runtime', 'if [[ "$1" == --version ]]; then echo v24.22.0; fi');
   shell('flock', 'exit 0'); shell('chown', 'exit 0'); shell('sleep', 'exit 0');
+  shell('python', `if [[ "$1" == - && "$TEST_FAIL_STORAGE" == 1 && "$(cat "$OWKR_STORAGE_ROOT/storage-sync.py")" == 'new gateway' ]]; then exit 1; fi`);
   shell('systemctl', 'printf "%s\\n" "$*" >> "$TEST_LOG"');
   shell('curl', `if [[ "$TEST_FAIL_NEW" == 1 && "$(readlink -f "$OWKR_DEPLOY_ROOT/current")" == "$OWKR_DEPLOY_ROOT/releases/$TEST_COMMIT" ]]; then exit 22; fi
 printf '%s' '{"status":"ready","mode":"redis"}'`);
@@ -37,16 +47,34 @@ printf '%s' '{"status":"ready","mode":"redis"}'`);
 const [hash, path] = fs.readFileSync(0, 'utf8').trimEnd().split('  ');
 process.exit(crypto.createHash('sha256').update(fs.readFileSync(path)).digest('hex') === hash ? 0 : 1);`);
   const log = join(directory, 'commands.log');
-  const run = (options: { checksum?: string; failNew?: boolean } = {}) => spawnSync('bash', [script, archive, commit, options.checksum ?? checksum], {
+  const run = (options: { checksum?: string; failNew?: boolean; failStorage?: boolean } = {}) => spawnSync('bash', [script, archive, commit, options.checksum ?? checksum], {
     encoding: 'utf8', timeout: 10000,
     env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, OWKR_DEPLOY_ROOT: root, OWKR_ENV_ROOT: config,
       OWKR_NODE_BIN: join(bin, 'runtime'), OWKR_DEPLOY_LOCK: join(directory, 'deploy.lock'), TEST_LOG: log,
-      TEST_COMMIT: commit, TEST_FAIL_NEW: options.failNew ? '1' : '' },
+      OWKR_STORAGE_ROOT: storage, OWKR_STORAGE_ENV: join(config, 'gateway.env'), OWKR_PYTHON_BIN: join(bin, 'python'),
+      TEST_COMMIT: commit, TEST_FAIL_NEW: options.failNew ? '1' : '', TEST_FAIL_STORAGE: options.failStorage ? '1' : '' },
   });
-  return { root, previous, log, run };
+  return { root, previous, storage, log, run };
 }
 
 describe('realtime release deployment', () => {
+  it('updates the installed gateway between stopping and restarting the application', () => {
+    const app = fixture(true); const result = app.run();
+    expect(result.status, result.stderr).toBe(0);
+    expect(readFileSync(join(app.storage, 'storage-sync.py'), 'utf8')).toBe('new gateway');
+    const commands = readFileSync(app.log, 'utf8');
+    expect(commands.indexOf('stop owkr-draft')).toBeLessThan(commands.indexOf('stop owkr-storage-gateway'));
+    expect(commands.indexOf('start owkr-storage-gateway')).toBeLessThan(commands.indexOf('start owkr-draft'));
+  });
+
+  it.each(['gateway', 'application'])('restores gateway code and the previous release after a %s failure', failure => {
+    const app = fixture(true); const result = app.run({ failStorage: failure === 'gateway', failNew: failure === 'application' });
+    expect(result.status).not.toBe(0);
+    expect(realpathSync(join(app.root, 'current'))).toBe(app.previous);
+    expect(readFileSync(join(app.storage, 'storage-sync.py'), 'utf8')).toBe('old gateway');
+    expect(readFileSync(join(app.storage, 'storage-gateway.py'), 'utf8')).toBe('old gateway');
+    expect(result.stderr).toContain('Previous release restored and healthy');
+  });
   it('stops the previous writer before starting the new release and skips a healthy rerun', () => {
     const app = fixture(); const result = app.run();
     expect(result.status, result.stderr).toBe(0);

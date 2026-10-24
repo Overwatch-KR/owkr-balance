@@ -93,7 +93,7 @@ export function UserSheetEntryContent({
                                     </span>
                                 )}
                                 <span className="truncate text-xs text-slate-400">
-                                    최종 수정 · {entry.updatedByName} · {new Date(entry.updatedAt).toLocaleString('ko-KR')}
+                                    최종 수정 · {entry.updatedByName} · {new Date(entry.updatedAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}
                                 </span>
                             </div>
                             <div className="flex justify-end gap-2">
@@ -169,7 +169,7 @@ export function UserSheetEntryContent({
                                     </span>
                                 )}
                                 <span className="text-xs text-slate-400">
-                                    최종 수정 · {entry.updatedByName} · {new Date(entry.updatedAt).toLocaleString('ko-KR')}
+                                    최종 수정 · {entry.updatedByName} · {new Date(entry.updatedAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}
                                 </span>
                             </div>
                             <h2 id="user-sheet-entry-title" className="truncate text-xl font-semibold text-white">

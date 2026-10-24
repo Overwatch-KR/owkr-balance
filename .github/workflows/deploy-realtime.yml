@@ -41,6 +41,12 @@ jobs:
           pnpm install --frozen-lockfile
           pnpm check
 
+      - name: Verify storage failover before deployment
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends redis-server python3-redis
+          /usr/bin/python3 realtime/deploy/storage-sync-test.py
+
       - name: Package standalone Linux runtime
         run: |
           pnpm realtime:package

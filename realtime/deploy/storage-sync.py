@@ -11,6 +11,12 @@ import urllib.error
 PREFIXES = ('user-sheet:', 'scrims:', 'events:', 'match-live:', 'match-shares:', 'player-note:', 'draft:v1:')
 META = 'owkr:storage-sync:v1'
 READS = frozenset('GET EXISTS TTL PTTL HGET HGETALL HVALS HLEN HMGET MGET ZRANGE ZRANGEBYSCORE ZCARD PING TIME'.split())
+QUOTA_RETRY_SECONDS = 3600
+
+
+def is_quota_error(error):
+    message = str(error).lower()
+    return any(marker in message for marker in ('max requests', 'request limit', 'quota exceeded', 'command limit'))
 
 
 def managed_key(key):
@@ -230,6 +236,7 @@ class StorageSync:
         self.ready = False
         self.last_error = None
         self.last_sync = None
+        self.retry_at = 0
         self.db = sqlite3.connect(path, check_same_thread=False)
         self.db.execute('PRAGMA journal_mode=WAL')
         self.db.execute('PRAGMA synchronous=FULL')
@@ -254,6 +261,8 @@ class StorageSync:
     def record(self, key, before, after, stamp):
         row = self.db.execute('SELECT versions FROM states WHERE key=?', (key,)).fetchone()
         meta = versions(key, before, json.loads(row[0]) if row else {}, 0)
+        # Sequential changes in the same millisecond must beat the mirrored old value.
+        stamp = max(stamp, max((item['time'] for item in meta.values()), default=0) + 1)
         meta = versions(key, after, meta, stamp)
         meta['\0key'] = {'time': stamp, 'hash': digest(after), 'deleted': after['kind'] == 'none', 'expires': after['expires']}
         self.save(key, after, meta, True)
@@ -279,7 +288,9 @@ class StorageSync:
         with self.lock:
             readonly = all(c[0].upper() in READS for c in commands)
             managed = self.keys_for(commands) == self.keys_for(commands, managed=False)
-            if readonly and self.ready and managed and any(c[0].upper() not in ('PING', 'TIME') for c in commands):
+            # The sole local writer owns this index; idle housekeeping must not poll Upstash every second.
+            local_room_index = self.keys_for(commands, managed=False) == {'draft:v1:active'}
+            if readonly and self.ready and managed and not local_room_index and any(c[0].upper() not in ('PING', 'TIME') for c in commands):
                 try:
                     # Each command is read-only, so an ambiguous timeout can safely fall back.
                     def raw(value):
@@ -289,9 +300,11 @@ class StorageSync:
                             return [raw(item) for item in value]
                         return value
                     return [raw(self.upstream.execute_command(*c)) for c in commands]
-                except Exception:
+                except Exception as error:
                     self.ready = False
-                    self.last_error = 'upstream_unavailable'
+                    self.last_error = 'upstream_quota' if is_quota_error(error) else 'upstream_unavailable'
+                    if is_quota_error(error):
+                        self.retry_at = time.monotonic() + QUOTA_RETRY_SECONDS
                     self.wake.set()
             keys = self.keys_for(commands) if not readonly else set()
             before = {key: snapshot(self.client, key)[0] for key in keys}
@@ -322,13 +335,12 @@ class StorageSync:
 
     def scan(self, client):
         keys = set()
-        for prefix in PREFIXES:
-            cursor = '0'
-            while True:
-                cursor, found = client.execute_command('SCAN', cursor, 'MATCH', prefix + '*', 'COUNT', 200)
-                keys.update(value for k in found if managed_key(value := k.decode() if isinstance(k, bytes) else k))
-                if str(cursor) in ('0', "b'0'"):
-                    break
+        cursor = '0'
+        while True:
+            cursor, found = client.execute_command('SCAN', cursor, 'COUNT', 200)
+            keys.update(value for k in found if managed_key(value := k.decode() if isinstance(k, bytes) else k))
+            if str(cursor) in ('0', "b'0'"):
+                break
         return keys
 
     def reconcile(self, key):
@@ -422,6 +434,8 @@ class StorageSync:
         failures, last_full = 0, 0
         while not self.stopped.is_set():
             self.wake.clear()
+            if self.stopped.wait(max(0, self.retry_at - time.monotonic())):
+                break
             try:
                 full = failures > 0 or last_full == 0 or time.monotonic() - last_full > 900
                 self.cycle(full)
@@ -432,11 +446,12 @@ class StorageSync:
             except Exception as error:
                 with self.lock:
                     self.ready = False
-                    self.last_error = 'upstream_quota' if 'max requests' in str(error).lower() else 'upstream_unavailable'
+                    self.last_error = 'upstream_quota' if is_quota_error(error) else 'upstream_unavailable'
                     self.db.rollback()
                 failures += 1
                 # Writes cannot bypass backoff and spend the failed provider's quota.
-                self.stopped.wait(min(300, 2 ** min(failures, 8)))
+                delay = QUOTA_RETRY_SECONDS if is_quota_error(error) else min(300, 2 ** min(failures, 8))
+                self.retry_at = time.monotonic() + delay
 
     def start(self):
         self.thread = threading.Thread(target=self.run, name='storage-sync', daemon=True)
@@ -445,7 +460,8 @@ class StorageSync:
     def status(self):
         with self.lock:
             return {'backend': 'upstash' if self.ready else 'local', 'pendingKeys': self.db.execute('SELECT COUNT(*) FROM states WHERE dirty=1').fetchone()[0],
-                    'lastSyncAt': self.last_sync, 'upstream': self.last_error or ('ready' if self.ready else 'recovering')}
+                    'lastSyncAt': self.last_sync, 'upstream': self.last_error or ('ready' if self.ready else 'recovering'),
+                    'nextRetryAt': now() + int((self.retry_at - time.monotonic()) * 1000) if self.retry_at > time.monotonic() else None}
 
 
 def from_environment(client):

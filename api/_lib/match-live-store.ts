@@ -286,8 +286,6 @@ export const createMatchLiveSession = async (
     for (let attempt = 0; attempt < MATCH_LIVE_CREATE_ATTEMPTS; attempt++) {
         const code = buildMatchLiveCode();
         const key = getMatchLiveKey(code);
-        if (await redis.get(key) !== null) continue;
-
         const now = Date.now();
         const session: StoredMatchLiveSession = {
             expiresAt: getMatchLiveExpiresAt(now),
@@ -297,7 +295,8 @@ export const createMatchLiveSession = async (
             recentChange: null,
             updatedAt: now,
         };
-        await redis.set(key, session, { ex: Math.ceil((session.expiresAt - now) / 1000) });
+        const saved = await redis.set(key, session, { pxat: session.expiresAt, nx: true });
+        if (saved !== 'OK') continue;
         return { code, session };
     }
 

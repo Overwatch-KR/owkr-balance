@@ -21,9 +21,9 @@ const createRedis = () => {
     const set = vi.fn(async (
         key: string,
         value: unknown,
-        options?: { ex?: number },
+        options?: { ex?: number; nx?: boolean },
     ) => {
-        void options;
+        if (options?.nx && values.has(key)) return null;
         values.set(key, structuredClone(value));
         return 'OK';
     });
@@ -35,6 +35,15 @@ const createRedis = () => {
 };
 
 describe('match share store', () => {
+    it('코드 충돌은 덮어쓰지 않고 재시도하며 사전 조회를 하지 않는다', async () => {
+        const { redis, get, set } = createRedis();
+        set.mockResolvedValueOnce(null);
+        expect(await createMatchShare(redis, participants)).not.toBeNull();
+        expect(set).toHaveBeenCalledTimes(2);
+        expect(get).not.toHaveBeenCalled();
+        set.mockResolvedValue(null);
+        await expect(createMatchShare(redis, participants)).rejects.toThrow('고유한');
+    });
     it('Redis 값에는 Discord ID와 position만 저장하고 24시간 TTL을 적용한다', async () => {
         const { redis, set } = createRedis();
 
@@ -44,7 +53,7 @@ describe('match share store', () => {
         expect(set).toHaveBeenCalledTimes(1);
         expect(set.mock.calls[0]?.[0]).toBe(`match-shares:v1:${created?.code}`);
         expect(set.mock.calls[0]?.[1]).toEqual(participants);
-        expect(set.mock.calls[0]?.[2]).toEqual({ ex: MATCH_SHARE_TTL_SECONDS });
+        expect(set.mock.calls[0]?.[2]).toEqual({ ex: MATCH_SHARE_TTL_SECONDS, nx: true });
         expect(Object.keys((set.mock.calls[0]?.[1] as MatchShareParticipant[])[0])).toEqual([
             'discordUserId',
             'position',

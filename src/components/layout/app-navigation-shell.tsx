@@ -88,6 +88,7 @@ const LIVE_CHANGE_LABELS = {
 } as const;
 
 const formatLiveChangeTime = (timestamp: number): string => new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
     hour: 'numeric',
     minute: '2-digit',
 }).format(timestamp);

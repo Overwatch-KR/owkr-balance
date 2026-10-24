@@ -38,9 +38,8 @@ export const createMatchShare = async (
     for (let attempt = 0; attempt < MATCH_SHARE_CREATE_ATTEMPTS; attempt++) {
         const code = buildMatchShareCode();
         const key = getMatchShareKey(code);
-        if (await redis.get(key) !== null) continue;
-
-        await redis.set(key, participants, { ex: MATCH_SHARE_TTL_SECONDS });
+        const saved = await redis.set(key, participants, { ex: MATCH_SHARE_TTL_SECONDS, nx: true });
+        if (saved !== 'OK') continue;
         return { code, participants };
     }
 

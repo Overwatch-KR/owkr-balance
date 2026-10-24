@@ -10,6 +10,7 @@ import urllib.request
 import base64
 import time
 import unittest
+from unittest.mock import patch
 
 import redis
 
@@ -182,6 +183,15 @@ class SyncTest(unittest.TestCase):
         self.assertIsNone(self.remote.get('scrims:old'))
         self.assertEqual(self.remote.get('scrims:new'), b'new')
 
+    def test_same_millisecond_delete_does_not_lose_to_remote_copy(self):
+        with patch.object(m, 'now', return_value=1_800_000_000_000):
+            self.write('SET', 'scrims:same-ms', 'old')
+            self.sync.cycle()
+            self.write('DEL', 'scrims:same-ms')
+            self.sync.cycle()
+            self.assertIsNone(self.remote.get('scrims:same-ms'))
+            self.assertIsNone(self.local.get('scrims:same-ms'))
+
     def test_crash_between_journal_and_redis_restore(self):
         key = 'scrims:crash'
         state = {'kind': 'string', 'value': 'committed merge', 'expires': 0}
@@ -224,6 +234,67 @@ class SyncTest(unittest.TestCase):
         self.remote.set('unrelated:private', 'secret')
         self.sync.cycle()
         self.assertIsNone(self.local.get('unrelated:private'))
+
+    def test_scan_traverses_once_and_filters_unmanaged_keys(self):
+        self.remote.set('scrims:managed', 'data')
+        self.remote.set('unrelated:private', 'secret')
+        self.remote.set('draft:v1:writer', 'lease')
+        self.remote.set('draft:v1:deploytest:probe', 'probe')
+        calls = self.upstream.calls
+        self.assertEqual(self.sync.scan(self.upstream), {'scrims:managed'})
+        self.assertEqual(self.upstream.calls - calls, 1)
+
+    def test_active_room_housekeeping_stays_local_after_recovery(self):
+        self.write('ZADD', 'draft:v1:active', 2000, 'local-room')
+        self.sync.cycle()
+        self.remote.zadd('draft:v1:active', {'remote-only': 3000})
+        calls = self.upstream.calls
+        for _ in range(10):
+            self.assertEqual(self.write('ZRANGE', 'draft:v1:active', 0, -1), [b'local-room'])
+        self.assertEqual(self.upstream.calls, calls)
+        self.assertTrue(self.sync.ready)
+
+    def test_mixed_active_index_and_data_reads_keep_upstream_semantics(self):
+        self.write('SET', 'scrims:remote-read', 'local')
+        self.sync.cycle()
+        self.remote.set('scrims:remote-read', 'remote')
+        result = self.sync.execute([['ZRANGE', 'draft:v1:active', 0, -1], ['GET', 'scrims:remote-read']], batch=True)
+        self.assertEqual(result, [[], b'remote'])
+
+    def test_quota_cooldown_cannot_be_bypassed_by_writes(self):
+        self.sync.cycle()
+        with patch.object(self.upstream, 'execute_command', side_effect=RuntimeError('ERR max requests limit exceeded')) as remote:
+            self.assertEqual(self.write('GET', 'scrims:missing'), None)
+            self.assertEqual(self.sync.last_error, 'upstream_quota')
+            self.assertGreater(self.sync.status()['nextRetryAt'], m.now() + 3_500_000)
+            self.sync.start()
+            try:
+                self.write('SET', 'scrims:during-quota', 'local')
+                time.sleep(.1)
+                self.assertEqual(remote.call_count, 1)
+                self.assertEqual(self.write('GET', 'scrims:during-quota'), b'local')
+            finally:
+                self.sync.stopped.set()
+                self.sync.wake.set()
+                self.sync.thread.join(timeout=2)
+            self.assertFalse(self.sync.thread.is_alive())
+
+    def test_background_quota_failure_uses_hourly_retry(self):
+        with patch.object(self.upstream, 'execute_command', side_effect=RuntimeError('ERR quota exceeded')) as remote:
+            self.sync.start()
+            try:
+                deadline = time.monotonic() + 2
+                while self.sync.last_error is None and time.monotonic() < deadline:
+                    time.sleep(.01)
+                self.write('SET', 'scrims:quota-write', 'local')
+                time.sleep(.1)
+                self.assertEqual(self.sync.last_error, 'upstream_quota')
+                self.assertEqual(remote.call_count, 1)
+                self.assertGreater(self.sync.status()['nextRetryAt'], m.now() + 3_500_000)
+            finally:
+                self.sync.stopped.set()
+                self.sync.wake.set()
+                self.sync.thread.join(timeout=2)
 
     def adapter(self, sync):
         spec = importlib.util.spec_from_file_location('storage_gateway', Path(__file__).with_name('storage-gateway.py'))

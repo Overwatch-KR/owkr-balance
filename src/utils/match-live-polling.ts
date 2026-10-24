@@ -1,6 +1,7 @@
 export const MATCH_LIVE_ACTIVE_POLL_INTERVAL_MS = 500;
 export const MATCH_LIVE_IDLE_POLL_INTERVAL_MS = 1_500;
 export const MATCH_LIVE_ACTIVITY_WINDOW_MS = 30_000;
+const MATCH_LIVE_MAX_ERROR_POLL_INTERVAL_MS = 30_000;
 
 /**
  * @description 최근 공동 작업 활동 여부에 따라 다음 서버 확인 간격을 선택한다.
@@ -8,8 +9,11 @@ export const MATCH_LIVE_ACTIVITY_WINDOW_MS = 30_000;
 export const getMatchLivePollDelay = (
     now: number,
     activeUntil: number,
+    consecutiveErrors = 0,
 ): number => (
-    now < activeUntil
+    consecutiveErrors > 0
+        ? Math.min(MATCH_LIVE_MAX_ERROR_POLL_INTERVAL_MS, 1_500 * 2 ** Math.min(consecutiveErrors, 5))
+        : now < activeUntil
         ? MATCH_LIVE_ACTIVE_POLL_INTERVAL_MS
         : MATCH_LIVE_IDLE_POLL_INTERVAL_MS
 );
