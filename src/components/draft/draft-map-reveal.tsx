@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import type { DraftAudio } from '@application/draft/draft-audio';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import { getMapRevealDurationMs } from '#domain/draft';
 import type { DraftRoomSnapshot } from '#domain/draft';
@@ -14,8 +15,9 @@ function remainingTime(snapshot: DraftRoomSnapshot): number {
 }
 
 /** @description 서버 시간에 맞춰 득표 슬롯을 추첨한 뒤 중앙의 확정 맵 하나만 별도로 4초간 공개한다. */
-export function DraftMapReveal({ snapshot }: { snapshot: DraftRoomSnapshot }) {
+export function DraftMapReveal({ snapshot, audio }: { snapshot: DraftRoomSnapshot; audio?: DraftAudio }) {
   const result = snapshot.mapResult!;
+  const sounded = useRef(false);
   const reducedMotion = useReducedMotion();
   const plan = useMemo(() => createDraftMapRollPlan(snapshot), [snapshot]);
   const totalDurationMs = getMapRevealDurationMs(result);
@@ -39,6 +41,13 @@ export function DraftMapReveal({ snapshot }: { snapshot: DraftRoomSnapshot }) {
   }, [baseElapsed, reducedMotion, snapshot.timer.status, totalDurationMs, plan.resultAtMs]);
   const frame = getDraftMapRollFrame(plan, snapshot.timer.status === 'ACTIVE' ? Math.max(baseElapsed, elapsed) : baseElapsed);
   const finished = frame.finished;
+  useEffect(() => {
+    if (finished && snapshot.timer.status === 'ACTIVE' && !sounded.current && audio?.isReady()) {
+      sounded.current = true;
+      void audio.play('mapComplete', 'voice');
+    }
+  }, [finished, snapshot.timer.status, audio]);
+  useEffect(() => () => audio?.stop('voice'), [audio]);
   const drawingMap = !finished && frame.phase?.kind === 'MAP';
   const activeOption = frame.phase?.slots.find(slot => slot.id === frame.activeSlotId)?.optionId;
   const voteWinner = result.selectedOption;

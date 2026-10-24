@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useDraftAudio } from '@application/draft/use-draft-audio';
 import { draftRequest, useDraftRoom } from '@application/draft/use-draft-room';
 import { DraftParticipantWaiting } from './draft-participant-waiting';
 import { DraftParticipantEntry } from './draft-participant-entry';
@@ -12,6 +13,7 @@ export function PublicDraftPage() {
   const validCode = /^[A-Z2-9]{10}$/.test(code);
   const [authFailure, setAuthFailure] = useState(() => new URL(window.location.href).searchParams.get('draft_error') ?? '');
   const controller = useDraftRoom({ roomCode: validCode && !authFailure ? code : null, mode: 'participant' });
+  const sound = useDraftAudio(controller.snapshot, controller.connected && !controller.roomClosed);
   useEffect(() => {
     const url = new URL(window.location.href);
     if (!url.searchParams.has('draft_error')) return;
@@ -44,7 +46,7 @@ export function PublicDraftPage() {
         <p className="mt-3 text-sm text-slate-400">공유받은 내전 링크를 다시 열어 주세요. 링크가 없거나 방이 만료되었다면 운영자에게 새 링크를 요청해 주세요.</p>
       </section> : controller.admission ? <DraftParticipantWaiting admission={controller.admission} error={error || controller.error} login={login} pending={pending} />
         : controller.snapshot && !controller.participantAuthRequired
-        ? <DraftRoomPanel controller={controller} />
+        ? <DraftRoomPanel controller={controller} sound={sound} />
         : authFailure || controller.participantAuthRequired
           ? <DraftParticipantEntry pending={pending} error={error || (controller.error === 'Discord로 참여해 주세요.' ? '' : controller.error)} login={login} authFailure={authFailure} reconnect={() => { setAuthFailure(''); controller.reconnect(); }} />
           : <section className="mx-auto w-full max-w-lg border-y border-slate-700 py-10 text-center">

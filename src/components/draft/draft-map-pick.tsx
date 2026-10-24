@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import type { DraftAudio } from '@application/draft/draft-audio';
+import { useRef, useState } from 'react';
 import type { DraftRoomController } from '@application/draft/use-draft-room';
 import { DraftAsset } from './draft-asset';
 
 const MODE_LABELS = { CONTROL: '쟁탈', HYBRID: '혼합', ESCORT: '호위', PUSH: '밀기', FLASHPOINT: '플래시포인트' } as const;
 
 /** @description 미사용 맵을 모두 탐색하되 지정된 팟지 선수만 한 맵을 확정할 수 있다. */
-export function DraftMapPick({ controller, onNotice }: { controller: DraftRoomController; onNotice?: (message: string) => void }) {
+export function DraftMapPick({ controller, onNotice, audio }: { audio?: DraftAudio; controller: DraftRoomController; onNotice?: (message: string) => void }) {
   const snapshot = controller.snapshot!;
+  const picked = useRef(false);
   const [search, setSearch] = useState('');
   const [mode, setMode] = useState('ALL');
   const [page, setPage] = useState(0);
@@ -29,7 +31,7 @@ export function DraftMapPick({ controller, onNotice }: { controller: DraftRoomCo
           {Object.entries(MODE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>
     </div>
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">{maps.slice(currentPage * 6, currentPage * 6 + 6).map(map => <button key={map.mapId} type="button" disabled={disabled}
-      aria-label={map.nameKo} aria-pressed={selected === map.mapId} onClick={() => setSelected(map.mapId)}
+      aria-label={map.nameKo} aria-pressed={selected === map.mapId} onClick={() => { if (selected !== map.mapId) { void audio?.play(picked.current ? 'mapChange' : 'mapFirst', 'click'); picked.current = true; setSelected(map.mapId); } }}
       className={`min-w-0 overflow-hidden rounded-md border bg-surface-elevated text-left disabled:cursor-default ${selected === map.mapId ? 'border-cyan-400 ring-1 ring-cyan-400' : 'border-slate-800 enabled:hover:border-slate-500'}`}>
       <DraftAsset kind="maps" id={map.mapId} name={map.nameKo} /><div className="flex items-center justify-between gap-2 px-2 py-2"><span className="truncate text-xs font-semibold">{map.nameKo}</span><span className="shrink-0 text-[10px] text-slate-500">{MODE_LABELS[map.mode]}</span></div>
     </button>)}</div>

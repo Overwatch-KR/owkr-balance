@@ -1,4 +1,5 @@
 import './draft-workspace.css';
+import { useDraftAudio } from '@application/draft/use-draft-audio';
 import { getDraftTeamLabel, getDraftSideSummary } from './draft-room-view';
 import { useState } from 'react';
 import { DraftMapSetup } from './draft-map-setup';
@@ -17,7 +18,22 @@ import type { DraftRoomController } from '@application/draft/use-draft-room';
 const ROLE_LABELS = { TANK: '탱커', DPS: '공격', SUPPORT: '지원' } as const;
 const buttonClass = 'btn-ghost border border-slate-800 text-xs disabled:opacity-40';
 
-export function DraftRoomPanel({ controller, admin = false }: { controller: DraftRoomController; admin?: boolean }) {
+interface DraftRoomPanelProps {
+  controller: DraftRoomController;
+  admin?: boolean;
+  sound?: ReturnType<typeof useDraftAudio>;
+}
+
+export function DraftRoomPanel({ sound, ...props }: DraftRoomPanelProps) {
+  return sound ? <DraftRoomContent {...props} sound={sound} /> : <DraftRoomWithAudio {...props} />;
+}
+
+function DraftRoomWithAudio(props: Omit<DraftRoomPanelProps, 'sound'>) {
+  const sound = useDraftAudio(props.controller.snapshot, props.controller.connected && !props.controller.roomClosed);
+  return <DraftRoomContent {...props} sound={sound} />;
+}
+
+function DraftRoomContent({ controller, admin = false, sound }: Omit<DraftRoomPanelProps, 'sound'> & { sound: ReturnType<typeof useDraftAudio> }) {
   const snapshot = controller.snapshot;
   const [operatorOpen, setOperatorOpen] = useState(false);
   const [notice, setNotice] = useState('');
@@ -41,7 +57,7 @@ export function DraftRoomPanel({ controller, admin = false }: { controller: Draf
     catch { setNotice('복사 권한을 확인해 주세요.'); }
   };
   return <div className={`draft-room-panel ${snapshot.ballots?.self || ['MAP_PICKING', 'MAP_RESOLVED'].includes(snapshot.phase) ? 'draft-room-selecting' : 'space-y-5'}`}>
-    <DraftRoomHeader controller={controller} admin={admin} onOpenOperator={() => setOperatorOpen(true)} />
+    <DraftRoomHeader controller={controller} admin={admin} onOpenOperator={() => setOperatorOpen(true)} sound={sound} />
     <DraftConnectionStatus controller={controller} notice={notice} />
     {snapshot.isOperator && <DraftOperatorActions key={`${snapshot.gameId}:${snapshot.epoch}`} controller={controller} execute={execute} />}
     {self && snapshot.phase === 'LOBBY' && <section className="border-y border-slate-800 py-5">
@@ -52,11 +68,11 @@ export function DraftRoomPanel({ controller, admin = false }: { controller: Draf
     {snapshot.phase === 'LOBBY' && snapshot.participants.length === 0 && <section className="border-y border-slate-800 py-5"><h3 className="font-semibold text-white">참가자 로그인 대기방이 열렸습니다</h3><p className="mt-2 text-sm text-slate-400">방 링크를 먼저 공유해 주세요. 참가자는 Discord 로그인 후 대기하며, 대진표에서 10명을 편성하면 자동으로 입장합니다.</p></section>}
     {snapshot.phase === 'LOBBY' && <p className="text-xs text-slate-400">맵 선정: {snapshot.mapSelection.mode === 'VOTE' ? '참가자 투표' : `팟지 · ${snapshot.participants.find(player => player.discordId === snapshot.mapSelection.pickerDiscordId)?.displayName ?? '선수 지정 필요'}`}</p>}
     {snapshot.phase === 'LOBBY' && snapshot.participants.length === 10 && snapshot.isOperator && <DraftMapSetup key={snapshot.epoch} controller={controller} onNotice={setNotice} />}
-    {snapshot.phase === 'MAP_PICKING' && <DraftMapPick key={`${snapshot.gameId}:${snapshot.epoch}`} controller={controller} onNotice={setNotice} />}
-    {snapshot.phase === 'MAP_RESOLVED' && snapshot.mapResult && <DraftMapReveal key={snapshot.mapResult.resolutionId} snapshot={snapshot} />}
-    {snapshot.ballots?.self && <DraftSelection key={`${snapshot.gameId}:${snapshot.epoch}:${snapshot.stageKind}`} controller={controller} onNotice={setNotice} />}
-    <DraftGameSummary snapshot={snapshot} />
-    {snapshot.heroResult && <DraftBanResult key={snapshot.heroResult.resolutionId} snapshot={snapshot} onCopy={() => void copyResult()} />}
+    {snapshot.phase === 'MAP_PICKING' && <DraftMapPick key={`${snapshot.gameId}:${snapshot.epoch}`} audio={sound.audio} controller={controller} onNotice={setNotice} />}
+    {snapshot.phase === 'MAP_RESOLVED' && snapshot.mapResult && <DraftMapReveal key={snapshot.mapResult.resolutionId} snapshot={snapshot} audio={sound.audio} />}
+    {snapshot.ballots?.self && <DraftSelection key={`${snapshot.gameId}:${snapshot.epoch}:${snapshot.stageKind}`} audio={sound.audio} controller={controller} onNotice={setNotice} />}
+    <DraftGameSummary snapshot={snapshot} hideBans={Boolean(snapshot.heroResult)} />
+    {snapshot.heroResult && <DraftBanResult key={snapshot.heroResult.resolutionId} snapshot={snapshot} audio={sound.audio} onCopy={() => void copyResult()} />}
     {snapshot.participants.length > 0 && !snapshot.ballots?.self && !['MAP_PICKING', 'MAP_RESOLVED'].includes(snapshot.phase) && <section aria-label="배정된 팀" className={`grid gap-4 md:grid-cols-2 ${snapshot.heroResult ? 'draft-result-roster' : ''}`}>
       {(['A', 'B'] as const).map(team => <div key={team} className={`border-t-2 pt-3 ${team === (snapshot.mapResult?.firstAttackTeam ?? 'A') ? 'border-red-500' : 'border-blue-500'}`}>
         <h3 className="mb-2 font-semibold">{getDraftTeamLabel(team, snapshot.mapResult?.firstAttackTeam)} · 게임 로비 {team === 'A' ? 1 : 2}팀</h3>

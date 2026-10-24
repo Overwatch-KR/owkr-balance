@@ -79,6 +79,12 @@ function DraftPreviewContent({ heroes }: { heroes: readonly DraftHero[] }) {
   const initial = useMemo(() => exampleSnapshot(screen, heroes), [screen, heroes]);
   const [snapshot, setSnapshot] = useState(initial);
   const [otherVotes, setOtherVotes] = useState<readonly string[]>(exampleOtherVotes);
+  const testVoting = (kind: 'MAP' | 'BAN') => {
+    const view = exampleSnapshot(kind === 'MAP' ? 'map-test' : 'ban', heroes);
+    setSnapshot(previous => ({ ...view, epoch: previous.epoch + 1,
+      mapResult: kind === 'BAN' ? previous.mapResult ?? view.mapResult : null,
+      ballots: { ...view.ballots!, self: { ...view.ballots!.self!, selection: [], locked: false } } }));
+  };
   const testReveal = (variant: 'vote' | 'random' | 'landslide' | 'abstained') => {
     const now = Date.now();
     const entropy = Array.from(crypto.getRandomValues(new Uint32Array(64)), value => value / 4294967296);
@@ -96,9 +102,13 @@ function DraftPreviewContent({ heroes }: { heroes: readonly DraftHero[] }) {
   };
   useEffect(() => {
     if (snapshot.phase !== 'MAP_RESOLVED' || !snapshot.timer.deadlineAt) return;
-    const timeout = setTimeout(() => setSnapshot(previous => ({ ...exampleSnapshot('ban', heroes), mapResult: previous.mapResult, mapSelection: previous.mapSelection })), Math.max(0, snapshot.timer.deadlineAt - Date.now()));
+    const timeout = setTimeout(() => setSnapshot(previous => {
+      const view = exampleSnapshot('ban', heroes);
+      return { ...view, epoch: previous.epoch, mapResult: previous.mapResult, mapSelection: previous.mapSelection,
+        ...(screen === 'map-test' ? { ballots: { ...view.ballots!, self: { ...view.ballots!.self!, selection: [], locked: false } } } : {}) };
+    }), Math.max(0, snapshot.timer.deadlineAt - Date.now()));
     return () => clearTimeout(timeout);
-  }, [snapshot.phase, snapshot.timer.deadlineAt, heroes]);
+  }, [snapshot.phase, snapshot.timer.deadlineAt, heroes, screen]);
   const controller: DraftRoomController = { snapshot, connected: !['reconnecting', 'replaced'].includes(screen), connectionReplaced: screen === 'replaced', reconnecting: screen === 'reconnecting', pending: false, error: '', reconnect: () => {},
     command: async (type, values) => {
       if (type === 'map.configure') setSnapshot(previous => ({ ...previous, epoch: previous.epoch + 1,
@@ -139,8 +149,8 @@ function DraftPreviewContent({ heroes }: { heroes: readonly DraftHero[] }) {
         className={`rounded border px-3 py-2 text-xs ${screen === id ? 'border-cyan-500 text-cyan-200' : 'border-slate-800 text-slate-400'}`}>{label}</a>)}</nav></details>
       {entryScreen && <DraftEntryHeader />}
       {screen === 'map-test' && <section className="mb-3 shrink-0 border-y border-cyan-900 py-3" aria-label="로컬 맵 추첨 테스트">
-        <p className="text-sm font-semibold text-cyan-200">맵 추첨 테스트 · 실제 내전과 연결되지 않습니다</p>
-        <p className="mt-1 text-xs text-slate-400">맵을 선택한 뒤 추첨을 시작하세요. 2.5~4초 추첨 → 확정 맵 하나를 4초 확인 → 밴 투표 순서로 진행합니다.</p>
+        <p className="text-sm font-semibold text-cyan-200">맵·사운드 테스트 · 실제 내전과 연결되지 않습니다</p>
+        <p className="mt-1 text-xs text-slate-400">맵 선택 → 추첨 → 밴 3개 선택 → 밴 결과 공개 순서로 확인하세요. 자동재생이 차단되면 오른쪽 소리를 켜 주세요. 아래 버튼으로 단계를 반복하거나 마감 5초·일시정지를 시험할 수 있습니다.</p>
         <div className="mt-3 flex flex-wrap gap-2">
           <button type="button" className="btn-primary text-xs" onClick={() => testReveal('vote')}>투표 종료·추첨 보기</button>
           <button type="button" className="btn-ghost text-xs" onClick={() => testReveal('random')}>무작위 당첨 테스트</button>
@@ -153,7 +163,24 @@ function DraftPreviewContent({ heroes }: { heroes: readonly DraftHero[] }) {
             setSnapshot(previous => ({ ...view, epoch: previous.epoch + 1,
               ballots: { ...view.ballots!, ...previewMapTotals([], votes) } }));
           }}>압승 경계 테스트 · 첫 맵 선택·해제</button>
-          <button type="button" className="btn-ghost text-xs" onClick={() => { setOtherVotes(exampleOtherVotes); setSnapshot(exampleSnapshot('map-test', heroes)); }}>다시 투표</button>
+          <button type="button" className="btn-ghost text-xs" onClick={() => { setOtherVotes(exampleOtherVotes); testVoting('MAP'); }}>다시 투표</button>
+          <button type="button" className="btn-ghost text-xs" onClick={() => testVoting('BAN')}>밴 투표 시작</button>
+          <button type="button" className="btn-ghost text-xs" disabled={!snapshot.stageKind} onClick={() => {
+            const now = Date.now();
+            setSnapshot(previous => ({ ...previous, serverNow: now,
+              timer: { ...previous.timer, status: 'ACTIVE', deadlineAt: now + 5000, remainingMs: null } }));
+          }}>마감 5초 테스트</button>
+          <button type="button" className="btn-ghost text-xs" onClick={() => {
+            const now = Date.now();
+            setSnapshot(previous => previous.timer.status === 'ACTIVE'
+              ? { ...previous, serverNow: now, timer: { ...previous.timer, status: 'PAUSED', deadlineAt: null, remainingMs: previous.timer.deadlineAt === null ? null : Math.max(0, previous.timer.deadlineAt - now) } }
+              : { ...previous, serverNow: now, timer: { ...previous.timer, status: 'ACTIVE', deadlineAt: previous.timer.remainingMs === null ? null : now + previous.timer.remainingMs, remainingMs: null } });
+          }}>{snapshot.timer.status === 'ACTIVE' ? '일시정지 테스트' : '재개 테스트'}</button>
+          <button type="button" className="btn-primary text-xs" onClick={() => {
+            setSnapshot(previous => ({ ...exampleSnapshot('result', heroes), epoch: previous.epoch,
+              mapResult: previous.mapResult ?? exampleSnapshot('result', heroes).mapResult,
+              heroResult: { ...exampleSnapshot('result', heroes).heroResult!, resolutionId: `preview-ban-${crypto.randomUUID()}` } }));
+          }}>밴 결과 공개</button>
         </div>
       </section>}
       {screen === 'waiting' || screen === 'excluded' ? <DraftParticipantWaiting admission={{ status: screen === 'waiting' ? 'WAITING' : 'EXCLUDED', displayName: '하늘', participantCount: screen === 'waiting' ? 4 : 10 }} error="" login={() => {}} /> : screen === 'missing' ? <DraftClosedRoom reason="ROOM_EXPIRED" /> : screen === 'login' ? <DraftParticipantEntry pending={false} error="" login={() => {}} reconnect={() => {}} /> : screen.startsWith('operator')

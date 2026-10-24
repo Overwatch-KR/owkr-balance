@@ -1,3 +1,4 @@
+import { getDraftSelectionSound, type DraftAudio } from '@application/draft/draft-audio';
 import { useRef, useState } from 'react';
 import { Check, RotateCcw } from 'lucide-react';
 import { getMapVoteLead, MAP_LANDSLIDE_MARGIN, type DraftRole } from '#domain/draft';
@@ -10,7 +11,7 @@ import { DraftMapLead } from './draft-map-lead';
 
 const ROLE_LABELS = { TANK: '탱커', DPS: '공격', SUPPORT: '지원' } as const;
 
-export function DraftSelection({ controller, onNotice }: { controller: DraftRoomController; onNotice?: (message: string) => void }) {
+export function DraftSelection({ controller, onNotice, audio }: { audio?: DraftAudio; controller: DraftRoomController; onNotice?: (message: string) => void }) {
   const snapshot = controller.snapshot!;
   const self = snapshot.ballots?.self;
   const [selection, setSelection] = useState<string[]>(() => [...(self?.selection ?? [])]);
@@ -21,6 +22,7 @@ export function DraftSelection({ controller, onNotice }: { controller: DraftRoom
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [readyReceipt, setReadyReceipt] = useState<{ revision: number; ready: boolean } | null>(null);
+  const mapSelected = useRef(Boolean(self?.selection.some(Boolean)));
   const submittingRef = useRef(false);
   const [activeRole, setActiveRole] = useState<DraftRole>(() => snapshot.participants.find(player => player.discordId === snapshot.selfDiscordId)?.role ?? 'TANK');
   if (!self) return null;
@@ -51,6 +53,8 @@ export function DraftSelection({ controller, onNotice }: { controller: DraftRoom
   };
   const changeSelection = (next: string[]) => {
     if (disabled || submittingRef.current) return;
+    const sound = getDraftSelectionSound(isBan ? 'BAN' : 'MAP', selection, next, !mapSelected.current);
+    if (sound) { void audio?.play(sound, 'click'); if (isMap) mapSelected.current = true; }
     setSelection(next);
     submit(next.filter(Boolean).length === (isBan ? 3 : 1), next);
   };

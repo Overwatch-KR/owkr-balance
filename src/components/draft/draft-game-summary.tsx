@@ -3,7 +3,7 @@ import { DraftAsset } from './draft-asset';
 import { getDraftSideSummary } from './draft-room-view';
 
 /** @description 적용 확인 후에도 맵·공수·밴을 함께 표시하고 다음 경기 대기실에는 직전 결과를 구분해 남긴다. */
-export function DraftGameSummary({ snapshot }: { snapshot: DraftRoomSnapshot }) {
+export function DraftGameSummary({ snapshot, hideBans = false }: { snapshot: DraftRoomSnapshot; hideBans?: boolean }) {
   const previous = snapshot.phase === 'LOBBY' ? snapshot.previousGame : undefined;
   const current = ['HERO_RESOLVED', 'COMPLETED'].includes(snapshot.phase) && snapshot.mapResult && snapshot.heroResult;
   if (!previous && !current) return null;
@@ -19,10 +19,10 @@ export function DraftGameSummary({ snapshot }: { snapshot: DraftRoomSnapshot }) 
       <p className="mt-1 text-xs text-slate-400">{attack ? getDraftSideSummary(attack) : '공격·수비 구분 없음'}</p>
       {previous && <p className="mt-1 text-xs text-slate-500">다음 경기의 맵·밴은 새로 선정합니다.</p>}
     </div>
-    <div><p className="mb-2 text-xs text-slate-400">양 팀 공통 영웅 밴</p>
+    {!hideBans && <div><p className="mb-2 text-xs text-slate-400">양 팀 공통 영웅 밴</p>
       {bans.length ? <ul className="flex flex-wrap gap-2">{bans.map(hero => <li key={hero.heroId} className="w-14 text-center">
         <DraftAsset kind="heroes" id={hero.heroId} name={hero.nameKo} /><p className="mt-1 truncate text-[11px] text-slate-200">{hero.nameKo}</p>
       </li>)}</ul> : <p className="text-sm text-slate-300">밴 없음 · 전원 기권</p>}
-    </div>
+    </div>}
   </section>;
 }

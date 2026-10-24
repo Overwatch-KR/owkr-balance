@@ -1,3 +1,5 @@
+import type { DraftAudio } from '@application/draft/draft-audio';
+import { useDraftBanReveal } from '@application/draft/use-draft-ban-reveal';
 import { useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Ban, Copy, RotateCcw } from 'lucide-react';
@@ -18,10 +20,11 @@ function teamAppearance(team: DraftTeam | null, firstAttackTeam: DraftTeam | nul
 }
 
 /** @description 서버의 슬롯 순서·선택 팀을 보존해 결과를 순차 공개하며 진영 미배정 맵은 게임 로비 팀 번호를 표시한다. */
-export function DraftBanResult({ snapshot, onCopy }: { snapshot: DraftRoomSnapshot; onCopy: () => void }) {
+export function DraftBanResult({ snapshot, onCopy, audio }: { audio?: DraftAudio; snapshot: DraftRoomSnapshot; onCopy: () => void }) {
   const reducedMotion = useReducedMotion();
   const [replay, setReplay] = useState(0);
   const result = snapshot.heroResult!;
+  const visible = useDraftBanReveal(audio, result.resolutionId, replay);
   const attack = snapshot.mapResult?.firstAttackTeam ?? null;
   const slots = result.slots.length ? result.slots : result.bannedHeroIds.map(heroId => ({ team: null, heroId }));
   return <section aria-label="최종 영웅 밴" className="overflow-hidden rounded-lg border border-slate-800 bg-surface-elevated">
@@ -43,8 +46,9 @@ export function DraftBanResult({ snapshot, onCopy }: { snapshot: DraftRoomSnapsh
         const appearance = teamAppearance(slot.team, attack);
         const score = slot.team && result.scores[slot.team].find(entry => entry.heroId === slot.heroId)?.effectiveScore;
         return <motion.li key={index} data-ban-order={index + 1} data-ban-team={slot.team ?? 'unknown'}
-          initial={reducedMotion ? false : { opacity: 0, y: -18, scale: 1.12 }} animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={reducedMotion ? { duration: 0 } : { delay: index * 0.45, duration: 0.3, type: 'spring', stiffness: 380, damping: 22 }}
+          data-ban-revealed={index < visible} aria-hidden={index >= visible}
+          initial={{ opacity: 0 }} animate={{ opacity: index < visible ? 1 : 0, y: reducedMotion || index < visible ? 0 : -18, scale: reducedMotion || index < visible ? 1 : 1.12 }}
+          transition={reducedMotion ? { duration: 0 } : { duration: 0.18, type: 'spring', stiffness: 500, damping: 26 }}
           className="min-w-0 text-center">
           <p className="mb-2 font-mono text-[10px] font-semibold tracking-[0.2em] text-slate-500">BAN 0{index + 1}</p>
           <div className={`relative mx-auto w-full max-w-24 overflow-hidden rounded-md border-2 p-1 shadow-lg shadow-black/30 ${appearance.border} ${appearance.surface}`}>

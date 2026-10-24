@@ -1,3 +1,5 @@
+import type { useDraftAudio } from '@application/draft/use-draft-audio';
+import { Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { DraftRoomSnapshot } from '#domain/draft';
 import type { DraftRoomController } from '@application/draft/use-draft-room';
@@ -19,7 +21,7 @@ function DraftCountdown({ snapshot, connected }: { snapshot: DraftRoomSnapshot; 
     <span className={`font-mono text-2xl tabular-nums ${remaining !== null && remaining <= 5 && !paused ? 'text-amber-300' : 'text-cyan-300'}`}>{remaining === null ? '—' : `${remaining}초`}</span></div>;
 }
 
-export function DraftRoomHeader({ controller, admin, onOpenOperator }: { controller: DraftRoomController; admin: boolean; onOpenOperator: () => void }) {
+export function DraftRoomHeader({ controller, admin, onOpenOperator, sound }: { controller: DraftRoomController; admin: boolean; onOpenOperator: () => void; sound?: ReturnType<typeof useDraftAudio> }) {
   const [copyNotice, setCopyNotice] = useState('');
   const snapshot = controller.snapshot!;
   const copyLink = async () => {
@@ -37,7 +39,8 @@ export function DraftRoomHeader({ controller, admin, onOpenOperator }: { control
   return <header className="draft-room-header">
     <PageHeader eyebrow={`OWKR MATCH CONTROL · ${admin ? '밴픽 운영' : '실시간 내전 참여'}`}
       title={`${snapshot.gameIndex}경기 · ${title}`}
-      actions={<>{snapshot.isOperator && <button type="button" className="btn-ghost border border-cyan-700 text-xs text-cyan-200" onClick={() => void copyLink()}>공유 링크 복사</button>}
+      actions={<>{sound && <button type="button" className="btn-ghost text-xs" aria-label={sound.muted ? '소리 켜기' : !sound.ready ? '소리 켜기' : '소리 끄기'} aria-pressed={sound.ready && !sound.muted} onClick={sound.toggle}>
+        {sound.muted || !sound.ready ? <VolumeX size={15} /> : <Volume2 size={15} />}{sound.muted || !sound.ready ? '소리 켜기' : '소리 켜짐'}</button>}{snapshot.isOperator && <button type="button" className="btn-ghost border border-cyan-700 text-xs text-cyan-200" onClick={() => void copyLink()}>공유 링크 복사</button>}
         {snapshot.isOperator && <button type="button" className="btn-ghost text-xs" onClick={onOpenOperator}>참가 현황·운영</button>}
         <DraftCountdown key={`${snapshot.serverNow}:${snapshot.timer.status}:${controller.connected}`} snapshot={snapshot} connected={controller.connected} /></>} />
     {copyNotice && <p className="mb-2 text-xs text-slate-300" role="status">{copyNotice}</p>}

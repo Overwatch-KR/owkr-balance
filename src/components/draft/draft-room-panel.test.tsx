@@ -350,3 +350,11 @@ it('automatically prepares lobby participants without a ready toggle', () => {
   expect(markup).toContain('입장 완료 · 자동 준비 상태');
   expect(markup).not.toContain('준비 취소'); expect(markup).not.toMatch(/<button[^>]*>준비 완료/);
 });
+
+ it('밴 결과 순차 공개 화면의 맵 요약에서 영웅 목록을 미리 공개하지 않는다', () => {
+  const view = snapshot(); view.phase = 'HERO_RESOLVED';
+  const markup = render(<DraftGameSummary snapshot={view} hideBans />);
+  expect(markup).toContain('왕의 길');
+  expect(markup).not.toContain('양 팀 공통 영웅 밴');
+  expect(markup).not.toContain('/hero/test/ana.webp');
+});
