@@ -34,6 +34,7 @@ import { ParticipationLinkError } from './participation-link-error';
 import { ParticipationClosed } from './participation-closed';
 import { RosterParticipantSelect } from './roster-participant-select';
 import { SurveySubmissionComplete } from './survey-submission-complete';
+import { applyPageMetadata, getPageMetadata } from '../../utils/page-metadata';
 
 const token = window.location.pathname.split('/').filter(Boolean).at(-1) ?? '';
 type SatisfactionOption = (typeof SATISFACTION_OPTIONS)[number];
@@ -65,6 +66,9 @@ const PublicParticipationSkeleton = () => (
  */
 export function PublicParticipationPage() {
     const [data, setData] = useState<GetPublicParticipationQueryResult | null>(null);
+    useEffect(() => {
+        applyPageMetadata(getPageMetadata('/participate/', { participationKind: data?.kind }));
+    }, [data?.kind]);
     const [isLoading, setIsLoading] = useState(true);
     const [participantId, setParticipantId] = useState('');
     const [heroIds, setHeroIds] = useState<string[]>([]);

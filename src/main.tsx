@@ -8,6 +8,7 @@ import { AppRecoveryScreen } from './components/common/app-recovery-screen';
 import { AppNavigationShell } from './components/layout/app-navigation-shell';
 import { AuthProvider } from './hooks/use-auth';
 import { queryClient } from './query-client';
+import { applyPageMetadata, getPageMetadata } from './utils/page-metadata';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) throw new Error('애플리케이션 루트 요소를 찾지 못했습니다.');
@@ -17,6 +18,7 @@ window.addEventListener('vite:preloadError', () => {
 });
 
 const normalizedPath = window.location.pathname.replace(/\/+$/, '') || '/';
+applyPageMetadata(getPageMetadata(normalizedPath));
 const isDraftPreview = import.meta.env.DEV && ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname)
     && normalizedPath === '/__preview/draft';
 const pagePromise = isDraftPreview
@@ -32,12 +34,6 @@ const shouldUseAppNavigation = !isDraftPreview && normalizedPath !== '/discord-l
     && !normalizedPath.startsWith('/draft/')
     && !normalizedPath.startsWith('/participate/');
 const LazyPage = lazy(() => pagePromise.then(Page => ({ default: Page })));
-
-if (normalizedPath === '/discord-login-policy') {
-    document.title = '디스코드 로그인 정보 이용 안내 | OWKR Match';
-}
-if (normalizedPath.startsWith('/participate/')) document.title = 'OWKR 내전 참여';
-if (normalizedPath.startsWith('/draft/')) document.title = 'OWKR 실시간 내전 참여';
 
 const root = createRoot(rootElement, {
     onUncaughtError(error) {

@@ -26,6 +26,7 @@ import type {
 } from '#domain/balance';
 import { useAuth } from '../../hooks/use-auth';
 import { REALTIME_DRAFT_ENABLED } from '@application/draft/use-draft-room';
+import { applyPageMetadata, getPageMetadata } from '../../utils/page-metadata';
 
 export const APP_PATH_CHANGE_EVENT = 'owkr:navigation:path-change';
 export const OPEN_GUIDE_EVENT = 'owkr:navigation:open-guide';
@@ -412,6 +413,9 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
     const moreTriggerRef = useRef<HTMLButtonElement>(null);
     const previousFocusRef = useRef<HTMLElement | null>(null);
     const [pathname, setPathname] = useState(normalizePathname);
+    useEffect(() => {
+        applyPageMetadata(getPageMetadata(pathname, { isLogin: !isLoading && !user }));
+    }, [isLoading, pathname, user]);
     const [isCollapsed, setIsCollapsed] = useState(() => {
         try {
             return localStorage.getItem(NAVIGATION_COLLAPSED_KEY) === 'true';
@@ -434,16 +438,22 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
     useEffect(() => {
         const syncPathname = () => setPathname(normalizePathname());
         const originalPushState = window.history.pushState;
+        const originalReplaceState = window.history.replaceState;
         const patchedPushState: History['pushState'] = function (data, unused, url) {
             originalPushState.call(window.history, data, unused, url);
             window.dispatchEvent(new Event(APP_PATH_CHANGE_EVENT));
         };
 
         window.history.pushState = patchedPushState;
+        window.history.replaceState = function (data, unused, url) {
+            originalReplaceState.call(window.history, data, unused, url);
+            window.dispatchEvent(new Event(APP_PATH_CHANGE_EVENT));
+        };
         window.addEventListener('popstate', syncPathname);
         window.addEventListener(APP_PATH_CHANGE_EVENT, syncPathname);
         return () => {
             window.history.pushState = originalPushState;
+            window.history.replaceState = originalReplaceState;
             window.removeEventListener('popstate', syncPathname);
             window.removeEventListener(APP_PATH_CHANGE_EVENT, syncPathname);
         };
