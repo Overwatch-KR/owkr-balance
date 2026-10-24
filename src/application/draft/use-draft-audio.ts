@@ -1,11 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DraftRoomSnapshot } from '#domain/draft';
-import { BAN_BGM_VOLUME, createDraftAudio } from './draft-audio';
+import { readDraftVolume, rememberDraftVolume } from './draft-audio-preferences';
+import { BAN_BGM_VOLUME, createDraftAudio, DEFAULT_DRAFT_VOLUME } from './draft-audio';
 
 /** @description 방의 현재 단계·서버 마감 시간에 맞춰 안내음과 반복음을 재생한다. */
 export function useDraftAudio(snapshot: DraftRoomSnapshot | null, connected: boolean) {
   const [audio] = useState(createDraftAudio);
   const [muted, setMuted] = useState(false);
+  const [volume, setVolumeState] = useState(readDraftVolume);
+  useEffect(() => audio.setVolume(volume), [audio, volume]);
+  const setVolume = (value: number) => {
+    if (!Number.isFinite(value)) return;
+    const next = Math.max(0, Math.min(1, value));
+    audio.setVolume(next); setVolumeState(next); rememberDraftVolume(next);
+    if (next > 0) setMuted(false);
+  };
   const [ready, setReady] = useState(false);
   const announced = useRef('');
   const clock = useRef({ serverNow: 0, receivedAt: 0 });
@@ -30,6 +39,7 @@ export function useDraftAudio(snapshot: DraftRoomSnapshot | null, connected: boo
     };
   }, [audio, unlock]);
   const toggle = () => {
+    if (volume === 0) { setVolume(DEFAULT_DRAFT_VOLUME); setMuted(false); unlock(); return; }
     if (!ready) { setMuted(false); audio.setEnabled(true); unlock(); return; }
     audio.setEnabled(muted); setMuted(!muted);
     if (muted) unlock();
@@ -64,5 +74,5 @@ export function useDraftAudio(snapshot: DraftRoomSnapshot | null, connected: boo
     const timer = setInterval(update, 50);
     return () => { clearInterval(timer); audio.stop('countdown'); };
   }, [audio, active, phase, stageKey, deadline]);
-  return { audio, muted, ready, toggle };
+  return { audio, muted, ready, toggle, volume, setVolume };
 }

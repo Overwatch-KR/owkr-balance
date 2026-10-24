@@ -54,9 +54,10 @@ export function DraftMapReveal({ snapshot, audio }: { snapshot: DraftRoomSnapsho
   const activeVoteSlot = !reducedMotion && !finished && frame.phase?.kind === 'VOTE' ? frame.activeSlotId : null;
   const winningVoteSlot = finished || drawingMap ? plan.phases.find(phase => phase.kind === 'VOTE')?.frames.at(-1)?.slotId
     ?? plan.voteSlots.find(slot => slot.optionId === voteWinner)?.id : undefined;
-  const showVotes = result.method !== 'POTG' && result.method !== 'ALL_ABSTAINED';
+  const showVotes = !['POTG', 'POTG_TIMEOUT', 'ALL_ABSTAINED'].includes(result.method);
   const title = finished ? '맵 선정 완료' : drawingMap ? '미사용 맵 추첨 중' : '맵 추첨 중';
-  const explanation = result.method === 'POTG' ? '지정 선수가 선택한 맵입니다.'
+  const explanation = result.method === 'POTG_TIMEOUT' ? '팟지 선정 시간 초과 · 미사용 맵에서 무작위로 확정되었습니다.'
+    : result.method === 'POTG' ? '지정 선수가 선택한 맵입니다.'
     : result.method === 'LANDSLIDE' ? '6표 이상 차이 · 압도적 득표로 선택되었습니다.'
     : result.method === 'ALL_ABSTAINED' ? '전원 기권 · 미사용 전체 맵에서 추첨합니다.'
     : drawingMap ? '무작위 당첨 · 표시된 후보를 제외한 미사용 맵에서 추첨합니다.'
@@ -70,7 +71,7 @@ export function DraftMapReveal({ snapshot, audio }: { snapshot: DraftRoomSnapsho
       </div>}
       <DraftAsset kind="maps" id={result.map.mapId} name={result.map.nameKo} />
       <figcaption className="p-4 text-center sm:p-6" aria-live="polite">
-        <p className="text-xs font-semibold text-cyan-300">선택된 맵</p>
+        <p className="text-xs font-semibold text-cyan-300">{result.method === 'POTG_TIMEOUT' ? '시간 초과 · 무작위 확정' : '선택된 맵'}</p>
         <h2 className="mt-2 text-2xl font-semibold text-white sm:text-3xl">{result.map.nameKo}</h2>
         <p className="mt-2 text-xs text-slate-400">{result.firstAttackTeam ? getDraftSideSummary(result.firstAttackTeam) : '공격·수비 구분 없음'}</p>
         <p className="mt-3 text-xs text-slate-500">확정 맵을 4초간 확인한 뒤 영웅 밴 투표를 시작합니다.</p>

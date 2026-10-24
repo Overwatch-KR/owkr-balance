@@ -1,9 +1,9 @@
 import { randomBytes, randomUUID, randomInt } from 'node:crypto';
 import {
-  applyBallotCommand, createDraftHistory, createMapCandidates, DEFAULT_DRAFT_TIMINGS, DRAFT_RULES_VERSION, DRAFT_LIMITS,
+  applyBallotCommand, createDraftHistory, createMapCandidates, DEFAULT_DRAFT_TIMINGS, POTG_MAP_PICK_SECONDS, DRAFT_RULES_VERSION, DRAFT_LIMITS,
   getDraftRoomExpiry, getOperatorParticipantStatuses, getDraftStartBlockers, hasConnectedOperator,
   isConnectionAlive, isDraftOperator, pauseDraftTimer, projectDraftBallots, requireDraft,
-  getUsedDraftMapIds, getEligibleDraftMaps, resolvePotgMap, resolveHeroBans, resolveMapVote, resumeDraftTimer, sealBallotStage, validateDraftSource,
+  getUsedDraftMapIds, getEligibleDraftMaps, resolvePotgMap, resolvePotgTimeout, resolveHeroBans, resolveMapVote, resumeDraftTimer, sealBallotStage, validateDraftSource,
   type BallotKind, type DraftCatalog, type DraftConnection, type DraftHero,
   type DraftMap, type DraftParticipant, type ParticipantProgress,
   type DraftRoomSnapshot,
@@ -306,6 +306,8 @@ export class DraftEngine {
     } else if (command.type === 'map.pick') {
       requireDraft(room.phase === 'MAP_PICKING' && room.timer.status === 'ACTIVE' && room.mapSelection.mode === 'POTG',
         'INVALID_PHASE', '팟지 맵 선택 단계에서만 확정할 수 있습니다.');
+      requireDraft(room.timer.deadlineAt !== null && now < room.timer.deadlineAt, 'BALLOT_CLOSED', '맵 선정 시간이 끝났습니다.');
+      guard.acceptBefore = room.timer.deadlineAt;
       requireDraft(client.discordId === room.mapSelection.pickerDiscordId, 'PICKER_REQUIRED', '지정된 팟지 선수만 맵을 확정할 수 있습니다.');
       validateDraftSource(bundle.source, room.source, now);
       room.mapResult = resolvePotgMap({ resolutionId: `${room.gameId}:${room.epoch}:POTG`, catalog: room.mapCatalog,
@@ -344,7 +346,7 @@ export class DraftEngine {
         requireDraft(roster(room).some(player => player.discordId === room.mapSelection.pickerDiscordId), 'INVALID_PICKER', '팟지 선수를 다시 지정해 주세요.');
         requireDraft(getEligibleDraftMaps(room.mapCatalog, this.usedMaps(bundle)).length > 0, 'MAP_POOL_EXHAUSTED', '미사용 맵이 없습니다.');
         room.phase = 'MAP_PICKING'; room.stage = null;
-        room.timer = { ...room.timer, phase: room.phase, deadlineAt: null, remainingMs: null };
+        room.timer = { ...room.timer, phase: room.phase, deadlineAt: now + POTG_MAP_PICK_SECONDS * 1000, remainingMs: null };
       } else {
         room.candidates = createMapCandidates({
           resolutionId: `${room.gameId}:${room.epoch}:MAP`, catalog: room.mapCatalog,
@@ -499,6 +501,19 @@ export class DraftEngine {
       room.timer = pauseDraftTimer(room.timer, now);
       if (room.stage?.status === 'OPEN') room.stage.status = 'PAUSED';
       await this.save(bundle); return;
+    }
+    if (room.phase === 'MAP_PICKING') {
+      if (room.timer.deadlineAt === null) {
+        room.timer = { ...room.timer, deadlineAt: now + POTG_MAP_PICK_SECONDS * 1000, remainingMs: null };
+        await this.save(bundle); return;
+      }
+      if (now >= room.timer.deadlineAt) {
+        const deadline = room.timer.deadlineAt;
+        room.mapResult = resolvePotgTimeout({ resolutionId: `${room.gameId}:${room.epoch}:POTG_TIMEOUT`,
+          catalog: room.mapCatalog, usedCanonicalMapIds: this.usedMaps(bundle), entropy: entropy() });
+        room.phase = 'MAP_RESOLVED'; room.timer = { ...room.timer, phase: room.phase, deadlineAt: -1, remainingMs: null };
+        await this.save(bundle, { acceptAtOrAfter: deadline, expectedSourceRaw: bundle.sourceRaw! }); return;
+      }
     }
     if (room.stage?.status === 'OPEN' && now >= room.stage.deadlineAt) {
       room.stage = sealBallotStage(room.stage, `${room.gameId}:${room.epoch}:${room.stage.kind}`, now, entropy());

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { DEFAULT_DRAFT_MAP_CATALOG, DEFAULT_DRAFT_HERO_CATALOG, DEFAULT_DRAFT_TIMINGS, DRAFT_LIMITS, getMapRevealDurationMs, resolveMapVote } from '#domain/draft';
+import { DEFAULT_DRAFT_MAP_CATALOG, DEFAULT_DRAFT_HERO_CATALOG, DEFAULT_DRAFT_TIMINGS, DRAFT_LIMITS, getMapRevealDurationMs, resolveMapVote, POTG_MAP_PICK_SECONDS, resolvePotgTimeout } from '#domain/draft';
 import type { DraftHero, DraftParticipant, DraftPhase, DraftRoomSnapshot } from '#domain/draft';
 import type { DraftRoomController } from '@application/draft/use-draft-room';
 import { DraftRoomPanel } from './draft-room-panel';
@@ -52,7 +52,7 @@ function exampleSnapshot(screen: string, heroes: readonly DraftHero[]): DraftRoo
     selection: stageKind === 'MAP' ? screen === 'map-test' ? [] : ['kings-row'] : ['ana', 'widowmaker'] };
   return {
     roomCode: 'EXAMPLE234', gameId: 'example-game', gameIndex: 1, epoch: 1, roomRevision: 1,
-    phase, expiresAt: now + 3600000, timer: { phase, status: frozenReveal ? 'PAUSED' : 'ACTIVE', deadlineAt: frozenReveal ? null : isReveal ? now + revealDurationMs : stageKind ? now + (stageKind === 'MAP' ? DEFAULT_DRAFT_TIMINGS.mapVotingSeconds : DEFAULT_DRAFT_TIMINGS.heroVotingSeconds) * 1000 : null, remainingMs: frozenReveal ? revealDurationMs - elapsed : null, expiresAt: now + 3600000, epoch: 1 },
+    phase, expiresAt: now + 3600000, timer: { phase, status: frozenReveal ? 'PAUSED' : 'ACTIVE', deadlineAt: frozenReveal ? null : isReveal ? now + revealDurationMs : phase === 'MAP_PICKING' ? now + POTG_MAP_PICK_SECONDS * 1000 : stageKind ? now + (stageKind === 'MAP' ? DEFAULT_DRAFT_TIMINGS.mapVotingSeconds : DEFAULT_DRAFT_TIMINGS.heroVotingSeconds) * 1000 : null, remainingMs: frozenReveal ? revealDurationMs - elapsed : null, expiresAt: now + 3600000, epoch: 1 },
     participants, selfDiscordId: participants[0].discordId, isOperator: screen.startsWith('operator'), selfReady: true, readyCount: screen === 'operator-ready' ? 10 : 8,
     availableMapCount: maps.length, availableMaps: maps, mapSelection: screen.startsWith('potg') ? { mode: 'POTG', pickerDiscordId: participants[screen === 'potg' ? 0 : 1].discordId } : { mode: 'VOTE', pickerDiscordId: null }, inputConnected: true, heroes, stageKind,
     progress: participants.map((player, index) => ({ ...player, connectionStatus: screen === 'operator-ready' ? 'CONNECTED' : index === 8 ? 'DISCONNECTED' : index === 9 ? 'NEVER_JOINED' : 'CONNECTED',
@@ -109,6 +109,17 @@ function DraftPreviewContent({ heroes }: { heroes: readonly DraftHero[] }) {
     }), Math.max(0, snapshot.timer.deadlineAt - Date.now()));
     return () => clearTimeout(timeout);
   }, [snapshot.phase, snapshot.timer.deadlineAt, heroes, screen]);
+  useEffect(() => {
+    if (snapshot.phase !== 'MAP_PICKING' || snapshot.timer.status !== 'ACTIVE' || !snapshot.timer.deadlineAt) return;
+    const timeout = setTimeout(() => setSnapshot(previous => {
+      const now = Date.now();
+      const mapResult = resolvePotgTimeout({ resolutionId: `preview-timeout-${now}`, catalog: DEFAULT_DRAFT_MAP_CATALOG,
+        usedCanonicalMapIds: [], entropy: Array.from(crypto.getRandomValues(new Uint32Array(64)), value => value / 4294967296) });
+      return { ...previous, phase: 'MAP_RESOLVED', mapResult, serverNow: now,
+        timer: { ...previous.timer, phase: 'MAP_RESOLVED', deadlineAt: now + getMapRevealDurationMs(mapResult) } };
+    }), Math.max(0, snapshot.timer.deadlineAt - Date.now()));
+    return () => clearTimeout(timeout);
+  }, [snapshot.phase, snapshot.timer.status, snapshot.timer.deadlineAt]);
   const controller: DraftRoomController = { snapshot, connected: !['reconnecting', 'replaced'].includes(screen), connectionReplaced: screen === 'replaced', reconnecting: screen === 'reconnecting', pending: false, error: '', reconnect: () => {},
     command: async (type, values) => {
       if (type === 'map.configure') setSnapshot(previous => ({ ...previous, epoch: previous.epoch + 1,

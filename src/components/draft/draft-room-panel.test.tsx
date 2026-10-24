@@ -175,13 +175,17 @@ describe('draft selection and ban results', () => {
     const markup = render(<DraftMapPick controller={{ snapshot: view, connected: true, pending: false, error: '', command: vi.fn(), reconnect: vi.fn() }} />);
     expect(markup).toContain('별빛님의 맵 선택을 기다리고 있습니다');
     expect(markup).not.toContain('이 맵으로 확정');
-    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*aria-label="아틀리스"/);
+    expect(markup).toMatch(/<article[^>]*aria-label="아틀리스"/);
+    expect(markup).toContain('팟지 맵 선정 남은 시간');
+    expect(markup).toContain('60초 안에 확정하지 않으면');
   });
   it('지정 선수에게 미사용 전체 맵 탐색과 확정 기능을 제공한다', () => {
     const view = snapshot(); view.phase = 'MAP_PICKING'; view.availableMaps = DEFAULT_DRAFT_MAP_CATALOG.entries;
     view.mapSelection = { mode: 'POTG', pickerDiscordId: 'self' };
     const markup = render(<DraftMapPick controller={{ snapshot: view, connected: true, pending: false, error: '', command: vi.fn(), reconnect: vi.fn() }} />);
-    expect(markup).toContain('미사용 맵 31개'); expect(markup).toContain('맵 검색'); expect(markup).toContain('다음 맵');
+    expect(markup).toContain('미사용 맵 31개'); expect(markup).toContain('맵 검색'); expect(markup).toContain('미사용 맵 목록');
+    expect(markup).not.toContain('다음 맵');
+    expect(markup.match(/aria-pressed="false"/g)).toHaveLength(31);
     expect(markup).toContain('이 맵으로 확정'); expect(markup).toContain('4초');
   });
   it('전원 기권은 가짜 밴 슬롯이나 선택 팀을 만들지 않는다', () => {
@@ -232,7 +236,9 @@ describe('draft selection and ban results', () => {
     expect(markup).toContain('밴픽 진행 단계');
     expect(markup).not.toContain('선호 영웅');
     expect(markup).toContain('aria-current="step"');
-    expect(markup).toContain('진행 정지');
+    expect(markup).toContain('일시정지');
+    expect(markup.match(/role="timer"/g)).toHaveLength(1);
+    expect(markup).not.toContain('aria-label="남은 시간"');
   });
 
   it('현재 경기 상태에 맞는 운영 작업을 선택한다', () => {

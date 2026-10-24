@@ -39,10 +39,17 @@ export function DraftRoomHeader({ controller, admin, onOpenOperator, sound }: { 
   return <header className="draft-room-header">
     <PageHeader eyebrow={`OWKR MATCH CONTROL · ${admin ? '밴픽 운영' : '실시간 내전 참여'}`}
       title={`${snapshot.gameIndex}경기 · ${title}`}
-      actions={<>{sound && <button type="button" className="btn-ghost text-xs" aria-label={sound.muted ? '소리 켜기' : !sound.ready ? '소리 켜기' : '소리 끄기'} aria-pressed={sound.ready && !sound.muted} onClick={sound.toggle}>
-        {sound.muted || !sound.ready ? <VolumeX size={15} /> : <Volume2 size={15} />}{sound.muted || !sound.ready ? '소리 켜기' : '소리 켜짐'}</button>}{snapshot.isOperator && <button type="button" className="btn-ghost border border-cyan-700 text-xs text-cyan-200" onClick={() => void copyLink()}>공유 링크 복사</button>}
+      actions={<>{sound && <div className="flex items-center gap-2" role="group" aria-label="소리 설정">
+        <button type="button" className="btn-ghost text-xs" aria-label={sound.muted || sound.volume === 0 || !sound.ready ? '소리 켜기' : '소리 끄기'} aria-pressed={sound.ready && !sound.muted && sound.volume > 0} onClick={sound.toggle}>
+          {sound.muted || sound.volume === 0 || !sound.ready ? <VolumeX size={15} /> : <Volume2 size={15} />}<span className="sr-only">소리</span>
+        </button>
+        <label className="flex items-center gap-2 text-xs text-slate-400"><span className="sr-only">음량</span>
+          <input type="range" min="0" max="100" step="1" value={Math.round(sound.volume * 100)} aria-label="음량" className="w-20 accent-cyan-400 sm:w-24" onChange={event => sound.setVolume(Number(event.target.value) / 100)} />
+          <output className="w-8 text-right font-mono tabular-nums">{sound.muted ? 0 : Math.round(sound.volume * 100)}%</output>
+        </label>
+      </div>}{snapshot.isOperator && <button type="button" className="btn-ghost border border-cyan-700 text-xs text-cyan-200" onClick={() => void copyLink()}>공유 링크 복사</button>}
         {snapshot.isOperator && <button type="button" className="btn-ghost text-xs" onClick={onOpenOperator}>참가 현황·운영</button>}
-        <DraftCountdown key={`${snapshot.serverNow}:${snapshot.timer.status}:${controller.connected}`} snapshot={snapshot} connected={controller.connected} /></>} />
+        {snapshot.phase !== 'MAP_PICKING' && <DraftCountdown key={`${snapshot.serverNow}:${snapshot.timer.status}:${controller.connected}`} snapshot={snapshot} connected={controller.connected} />}</>} />
     {copyNotice && <p className="mb-2 text-xs text-slate-300" role="status">{copyNotice}</p>}
     <ol className="draft-steps" aria-label="밴픽 진행 단계">{labels.map((label, index) => <li key={index} aria-current={step === index ? 'step' : undefined}
       className={step === index ? 'draft-step-current' : step > index ? 'draft-step-done' : ''}><span>{index < step ? '✓' : index + 1}</span>{label}</li>)}</ol>

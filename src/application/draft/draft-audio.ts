@@ -7,6 +7,7 @@ export type DraftSound = keyof typeof DRAFT_AUDIO_FILES;
 export type DraftAudioChannel = 'voice' | 'click' | 'countdown' | 'bgm' | 'result';
 export interface DraftPlayback { elapsedMs: () => number }
 export const BAN_REVEAL_BEATS_MS = [240, 780, 1050, 1330] as const;
+export const DEFAULT_DRAFT_VOLUME = 0.5;
 export const BAN_BGM_VOLUME = 0.12;
 
 export function getBanRevealCount(elapsedMs: number): number {
@@ -23,12 +24,17 @@ export function getDraftSelectionSound(kind: 'MAP' | 'BAN', previous: readonly s
 export function createDraftAudio() {
   let context: AudioContext | null = null;
   let enabled = true;
+  let volume = DEFAULT_DRAFT_VOLUME;
+  let master: GainNode | null = null;
   const buffers = new Map<DraftSound, Promise<AudioBuffer>>();
   const decoded = new Map<DraftSound, AudioBuffer>();
   const sources = new Map<DraftAudioChannel, AudioBufferSourceNode>();
   const generations = new Map<DraftAudioChannel, number>();
   function prepare() {
-    if (!context && typeof AudioContext !== 'undefined') context = new AudioContext();
+    if (!context && typeof AudioContext !== 'undefined') {
+      context = new AudioContext();
+      master = context.createGain(); master.gain.value = volume; master.connect(context.destination);
+    }
     return context;
   }
   function load(sound: DraftSound): Promise<AudioBuffer> {
@@ -66,6 +72,11 @@ export function createDraftAudio() {
       try { if (ctx.state !== 'running') await ctx.resume(); return ctx.state === 'running'; } catch { return false; }
     },
     isReady: () => enabled && context?.state === 'running',
+    setVolume(value: number) {
+      if (!Number.isFinite(value)) return;
+      volume = Math.max(0, Math.min(1, value));
+      if (master) master.gain.value = volume;
+    },
     setEnabled(value: boolean) { enabled = value; if (!value) stopAll(); },
     async play(sound: DraftSound, channel: DraftAudioChannel, options: { loop?: boolean; volume?: number } = {}): Promise<DraftPlayback | null> {
       stop(channel);
@@ -85,7 +96,7 @@ export function createDraftAudio() {
         const gain = ctx.createGain();
         source.buffer = buffer; source.loop = options.loop ?? false;
         gain.gain.value = options.volume ?? (sound === 'mapFirst' || sound === 'mapChange' || sound === 'banClick' || sound === 'banConfirm' ? 0.25 : 0.6);
-        source.connect(gain); gain.connect(ctx.destination);
+        source.connect(gain); gain.connect(master!);
         sources.set(channel, source);
         source.onended = () => { source.disconnect(); gain.disconnect(); if (sources.get(channel) === source) sources.delete(channel); };
         const start = ctx.currentTime + (channel === 'result' ? 0.03 : 0);
@@ -96,7 +107,7 @@ export function createDraftAudio() {
     stop, stopAll,
     dispose() {
       stopAll(); buffers.clear(); decoded.clear();
-      const previous = context; context = null;
+      const previous = context; context = null; master?.disconnect(); master = null;
       if (previous && previous.state !== 'closed') void previous.close().catch(() => undefined);
     },
   };

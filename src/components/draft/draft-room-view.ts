@@ -36,7 +36,7 @@ export function getDraftGuidance(snapshot: DraftRoomSnapshot): string {
     const picker = snapshot.participants.find(player => player.discordId === snapshot.mapSelection.pickerDiscordId);
     return snapshot.selfDiscordId === picker?.discordId ? '플레이할 맵을 고른 뒤 확정해 주세요.' : `${picker?.displayName ?? '지정 선수'}님의 맵 선택을 기다리는 중`;
   }
-  if (snapshot.phase === 'MAP_RESOLVED') return snapshot.mapResult?.method === 'POTG'
+  if (snapshot.phase === 'MAP_RESOLVED') return ['POTG', 'POTG_TIMEOUT'].includes(snapshot.mapResult?.method ?? '')
     ? '선택된 맵을 확인한 뒤 밴 투표로 이동합니다.' : '맵 추첨과 결과 확인 후 밴 투표로 이동합니다.';
   if (snapshot.ballots?.self?.locked) return '준비 완료 · 마감 전까지 선택을 수정할 수 있습니다.';
   if (snapshot.stageKind && !snapshot.ballots?.self) return '참가자들이 선택하고 있습니다. 참가 현황에서 확정 상태를 확인하세요.';

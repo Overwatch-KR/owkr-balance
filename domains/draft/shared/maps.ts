@@ -104,7 +104,7 @@ export function createMapCandidates(input: CreateMapCandidatesInput): MapCandida
 
 export interface MapResolution {
   resolutionId: string;
-  method: 'LANDSLIDE' | 'WEIGHTED' | 'ALL_ABSTAINED' | 'POTG';
+  method: 'LANDSLIDE' | 'WEIGHTED' | 'ALL_ABSTAINED' | 'POTG' | 'POTG_TIMEOUT';
   selectedByDiscordId?: string;
   selectedOption: string | null;
   totals: Readonly<Record<string, number>>;
@@ -191,4 +191,16 @@ export function resolvePotgMap(input: {
   const random = new DraftRandom(input.entropy);
   return { resolutionId: input.resolutionId, method: 'POTG', selectedOption: map.mapId, totals: {}, map,
     selectedByDiscordId: input.pickerDiscordId, firstAttackTeam: firstAttackTeam(map, random), draws: random.draws };
+}
+
+/** @description 팟지 제한 시간이 끝나면 사용 이력을 제외한 맵 풀에서 서버 난수로 한 맵과 공수를 확정한다. */
+export function resolvePotgTimeout(input: {
+  resolutionId: string; catalog: DraftCatalog<DraftMap>; usedCanonicalMapIds: readonly string[]; entropy: readonly number[];
+}): MapResolution {
+  const maps = getEligibleDraftMaps(input.catalog, input.usedCanonicalMapIds);
+  requireDraft(maps.length > 0, 'MAP_POOL_EXHAUSTED', '미사용 맵이 없습니다.');
+  const random = new DraftRandom(input.entropy);
+  const map = random.pick(maps);
+  return { resolutionId: input.resolutionId, method: 'POTG_TIMEOUT', selectedOption: null, totals: {}, map: { ...map },
+    firstAttackTeam: firstAttackTeam(map, random), draws: random.draws, rollDurationMs: 0 };
 }

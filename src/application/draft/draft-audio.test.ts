@@ -49,6 +49,20 @@ describe('draft sound sequencing', () => {
 });
 
 describe('draft audio lifecycle', () => {
+  it('defaults master volume to half and adjusts currently playing channels without restarting them', async () => {
+    const audio = setup(); await audio.unlock();
+    const ctx = AudioContextMock.instances[0];
+    expect(ctx.gains[0].gain.value).toBe(0.5);
+    await audio.play('banBgm', 'bgm', { loop: true, volume: BAN_BGM_VOLUME });
+    audio.setVolume(0.25);
+    expect(ctx.gains[0].gain.value).toBe(0.25);
+    expect(ctx.gains[1].gain.value).toBe(0.12);
+    expect(ctx.sources[0].stop).not.toHaveBeenCalled();
+    audio.setVolume(0); expect(ctx.gains[0].gain.value).toBe(0);
+    audio.setVolume(2); expect(ctx.gains[0].gain.value).toBe(1);
+    audio.setVolume(NaN); expect(ctx.gains[0].gain.value).toBe(1);
+    audio.dispose();
+  });
   it('requires browser activation, shares cached buffers and uses the audio clock', async () => {
     const audio = setup();
     expect(await audio.play('mapStart', 'voice')).toBeNull();
@@ -56,7 +70,7 @@ describe('draft audio lifecycle', () => {
     const playback = await audio.play('mapStart', 'voice');
     const ctx = AudioContextMock.instances[0];
     expect(ctx.sources[0].start).toHaveBeenCalledWith(10);
-    expect(ctx.gains[0].gain.value).toBe(0.6);
+    expect(ctx.gains[1].gain.value).toBe(0.6);
     ctx.currentTime = 10.78;
     expect(playback?.elapsedMs()).toBeCloseTo(780);
     await audio.play('mapStart', 'voice');
@@ -64,6 +78,16 @@ describe('draft audio lifecycle', () => {
     expect(ctx.sources[0].stop).toHaveBeenCalledTimes(1);
     audio.dispose();
     expect(ctx.close).toHaveBeenCalledOnce();
+  });
+  it('outputs thirty, twelve and a half, and six percent at the default fifty-percent master level', async () => {
+    const audio = setup(); await audio.unlock();
+    await audio.play('mapStart', 'voice');
+    await audio.play('mapFirst', 'click');
+    await audio.play('banConfirm', 'click');
+    await audio.play('banBgm', 'bgm', { loop: true, volume: BAN_BGM_VOLUME });
+    const levels = AudioContextMock.instances[0].gains.map(gain => gain.gain.value);
+    expect(levels.slice(1).map(level => level * levels[0])).toEqual([0.3, 0.125, 0.125, 0.06]);
+    audio.dispose();
   });
   it('downloads and decodes every sound in advance and starts cached clicks synchronously', async () => {
     const audio = setup();
@@ -93,7 +117,7 @@ describe('draft audio lifecycle', () => {
     const audio = setup(); await audio.unlock();
     await audio.play('mapFirst', 'click');
     await audio.play('mapChange', 'click');
-    expect(AudioContextMock.instances[0].gains.map(gain => gain.gain.value)).toEqual([0.25, 0.25]);
+    expect(AudioContextMock.instances[0].gains.slice(1).map(gain => gain.gain.value)).toEqual([0.25, 0.25]);
     audio.dispose();
   });
   it('loops a quiet ban bed independently from the voice and countdown channels', async () => {
@@ -101,13 +125,13 @@ describe('draft audio lifecycle', () => {
     await audio.play('banBgm', 'bgm', { loop: true, volume: BAN_BGM_VOLUME });
     await audio.play('banStart', 'voice');
     await audio.play('banClick', 'click');
-    expect(AudioContextMock.instances[0].gains[2].gain.value).toBe(0.25);
-    await audio.play('banConfirm', 'click');
     expect(AudioContextMock.instances[0].gains[3].gain.value).toBe(0.25);
+    await audio.play('banConfirm', 'click');
+    expect(AudioContextMock.instances[0].gains[4].gain.value).toBe(0.25);
     await audio.play('countdown', 'countdown', { loop: true });
     const ctx = AudioContextMock.instances[0];
     expect(ctx.sources.map(source => source.loop)).toEqual([true, false, false, false, true]);
-    expect(ctx.gains[0].gain.value).toBe(0.12);
+    expect(ctx.gains[1].gain.value).toBe(0.12);
     audio.stop('countdown');
     expect(ctx.sources[0].stop).not.toHaveBeenCalled();
     expect(ctx.sources[4].stop).toHaveBeenCalledOnce();

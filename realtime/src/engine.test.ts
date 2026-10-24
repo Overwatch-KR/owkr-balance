@@ -323,6 +323,53 @@ describe('POTG selection with the bundled catalog', () => {
     await app.lockAll(['ana', 'dva', 'genji']); await app.engine.tick(app.code);
     await app.run(0, 'game.confirmApplied'); await app.run(0, 'game.markStarted'); await app.run(0, 'game.markFinished');
   }
+  it('gives every participant one sixty-second deadline and resolves the timeout once before bans', async () => {
+    const app = await startPotg();
+    const initial = await app.engine.snapshot('c0');
+    expect(initial.timer.deadlineAt! - initial.serverNow).toBe(60000);
+    const pulse = () => { for (const client of app.engine.clients.values()) client.lastResponseAt = app.store.now(); };
+    app.advance(59999); pulse(); await app.engine.tick(app.code);
+    expect((await app.engine.snapshot('c0')).phase).toBe('MAP_PICKING');
+    app.advance(1); pulse(); await app.engine.tick(app.code);
+    const views = await Promise.all(Array.from({ length: 10 }, (_, i) => app.engine.snapshot(`c${i}`)));
+    expect(views.every(view => view.phase === 'MAP_RESOLVED' && view.mapResult?.method === 'POTG_TIMEOUT')).toBe(true);
+    expect(new Set(views.map(view => view.mapResult?.map.mapId)).size).toBe(1);
+    expect(views[0].mapResult?.draws.length).toBeGreaterThan(0);
+    expect(views[0].mapResult?.selectedByDiscordId).toBeUndefined();
+    expect(views[0].timer.deadlineAt! - views[0].serverNow).toBe(4000);
+    const revision = views[0].roomRevision;
+    await app.engine.tick(app.code);
+    expect((await app.engine.snapshot('c0')).roomRevision).toBe(revision);
+    await app.finishMapReveal();
+    expect((await app.engine.snapshot('c0')).phase).toBe('HERO_VOTING');
+  });
+  it('rejects a late pick even before the timeout tick runs', async () => {
+    const app = await startPotg(); app.advance(60000);
+    for (const client of app.engine.clients.values()) client.lastResponseAt = app.store.now();
+    await expect(app.run(3, 'map.pick', { mapId: 'kings-row' })).rejects.toThrow('맵 선정 시간이 끝났습니다.');
+    expect((await app.engine.snapshot('c0')).mapResult).toBeNull();
+  });
+  it('rejects a pick that passes validation just before the deadline but is committed too late', async () => {
+    const app = await startPotg(); app.advance(59999);
+    for (const client of app.engine.clients.values()) client.lastResponseAt = app.store.now();
+    const commit = app.store.commit.bind(app.store);
+    app.store.commit = async (bundle, guard) => { if (bundle.room.phase === 'MAP_RESOLVED') app.advance(2); return commit(bundle, guard); };
+    await expect(app.run(3, 'map.pick', { mapId: 'kings-row' })).rejects.toThrow('마감 이후');
+    expect((await app.engine.snapshot('c0')).phase).toBe('MAP_PICKING');
+  });
+  it('preserves the remaining selection time across pause and resume', async () => {
+    const app = await startPotg(); app.advance(20000);
+    const pulse = () => { for (const client of app.engine.clients.values()) client.lastResponseAt = app.store.now(); };
+    pulse(); await app.run(0, 'draft.pause');
+    expect((await app.engine.snapshot('c0')).timer.remainingMs).toBe(40000);
+    app.advance(60000); pulse(); await app.engine.tick(app.code);
+    expect((await app.engine.snapshot('c0')).phase).toBe('MAP_PICKING');
+    await app.run(0, 'draft.resume');
+    const resumed = await app.engine.snapshot('c0');
+    expect(resumed.timer.deadlineAt! - resumed.serverNow).toBe(40000);
+    app.advance(40000); pulse(); await app.engine.tick(app.code);
+    expect((await app.engine.snapshot('c0')).mapResult?.method).toBe('POTG_TIMEOUT');
+  });
   it('allows only the designated player, freezes all players for the same four seconds, then opens bans', async () => {
     const app = await startPotg();
     const before = await app.engine.snapshot('c0');

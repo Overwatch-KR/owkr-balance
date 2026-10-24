@@ -14,6 +14,8 @@ export interface DraftTimings {
   heroVotingSeconds: number;
 }
 
+export const POTG_MAP_PICK_SECONDS = 60;
+
 export const DEFAULT_DRAFT_TIMINGS: Readonly<DraftTimings> = {
   mapVotingSeconds: 20, heroVotingSeconds: 40,
 };

@@ -4,9 +4,9 @@ import { useDraftAudio } from './use-draft-audio';
 
 const harness = vi.hoisted(() => ({ values: [] as unknown[], cursor: 0,
   effects: [] as { deps: unknown[]; run: () => void | (() => void); cleanup?: () => void; changed: boolean }[],
-  audio: { preload: vi.fn(), unlock: vi.fn(async () => true), dispose: vi.fn(), stop: vi.fn(), stopAll: vi.fn(), play: vi.fn<(sound: string, channel: string, options?: unknown) => Promise<null>>(async () => null), setEnabled: vi.fn() },
+  audio: { setVolume: vi.fn(), preload: vi.fn(), unlock: vi.fn(async () => true), dispose: vi.fn(), stop: vi.fn(), stopAll: vi.fn(), play: vi.fn<(sound: string, channel: string, options?: unknown) => Promise<null>>(async () => null), setEnabled: vi.fn() },
 }));
-vi.mock('./draft-audio', () => ({ BAN_BGM_VOLUME: 0.12, createDraftAudio: () => harness.audio }));
+vi.mock('./draft-audio', () => ({ DEFAULT_DRAFT_VOLUME: 0.5, BAN_BGM_VOLUME: 0.12, createDraftAudio: () => harness.audio }));
 vi.mock('react', () => ({
   useCallback: (fn: unknown) => fn,
   useState: (initial: unknown) => {
@@ -52,6 +52,14 @@ afterEach(() => {
 });
 
 describe('draft phase audio', () => {
+  it('defaults to half volume and adjusts the bed live without restarting stage audio', async () => {
+    const snapshot = view('HERO_VOTING'); await activate(snapshot);
+    expect(render(snapshot).volume).toBe(0.5);
+    render(snapshot).setVolume(0.2); render(snapshot);
+    expect(harness.audio.setVolume).toHaveBeenLastCalledWith(0.2);
+    expect(harness.audio.play.mock.calls.filter(([sound]) => sound === 'banBgm')).toHaveLength(1);
+    expect(harness.audio.play.mock.calls.filter(([sound]) => sound === 'banStart')).toHaveLength(1);
+  });
   it('attempts autoplay on entry and announces the map without requiring a click', async () => {
     const snapshot = view();
     render(snapshot);
