@@ -170,7 +170,7 @@ export const hydrateMatchLiveSession = (
     currentPlayers: Player[] = [],
 ): Pick<LoadedMatchLiveSession, 'players' | 'result' | 'session'> => {
     const session = normalizeMatchLiveSessionSnapshot(sessionInput);
-    if (!session) throw new Error('공동 작업 데이터 형식이 올바르지 않습니다.');
+    if (!session) throw new Error('함께 편집 데이터 형식이 올바르지 않습니다.');
 
     const entriesByDiscordId = new Map(
         entries.flatMap(entry => {
@@ -184,7 +184,7 @@ export const hydrateMatchLiveSession = (
     if (missingIds.length > 0) {
         const preview = missingIds.slice(0, 3).join(', ');
         const suffix = missingIds.length > 3 ? ` 외 ${missingIds.length - 3}명` : '';
-        throw new Error(`유저 시트에서 공동 작업 참가자를 찾지 못했습니다: ${preview}${suffix}`);
+        throw new Error(`유저 시트에서 함께 편집 참가자를 찾지 못했습니다: ${preview}${suffix}`);
     }
 
     const currentIds = new Map(currentPlayers.map(player => [player.discordUserId, player.id]));
@@ -220,7 +220,7 @@ export const hydrateMatchLiveSession = (
     } => participant.position !== null);
     if (positioned.length === 0) return { players, result: null, session };
     if (positioned.length !== MATCH_SHARE_POSITIONS.length) {
-        throw new Error('공동 작업의 팀 배치가 완성되지 않았습니다.');
+        throw new Error('함께 편집의 팀 배치가 완성되지 않았습니다.');
     }
 
     const playersByPosition = new Map<MatchSharePosition, Player>();
@@ -231,7 +231,7 @@ export const hydrateMatchLiveSession = (
 
     const getPositionPlayer = (position: MatchSharePosition): Player => {
         const player = playersByPosition.get(position);
-        if (!player) throw new Error('공동 작업의 팀 배치에 비어 있는 위치가 있습니다.');
+        if (!player) throw new Error('함께 편집의 팀 배치에 비어 있는 위치가 있습니다.');
         return player;
     };
     const getPosition = (
@@ -269,7 +269,7 @@ export const createMatchLiveSession = async (
 ): Promise<MatchLiveSessionSnapshot> => {
     const participants = createMatchLiveParticipants(players, result);
     if (!participants) {
-        throw new Error('공동 작업하려면 참가자 모두 유저 시트의 Discord ID와 연결되어 있어야 합니다.');
+        throw new Error('함께 편집하려면 참가자 모두 유저 시트의 디스코드 ID와 연결되어 있어야 합니다.');
     }
     const response = await requestJson<MatchLiveCreateResponse>(MATCH_LIVE_API, {
         method: 'POST',
@@ -281,7 +281,7 @@ export const createMatchLiveSession = async (
         body: JSON.stringify({ participants }),
     });
     const session = normalizeMatchLiveSessionSnapshot(response);
-    if (!session) throw new Error('공동 작업 세션 응답을 확인하지 못했습니다.');
+    if (!session) throw new Error('함께 편집 세션 응답을 확인하지 못했습니다.');
     return session;
 };
 
@@ -292,13 +292,13 @@ export const fetchMatchLiveSession = async (
     codeInput: string,
 ): Promise<MatchLiveSessionSnapshot> => {
     const code = normalizeMatchShareCode(codeInput);
-    if (code.length !== 10) throw new Error('공동 작업 코드 10자리를 확인해 주세요.');
+    if (code.length !== 10) throw new Error('함께 편집 코드 10자리를 확인해 주세요.');
     const response = await requestJson<MatchLiveSessionSnapshot>(
         `${MATCH_LIVE_API}&code=${encodeURIComponent(code)}`,
         { credentials: 'same-origin' },
     );
     const session = normalizeMatchLiveSessionSnapshot(response);
-    if (!session) throw new Error('공동 작업 세션 응답을 확인하지 못했습니다.');
+    if (!session) throw new Error('함께 편집 세션 응답을 확인하지 못했습니다.');
     return session;
 };
 
@@ -327,7 +327,7 @@ export const updateMatchLiveSession = async (
 ): Promise<MatchLiveSessionSnapshot> => {
     const participants = createMatchLiveParticipants(players, result);
     if (!participants) {
-        throw new Error('Discord ID가 없는 참가자가 있어 공동 작업 상태를 동기화할 수 없습니다.');
+        throw new Error('디스코드 ID가 없는 참가자가 있어 함께 편집 상태를 동기화할 수 없습니다.');
     }
     const response = await requestJson<MatchLiveSessionSnapshot>(MATCH_LIVE_API, {
         method: 'PUT',
@@ -339,7 +339,7 @@ export const updateMatchLiveSession = async (
         body: JSON.stringify({ code, revision, participants }),
     });
     const session = normalizeMatchLiveSessionSnapshot(response);
-    if (!session) throw new Error('공동 작업 갱신 응답을 확인하지 못했습니다.');
+    if (!session) throw new Error('함께 편집 갱신 응답을 확인하지 못했습니다.');
     return session;
 };
 

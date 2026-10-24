@@ -205,7 +205,7 @@ export const useRosterImport = ({
             showDetailedError('붙여넣을 디스코드 채팅이 없습니다.', {
                 title: '가져올 명단이 비어 있습니다',
                 description: '채팅 붙여넣기 입력란에서 읽어낼 내용이 없습니다.',
-                hint: 'Discord에서 참가자 명단이 포함된 채팅을 복사해 입력란에 붙여넣어 주세요.',
+                hint: '디스코드에서 참가자 명단이 포함된 채팅을 복사해 입력란에 붙여넣어 주세요.',
             });
             return;
         }
@@ -226,7 +226,7 @@ export const useRosterImport = ({
             }
             input.setIsInputCollapsed(false);
             showDetailedError('읽어낸 플레이어가 없습니다.', {
-                title: 'Discord 명단을 해석하지 못했습니다',
+                title: '디스코드 명단을 해석하지 못했습니다',
                 description: '붙여넣은 내용에서 올바른 배틀태그와 최소 두 역할 티어를 찾지 못했습니다.',
                 items: importFailedLines,
                 hint: 'Player#1234 다3/플2/미배치 형식이 포함되어 있는지 확인해 주세요.',

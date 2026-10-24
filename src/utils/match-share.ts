@@ -155,7 +155,7 @@ export const createMatchShareCode = async (
 ): Promise<string> => {
     const participants = createMatchShareParticipants(result);
     if (!participants) {
-        throw new Error('공유하려면 팀 배정 10명 모두 유저 시트의 Discord ID와 연결되어 있어야 합니다.');
+        throw new Error('공유하려면 팀 배정 10명 모두 유저 시트의 디스코드 ID와 연결되어 있어야 합니다.');
     }
 
     const response = await requestJson<CreateMatchShareResponse>('/api/match-shares', {

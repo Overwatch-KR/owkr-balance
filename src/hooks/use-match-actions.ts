@@ -37,7 +37,6 @@ interface UseMatchActionsOptions {
     match: MatchActionState;
     playerInput: PlayerInputActionState;
     requestRosterIdentityReview: (players: Player[], failedLines: string[]) => Promise<void>;
-    onMatchCompleted?: (players: Player[]) => void;
     setSwapSource: Dispatch<SetStateAction<SwapSource | null>>;
     showDetailedError: (message: string, details: ErrorDetails) => void;
     showToast: (type: 'success' | 'error', message: string, action?: ToastAction) => void;
@@ -52,7 +51,6 @@ export const useMatchActions = ({
     match,
     playerInput,
     requestRosterIdentityReview,
-    onMatchCompleted,
     setSwapSource,
     showDetailedError,
     showToast,
@@ -68,14 +66,13 @@ export const useMatchActions = ({
         setSwapSource(null);
         try {
             await balanceTeams(participants, options);
-            onMatchCompleted?.(participants);
             return true;
         } catch (error) {
-            const errorMessage = getErrorMessage(error, '매칭 중 오류가 발생했습니다.');
+            const errorMessage = getErrorMessage(error, '팀 자동 배정 중 오류가 발생했습니다.');
             showDetailedError(errorMessage, {
                 title: '팀 자동 배정을 완료하지 못했습니다',
                 description: errorMessage,
-                hint: '참가자 역할 티어와 포지션 완전 제외 설정을 확인한 뒤 다시 시도해 주세요.',
+                hint: '참가자 역할 티어와 역할 완전 제외 설정을 확인한 뒤 다시 시도해 주세요.',
             });
             return false;
         }

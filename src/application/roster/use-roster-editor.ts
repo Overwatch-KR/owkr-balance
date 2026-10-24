@@ -44,10 +44,10 @@ export const useRosterEditor = ({
     const addUserSheetPlayer = useCallback((entry: UserSheetEntry) => {
         const discordUserId = entry.discordUserId?.replace(/\D/g, '').trim() ?? '';
         if (!/^\d{17,20}$/.test(discordUserId)) {
-            showDetailedError('Discord ID가 없는 유저는 참가자로 추가할 수 없습니다.', {
+            showDetailedError('디스코드 ID가 없는 유저는 참가자로 추가할 수 없습니다.', {
                 title: '유저 시트 연결 정보가 필요합니다',
-                description: `${entry.discordName || entry.battleTag} 유저의 Discord ID를 먼저 유저 시트에 저장해 주세요.`,
-                hint: '유저 시트에서 Discord ID를 보완한 뒤 다시 추가해 주세요.',
+                description: `${entry.discordName || entry.battleTag} 유저의 디스코드 ID를 먼저 유저 시트에 저장해 주세요.`,
+                hint: '유저 시트에서 디스코드 ID를 보완한 뒤 다시 추가해 주세요.',
             });
             return;
         }
@@ -76,7 +76,7 @@ export const useRosterEditor = ({
         if (!parsed || rankedRoleCount < 2) {
             showDetailedError('유저 시트의 티어 정보로 참가자를 만들지 못했습니다.', {
                 title: '역할 티어를 확인해 주세요',
-                description: `${entry.discordName || entry.battleTag} 유저는 최소 2개 포지션의 정식 티어가 필요합니다.`,
+                description: `${entry.discordName || entry.battleTag} 유저는 최소 2개 역할의 정식 티어가 필요합니다.`,
                 hint: '유저 시트의 탱커·딜러·힐러 티어를 보완한 뒤 다시 추가해 주세요.',
             });
             return;
@@ -107,12 +107,12 @@ export const useRosterEditor = ({
             .filter(tier => tier !== 'UNRANKED').length;
         if (rankedRoleCount < 2) {
             input.setIsInputCollapsed(false);
-            setManualInputError('최소 2개 포지션의 정식 티어를 입력해 주세요.');
+            setManualInputError('최소 2개 역할의 정식 티어를 입력해 주세요.');
             return;
         }
 
         if (input.inputs.excludedRoles.length >= 3) {
-            setManualInputError('배정 가능한 포지션을 최소 1개 남겨 주세요.');
+            setManualInputError('배정 가능한 역할을 최소 1개 남겨 주세요.');
             return;
         }
 

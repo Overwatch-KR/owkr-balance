@@ -14,7 +14,7 @@ const setup = (isConnected = true, playerCount = 10) => {
     return { ...options, calls, ...createRosterClearActions(options) };
 };
 
-describe('전체 명단 삭제와 협업 연결', () => {
+describe('전체 명단 삭제와 함께 편집 연결', () => {
     it('연결 중에는 선택하기 전까지 명단과 연결을 유지한다', () => {
         const actions = setup();
         actions.requestClear();
@@ -28,7 +28,7 @@ describe('전체 명단 삭제와 협업 연결', () => {
         expect(actions.calls).toEqual(['open', 'close']);
     });
 
-    it('협업 유지 선택은 연결을 끊지 않고 명단을 비운다', () => {
+    it('함께 편집 유지 선택은 연결을 끊지 않고 명단을 비운다', () => {
         const actions = setup();
         actions.confirmClear('keep');
         expect(actions.calls).toEqual(['close', 'clear']);
@@ -40,7 +40,7 @@ describe('전체 명단 삭제와 협업 연결', () => {
         expect(actions.calls).toEqual(['leave', 'close', 'clear']);
     });
 
-    it('협업 연결이 없으면 기존처럼 바로 명단을 비운다', () => {
+    it('함께 편집 연결이 없으면 기존처럼 바로 명단을 비운다', () => {
         const actions = setup(false);
         actions.requestClear();
         expect(actions.calls).toEqual(['clear']);

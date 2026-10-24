@@ -9,7 +9,6 @@ import {
 } from 'react';
 import {
     BookOpen,
-    CalendarCheck2,
     CalendarDays,
     ChevronLeft,
     ChevronRight,
@@ -171,7 +170,7 @@ export const LiveSessionStatusBar = ({
                         <div
                             role="group"
                             className="flex shrink-0 -space-x-1.5"
-                            aria-label={`현재 공동 작업자 ${state.liveCollaborators.length}명`}
+                            aria-label={`현재 함께 편집 중인 관리자 ${state.liveCollaborators.length}명`}
                         >
                             {visibleCollaborators.map(collaborator => (
                                 <UserProfileAvatar
@@ -517,7 +516,7 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
 
     const userName = user?.globalName ?? user?.username ?? '관리자';
     const accountStatus = useMemo(() => {
-        if (authMode === 'discord') return 'Discord 관리자';
+        if (authMode === 'discord') return '디스코드 관리자';
         return dataMode === 'local' ? '로컬 전용' : '로컬 인증';
     }, [authMode, dataMode]);
     const isWorkspacePath = pathname === '/' || pathname === '/participants';
@@ -613,7 +612,7 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                     <a
                         href="/"
                         aria-label="대진표로 이동"
-                        title={isCollapsed ? 'OWKR Balance' : undefined}
+                        title={isCollapsed ? 'OWKR Match' : undefined}
                         onClick={event => handleNavigationLink(event, '/')}
                         data-sidebar-logo={isCollapsed ? 'compact' : 'full'}
                         className="min-w-0 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
@@ -689,22 +688,6 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                             label="유저 시트"
                             onNavigate={event => handleNavigationLink(event, '/user-sheet')}
                             showError={navigationState.userSheetHasError}
-                        />
-                    </div>
-
-                    <div className="mt-5 border-t border-slate-800/60 pt-4">
-                        {!isCollapsed && (
-                            <p className="mb-2 px-3 text-[11px] font-semibold tracking-[0.08em] text-slate-400">
-                                기타
-                            </p>
-                        )}
-                        <NavigationLink
-                            active={isRouteActive('/event-participants')}
-                            collapsed={isCollapsed}
-                            href="/event-participants"
-                            icon={CalendarCheck2}
-                            label="이벤트 참여자"
-                            onNavigate={event => handleNavigationLink(event, '/event-participants')}
                         />
                     </div>
 
@@ -794,7 +777,7 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                     showError={navigationState.userSheetHasError}
                 />
                 <MobileNavigationButton
-                    active={isMoreOpen || pathname === '/event-participants' || isGuideActive}
+                    active={isMoreOpen || isGuideActive}
                     ariaControls="mobile-more-dialog"
                     ariaExpanded={isMoreOpen}
                     ariaHasPopup="dialog"
@@ -839,13 +822,6 @@ export function AppNavigationShell({ children }: AppNavigationShellProps) {
                         <div className="space-y-1">
                             {REALTIME_DRAFT_ENABLED && <NavigationLink active={isRouteActive('/draft-control')}
                                 href="/draft-control" icon={Swords} label="밴픽 운영" onNavigate={event => handleNavigationLink(event, '/draft-control')} />}
-                            <NavigationLink
-                                active={isRouteActive('/event-participants')}
-                                href="/event-participants"
-                                icon={CalendarCheck2}
-                                label="이벤트 참여자"
-                                onNavigate={event => handleNavigationLink(event, '/event-participants')}
-                            />
                             <NavigationButton
                                 active={isGuideActive}
                                 ariaExpanded={isGuideActive}

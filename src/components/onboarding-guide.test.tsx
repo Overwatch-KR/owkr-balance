@@ -4,7 +4,7 @@ import { GuideResumePrompt } from './guide-resume-prompt';
 import { OnboardingGuide } from './onboarding-guide';
 
 describe('OnboardingGuide', () => {
-    it('참가자·팀 편성 가이드를 7단계 투어로 시작한다', () => {
+    it('참가자·팀 배정 가이드를 7단계 투어로 시작한다', () => {
         const markup = renderToStaticMarkup(
             <OnboardingGuide
                 variant="start"
@@ -12,7 +12,7 @@ describe('OnboardingGuide', () => {
             />,
         );
 
-        expect(markup).toContain('참가자·팀 편성 가이드 · 1/7');
+        expect(markup).toContain('참가자·팀 배정 가이드 · 1/7');
         expect(markup).toContain('참가자 입력은 작업실에서 시작해요');
         expect(markup).toContain('이 브라우저에 30분 동안 바로 저장됩니다');
         expect(markup).not.toContain('화면으로 자동 이동했습니다');
@@ -75,7 +75,7 @@ describe('OnboardingGuide', () => {
         );
 
         expect(markup).toContain('이전 가이드를 이어서 볼까요?');
-        expect(markup).toContain('참가자·팀 편성 가이드 · 5/7');
+        expect(markup).toContain('참가자·팀 배정 가이드 · 5/7');
         expect(markup).toContain('5단계부터 이어보기');
         expect(markup).toContain('처음부터');
     });

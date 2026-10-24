@@ -309,7 +309,7 @@ const PlayerForm = ({
                                 />
                                 <p className="text-center text-xs text-slate-400">
                                     <span className="font-semibold text-amber-400">!</span>는 선호,
-                                    {' '}<span className="font-semibold text-rose-400">?</span>는 비선호 포지션입니다
+                                    {' '}<span className="font-semibold text-rose-400">?</span>는 비선호 역할입니다
                                 </p>
                             </div>
                         )}
@@ -391,8 +391,8 @@ const PlayerForm = ({
                                 </div>
 
                                 <fieldset className="border-y border-slate-800 py-3">
-                                    <legend className="px-1 text-xs font-semibold text-amber-200">이번 내전 포지션 완전 제외</legend>
-                                    <p className="mb-2 text-xs text-slate-400">선택한 포지션은 자동 배정과 자리 교체에서 제외됩니다. 공용 유저 시트에는 저장되지 않습니다.</p>
+                                    <legend className="px-1 text-xs font-semibold text-amber-200">이번 내전 역할 완전 제외</legend>
+                                    <p className="mb-2 text-xs text-slate-400">선택한 역할은 자동 배정과 자리 교체에서 제외됩니다. 공용 유저 시트에는 저장되지 않습니다.</p>
                                     <div className="flex flex-wrap gap-3">
                                         {([
                                             ['TANK', '탱커'], ['DPS', '딜러'], ['SUPPORT', '힐러'],
@@ -418,11 +418,11 @@ const PlayerForm = ({
                                             </label>
                                         ))}
                                     </div>
-                                    <p className="mt-1 text-xs text-slate-500">최소 1개 포지션은 배정할 수 있어야 합니다.</p>
+                                    <p className="mt-1 text-xs text-slate-500">최소 1개 역할은 배정할 수 있어야 합니다.</p>
                                 </fieldset>
 
                                 <p className="text-center text-xs text-slate-400">
-                                    정식 티어는 최소 2개 포지션이 필요하며, 나머지는 미배치로 선택할 수 있습니다
+                                    정식 티어는 최소 2개 역할이 필요하며, 나머지는 미배치로 선택할 수 있습니다
                                 </p>
 
                                 <button

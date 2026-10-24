@@ -130,7 +130,7 @@ export function useDraftRoom(options: {
       clearTimeout(renewalTimer); clearTimeout(reconnectTimer);
       setAdmission(null);
       setParticipantAuthRequired(true); setConnected(false); setReconnecting(false);
-      failPending('참가 인증이 만료되었습니다. Discord로 다시 참여해 주세요.');
+      failPending('참가 인증이 만료되었습니다. 디스코드로 다시 참여해 주세요.');
     };
     const markReplaced = () => {
       superseded = true;

@@ -42,7 +42,6 @@ src/
 ├── components/
 │   ├── auth/           로그인과 Discord 정보 이용 안내
 │   ├── common/         여러 기능에서 재사용하는 표현 컴포넌트
-│   ├── event/          이벤트 참여자 등록·조회·편집
 │   ├── layout/         전역 헤더와 페이지 공통 헤더
 │   ├── match/          팀 결과, 교체, 대안 조합, 공동 편집, 결과 전달
 │   ├── player/         참가자 입력·검토·목록
@@ -74,7 +73,6 @@ src/
 api/
 ├── _lib/               인증, Redis, 저장소 구현과 공통 HTTP 처리
 ├── auth/               Discord OAuth 세션
-├── event-participants/ 이벤트 참여자 저장 API
 ├── match-shares/       실시간 공동 편집과 읽기 전용 결과 공유 API
 ├── notes/              개인 운영 메모 API
 ├── public/             로그인 없이 사용하는 참여 API
@@ -129,7 +127,6 @@ import { useRosterManagement } from '@application/roster/use-roster-management';
 | `/participants` | 참가자 입력·대기열·참여 대조 |
 | `/user-sheet` | 유저 시트 검색·상세·전체 편집 |
 | `/scrims` | 내전 등록·공개 링크·결과·후기 |
-| `/event-participants` | 이벤트 참여 명단 |
 | `/participate/:token` | 로그인 없는 공개 투표·설문 |
 | `/draft/:roomCode` | 해당 방 명단과 Discord 인증으로 입장하는 실시간 내전 참여 |
 | `/draft-control` | 관리자 실시간 밴픽 운영 (기능 플래그 기본 비활성) |

@@ -45,7 +45,7 @@ export function DraftOperatorActions({ controller, execute }: { controller: Draf
       <p className="text-xs text-slate-500">{snapshot.playStatus === 'PLAYING' ? '진행 중인 경기의 종료 또는 중단을 먼저 기록해 주세요.' : '방을 닫으면 모든 연결과 공유 링크 참여가 종료됩니다.'} 2시간 동안 조작이 없으면 자동 종료됩니다.</p>
       <button type="button" className="btn-ghost text-xs text-red-300" disabled={!controller.connected || controller.pending || snapshot.playStatus === 'PLAYING'}
         onClick={() => {
-          if (window.confirm('내전을 종료하고 밴픽방을 닫을까요? 모든 참가자의 연결이 종료되고 이 공유 링크는 다시 사용할 수 없습니다. 경기 기록과 원본 팀 편성은 유지됩니다.')) execute('room.close', { reason: '운영자 내전 종료' });
+          if (window.confirm('내전을 종료하고 밴픽방을 닫을까요? 모든 참가자의 연결이 종료되고 이 공유 링크는 다시 사용할 수 없습니다. 경기 기록과 원본 팀 배정은 유지됩니다.')) execute('room.close', { reason: '운영자 내전 종료' });
         }}>내전 종료·방 닫기</button>
     </div>
   </section>;

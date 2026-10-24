@@ -122,7 +122,7 @@ export function RosterParticipantSelect({
                             ? getParticipantLabel(selectedParticipant)
                             : isDisabled
                                 ? '모든 참가자가 투표를 완료했습니다'
-                                : '로스터에서 내 이름 선택'}
+                                : '참가 명단에서 내 이름 선택'}
                     </span>
                     {selectedParticipant?.discordName && selectedParticipant.discordName !== selectedParticipant.name ? (
                         <span className="mt-0.5 block truncate text-xs text-slate-400">
@@ -149,7 +149,7 @@ export function RosterParticipantSelect({
                         <div
                             id={listboxId}
                             role="listbox"
-                            aria-label="로스터 참가자"
+                            aria-label="참가자 명단"
                             className="max-h-72 space-y-1 overflow-y-auto overscroll-contain p-1"
                         >
                             {options.map((participant, index) => {

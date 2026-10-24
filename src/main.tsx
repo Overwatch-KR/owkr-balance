@@ -34,7 +34,7 @@ const shouldUseAppNavigation = !isDraftPreview && normalizedPath !== '/discord-l
 const LazyPage = lazy(() => pagePromise.then(Page => ({ default: Page })));
 
 if (normalizedPath === '/discord-login-policy') {
-    document.title = 'Discord 로그인 정보 이용 안내 | OWKR Balance';
+    document.title = '디스코드 로그인 정보 이용 안내 | OWKR Match';
 }
 if (normalizedPath.startsWith('/participate/')) document.title = 'OWKR 내전 참여';
 if (normalizedPath.startsWith('/draft/')) document.title = 'OWKR 실시간 내전 참여';

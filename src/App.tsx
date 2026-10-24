@@ -23,13 +23,13 @@ import { useRosterManagement } from './hooks/use-roster-management';
 import { useAuth, type AuthUser, type DataMode } from './hooks/use-auth';
 import { useMatchSession } from './hooks/use-match-session';
 import { useUserSheet } from './hooks/use-user-sheet';
-import { getErrorMessage, requestJson } from './utils/api';
+import { getErrorMessage } from './utils/api';
 import {
     readUiPreferences,
     writeShowAllRanksPreference,
     writeShowSheetNotesPreference,
 } from './utils/storage/ui-preferences';
-import type { Player, SwapSource } from './types';
+import type { SwapSource } from './types';
 import {
     RosterIdentityResolver,
 } from './components/player/form/roster-identity-resolver';
@@ -50,7 +50,6 @@ import { AppHeader } from './components/layout/app-header';
 import { MatchResultPanel } from './components/match/match-result-panel';
 import { MatchSharingPanel } from './components/match/match-sharing-panel';
 import { MatchWorkspaceHeader } from './components/match/match-workspace-header';
-import { EventParticipantsPage } from './components/event/event-participants-page';
 import { ScrimManager } from './components/scrim/scrim-manager';
 import { UserSheetPage } from './components/user-sheet/user-sheet-page';
 import { useAdminDraft } from '@application/draft/use-admin-draft';
@@ -65,7 +64,7 @@ interface MatchAppProps {
     user: AuthUser;
 }
 
-const ADMIN_PAGE_PATHS = ['/scrims', '/user-sheet', '/event-participants', '/draft-control'] as const;
+const ADMIN_PAGE_PATHS = ['/scrims', '/user-sheet', '/draft-control'] as const;
 type AdminPagePath = typeof ADMIN_PAGE_PATHS[number];
 
 const isAdminPagePath = (pathname: string): pathname is AdminPagePath => (
@@ -105,8 +104,6 @@ const MatchApp = ({
     const isGuideActiveRef = useRef(false);
     const userSheet = useUserSheet(user.id, pathname === '/user-sheet');
     const { dismissToast, showToast, toast } = useToast();
-    const registeredEventParticipantIdsRef = useRef<Set<string> | null>(null);
-    const pendingEventParticipantIdsRef = useRef(new Set<string>());
 
     const showDetailedError = useCallback((message: string, details: ErrorDetails) => {
         showToast('error', message, {
@@ -117,47 +114,6 @@ const MatchApp = ({
     const handlePlayerEditCompleted = useCallback(() => {
         navigate(playerEditReturnPathRef.current);
     }, [navigate]);
-    const syncMatchedPlayersToEvent = useCallback(async (matchedPlayers: Player[]) => {
-        if (dataMode !== 'remote') return;
-        const participants = matchedPlayers.map(player => ({
-            id: player.discordUserId ?? player.userSheetEntryId ?? String(player.id),
-            name: player.name,
-            discordName: player.discordName,
-            discordUserId: player.discordUserId,
-        }));
-        const knownIds = registeredEventParticipantIdsRef.current;
-        const missingParticipants = knownIds
-            ? participants.filter(participant => (
-                !knownIds.has(participant.id)
-                && !pendingEventParticipantIdsRef.current.has(participant.id)
-            ))
-            : participants.filter(participant => !pendingEventParticipantIdsRef.current.has(participant.id));
-        if (missingParticipants.length === 0) return;
-        missingParticipants.forEach(participant => pendingEventParticipantIdsRef.current.add(participant.id));
-
-        try {
-            const snapshot = await requestJson<{ participantIds: string[] }>('/api/event-participants', {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': csrfToken,
-                },
-                body: JSON.stringify({ participants: missingParticipants }),
-            });
-            registeredEventParticipantIdsRef.current = new Set([
-                ...snapshot.participantIds,
-                ...participants.map(participant => participant.id),
-            ]);
-            missingParticipants.forEach(participant => pendingEventParticipantIdsRef.current.delete(participant.id));
-        } catch (error) {
-            missingParticipants.forEach(participant => pendingEventParticipantIdsRef.current.delete(participant.id));
-            showToast(
-                'error',
-                getErrorMessage(error, '이벤트 참여자 자동 등록을 완료하지 못했습니다.'),
-            );
-        }
-    }, [csrfToken, dataMode, showToast]);
     const handleRosterCompleted = useCallback(() => {
         if (!isGuideActiveRef.current) navigate('/');
     }, [navigate]);
@@ -239,9 +195,6 @@ const MatchApp = ({
             setIsInputCollapsed,
         },
         requestRosterIdentityReview,
-        onMatchCompleted: (matchedPlayers) => {
-            void syncMatchedPlayersToEvent(matchedPlayers);
-        },
         setSwapSource,
         showDetailedError,
         showToast,
@@ -350,10 +303,10 @@ const MatchApp = ({
     const handleStartLiveSession = useCallback(async (): Promise<string> => {
         try {
             const created = await startLiveSession();
-            showToast('success', `실시간 공동 작업 코드 ${created.code}를 만들었습니다.`);
+            showToast('success', `실시간 함께 편집 코드 ${created.code}를 만들었습니다.`);
             return created.code;
         } catch (error) {
-            showToast('error', getErrorMessage(error, '실시간 공동 작업을 시작하지 못했습니다.'));
+            showToast('error', getErrorMessage(error, '실시간 함께 편집을 시작하지 못했습니다.'));
             throw error;
         }
     }, [showToast, startLiveSession]);
@@ -361,15 +314,15 @@ const MatchApp = ({
         try {
             const loaded = await joinLiveSession(code);
             navigate(loaded.result ? '/' : '/participants');
-            showToast('success', '공동 작업 명단을 최신 유저 시트 기준으로 연결했습니다.');
+            showToast('success', '함께 편집 명단을 최신 유저 시트 기준으로 연결했습니다.');
         } catch (error) {
-            showToast('error', getErrorMessage(error, '실시간 공동 작업에 참여하지 못했습니다.'));
+            showToast('error', getErrorMessage(error, '실시간 함께 편집에 참여하지 못했습니다.'));
             throw error;
         }
     }, [joinLiveSession, navigate, showToast]);
     const handleLeaveLiveSession = useCallback(() => {
         leaveLiveSession();
-        showToast('success', '실시간 공동 작업 연결을 종료했습니다. 현재 화면의 명단은 유지됩니다.');
+        showToast('success', '실시간 함께 편집 연결을 종료했습니다. 현재 화면의 명단은 유지됩니다.');
     }, [leaveLiveSession, showToast]);
     const rosterClear = createRosterClearActions({
         clearRoster: handleClearAll,
@@ -611,9 +564,6 @@ const MatchApp = ({
                     />
                 ) : null}
 
-                {pathname === '/event-participants' ? (
-                    <EventParticipantsPage csrfToken={csrfToken} userId={user.id} />
-                ) : null}
             </main>
             <AnimatePresence>
                 {isClearRosterDialogOpen && (

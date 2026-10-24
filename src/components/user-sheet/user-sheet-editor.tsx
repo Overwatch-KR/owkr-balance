@@ -280,7 +280,7 @@ export function UserSheetEditor({
 
         const mergedValidation = validateUserSheetEntries(conflictMerge.rows);
         if (mergedValidation.errors.size > 0) {
-            const validationMessage = '병합 결과의 Discord ID 또는 배틀태그 오류를 수정해 주세요.';
+            const validationMessage = '병합 결과의 디스코드 ID 또는 배틀태그 오류를 수정해 주세요.';
             setRows(conflictMerge.rows);
             baseRowsRef.current = conflict.latestSnapshot.entries.map(entry => ({ ...entry }));
             baseSheetVersionRef.current = conflict.latestSnapshot.sheetVersion;
@@ -364,7 +364,7 @@ export function UserSheetEditor({
                         type="search"
                         value={tableQuery}
                         onChange={event => setTableQuery(event.target.value)}
-                        placeholder="이름·Discord ID·배틀태그 검색…"
+                        placeholder="이름·디스코드 ID·배틀태그 검색…"
                         className="form-control pl-9 pr-9 text-xs"
                     />
                     {tableQuery && (

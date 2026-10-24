@@ -7,10 +7,10 @@ describe('DiscordLoginPolicyPage', () => {
         const markup = renderToStaticMarkup(<DiscordLoginPolicyPage />);
 
         expect(markup).toContain('로그인 화면으로 돌아가기');
-        expect(markup).toContain('Discord 로그인 정보 이용 안내');
+        expect(markup).toContain('디스코드 로그인 정보 이용 안내');
         expect(markup).toContain('이용 목적');
         expect(markup).toContain('처리하는 정보');
-        expect(markup).toContain('Discord 사용자 ID');
+        expect(markup).toContain('디스코드 사용자 ID');
         expect(markup).toContain('프로필 이미지');
         expect(markup).toContain('서명된 로그인 세션');
         expect(markup).toContain('관리자 목록과 대조');

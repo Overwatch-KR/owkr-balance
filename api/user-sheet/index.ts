@@ -52,7 +52,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             );
             if (result.status === 'INVALID') {
                 return res.status(400).json({
-                    error: 'Discord ID 형식과 중복 유저의 식별 정보, 배틀태그 형식을 확인해 주세요.',
+                    error: '디스코드 ID 형식과 중복 유저의 식별 정보, 배틀태그 형식을 확인해 주세요.',
                 });
             }
             if (result.status === 'CONFLICT') {
@@ -92,7 +92,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             }
             if (result.status !== 'OK') {
                 return res.status(400).json({
-                    error: 'Discord ID, 기존 유저 연결, 배틀태그 중복 여부를 확인해 주세요.',
+                    error: '디스코드 ID, 기존 유저 연결, 배틀태그 중복 여부를 확인해 주세요.',
                 });
             }
             return res.status(200).json({
@@ -116,7 +116,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             );
             if (result.status === 'INVALID') {
                 return res.status(400).json({
-                    error: 'Discord ID 형식과 배틀태그를 확인해 주세요. 예: Player#1234',
+                    error: '디스코드 ID 형식과 배틀태그를 확인해 주세요. 예: Player#1234',
                 });
             }
             if (result.status === 'NOT_FOUND') {
@@ -133,7 +133,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             if (result.status === 'DUPLICATE_DISCORD_ID') {
                 return res.status(409).json({
                     code: 'DUPLICATE_DISCORD_USER_ID',
-                    error: '같은 Discord ID가 이미 등록되어 있습니다.',
+                    error: '같은 디스코드 ID가 이미 등록되어 있습니다.',
                 });
             }
             if (result.status === 'CONFLICT') {

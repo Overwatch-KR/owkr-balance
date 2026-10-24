@@ -146,7 +146,7 @@ export function UserSheetEntryContent({
                                 />
                             </label>
                             <label className="grid gap-1.5 text-xs text-slate-400 sm:col-span-2">
-                                Discord 고유 ID <span className="text-rose-300">*</span>
+                                디스코드 고유 ID <span className="text-rose-300">*</span>
                                 <input
                                     value={draft.discordUserId ?? ''}
                                     onChange={event => onFieldChange('discordUserId', event.target.value.replace(/\D/g, ''))}
@@ -183,7 +183,7 @@ export function UserSheetEntryContent({
                                 entry.discordUserId ? 'text-slate-400' : 'text-rose-300'
                             }`}>
                                 <Fingerprint size={12} aria-hidden="true" />
-                                Discord ID · {entry.discordUserId || '입력 필요'}
+                                디스코드 ID · {entry.discordUserId || '입력 필요'}
                             </p>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">

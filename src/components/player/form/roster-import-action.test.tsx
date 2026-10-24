@@ -16,7 +16,7 @@ describe('RosterImportAction', () => {
         expect(markup).not.toContain('disabled=""');
         expect(markup).toContain('aria-describedby="roster-paste-error-navigation"');
         expect(markup).toContain('정상 항목 계속 가져오기');
-        expect(markup).not.toContain('비선호 포지션을 한 개만 남겨 주세요');
+        expect(markup).not.toContain('비선호 역할을 한 개만 남겨 주세요');
     });
 
     it('입력 확인이 끝나고 경고가 없으면 가져오기를 활성화한다', () => {

@@ -92,7 +92,7 @@ export function AlternativeResultsDialog({
                             전체 팀 조합 비교
                         </h2>
                         <p className="mt-1 text-xs leading-relaxed text-slate-400">
-                            추천 후보 {candidates.length}개의 전체 로스터와 배정 티어를 비교하세요.
+                            추천 후보 {candidates.length}개의 전체 참가 명단와 배정 티어를 비교하세요.
                         </p>
                     </div>
                     <button

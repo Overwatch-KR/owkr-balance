@@ -397,7 +397,7 @@ export const swapMatchResultPlayers = (
     }
 
     if (sourcePlayer.excludedRoles?.includes(target.role) || targetPlayer.excludedRoles?.includes(source.role)) {
-        throw new Error('완전 제외된 포지션으로는 자리를 바꿀 수 없습니다. 참가자 수정에서 제외 설정을 확인해 주세요.');
+        throw new Error('완전 제외된 역할으로는 자리를 바꿀 수 없습니다. 참가자 수정에서 제외 설정을 확인해 주세요.');
     }
 
     nextResult[sourceTeam].assignment[source.role][source.index] = targetPlayer;
@@ -483,7 +483,7 @@ export const balancePlayers = (
 
     const selectedCandidates = selectDiverseCandidates(topCandidates);
     const [bestCandidate, ...alternativeCandidates] = selectedCandidates;
-    if (!bestCandidate) throw new Error('포지션 제외 조건을 만족하는 팀 조합이 없습니다. 참가자 수정에서 제외 설정을 조정해 주세요.');
+    if (!bestCandidate) throw new Error('역할 제외 조건을 만족하는 팀 조합이 없습니다. 참가자 수정에서 제외 설정을 조정해 주세요.');
 
     return {
         result: toMatchResult(bestCandidate, 1),

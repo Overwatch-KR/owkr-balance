@@ -21,7 +21,7 @@ export interface FieldChange {
 }
 
 const MATCH_LABELS: Record<RosterIdentitySuggestion['matchKind'], string> = {
-    DISCORD_ID: 'Discord ID 일치',
+    DISCORD_ID: '디스코드 ID 일치',
     BATTLE_TAG_AND_NAME: '이름·배틀태그 일치',
     BATTLE_TAG: '배틀태그 일치',
     DISCORD_NAME: '이름 일치 · ID 확인 필요',
@@ -90,7 +90,7 @@ export function RosterIdentityRow({
                             {isLocalOnly
                                 ? '로컬 명단'
                                 : idMatchedEntry && draft.matchKind !== 'DISCORD_ID'
-                                ? 'Discord ID로 기존 연결'
+                                ? '디스코드 ID로 기존 연결'
                                 : MATCH_LABELS[draft.matchKind]}
                         </span>
                     </div>
@@ -117,7 +117,7 @@ export function RosterIdentityRow({
                 </label>}
 
                 {!isLocalOnly && <label className="grid gap-1 text-[11px] text-slate-400">
-                    Discord 고유 ID
+                    디스코드 고유 ID
                     <input
                         name={`discord-user-id-${draft.player.id}`}
                         autoComplete="off"
@@ -151,7 +151,7 @@ export function RosterIdentityRow({
                                     ? '현재 브라우저의 참가 명단에만 추가'
                                     : resolvedEntry
                                     ? idMatchedEntry && draft.matchKind !== 'DISCORD_ID'
-                                        ? `Discord ID로 ${resolvedEntry.discordName || resolvedEntry.battleTag} 기존 행 재연결 · 새 행을 만들지 않음`
+                                        ? `디스코드 ID로 ${resolvedEntry.discordName || resolvedEntry.battleTag} 기존 행 재연결 · 새 행을 만들지 않음`
                                         : changes.length > 0
                                             ? `${changes.length}개 항목 갱신 예정`
                                             : '시트 정보 변경 없음'

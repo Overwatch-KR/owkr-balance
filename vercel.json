@@ -50,15 +50,6 @@
       ]
     },
     {
-      "source": "/event-participants",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-store, max-age=0, must-revalidate"
-        }
-      ]
-    },
-    {
       "source": "/user-sheet",
       "headers": [
         {
@@ -167,10 +158,6 @@
       "destination": "/index.html"
     },
     {
-      "source": "/event-participants",
-      "destination": "/index.html"
-    },
-    {
       "source": "/user-sheet",
       "destination": "/index.html"
     },
@@ -181,6 +168,13 @@
     {
       "source": "/discord-login-policy",
       "destination": "/index.html"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/event-participants",
+      "destination": "/",
+      "permanent": false
     }
   ]
 }

@@ -150,16 +150,16 @@ export function UserSheetEntryView({
     ): string => {
         const discordUserId = cleanDiscordUserId(nextDraft.discordUserId ?? '');
         if (!discordUserId) {
-            return 'Discord ID는 필수입니다.';
+            return '디스코드 ID는 필수입니다.';
         }
         if (!isValidDiscordUserId(discordUserId)) {
-            return 'Discord ID는 17~20자리 숫자로 입력해 주세요.';
+            return '디스코드 ID는 17~20자리 숫자로 입력해 주세요.';
         }
         if (discordUserId && latestEntries.some(current => (
             current.id !== entry.id
             && current.discordUserId === discordUserId
         ))) {
-            return '같은 Discord ID가 다른 유저에게 이미 등록되어 있습니다.';
+            return '같은 디스코드 ID가 다른 유저에게 이미 등록되어 있습니다.';
         }
         const rows = latestEntries.map(current => (
             current.id === entry.id ? nextDraft : current
@@ -167,10 +167,10 @@ export function UserSheetEntryView({
         const error = validateUserSheetEntries(rows).errors.get(nextDraft.id);
         if (error) {
             if (error === 'REQUIRED_DISCORD_USER_ID') {
-                return 'Discord ID는 필수입니다.';
+                return '디스코드 ID는 필수입니다.';
             }
             return error === 'DUPLICATE_BATTLE_TAG'
-                ? '같은 배틀태그를 구분하려면 각 유저의 Discord ID가 필요합니다.'
+                ? '같은 배틀태그를 구분하려면 각 유저의 디스코드 ID가 필요합니다.'
                 : '배틀태그에 #과 숫자 태그를 포함해 주세요. 예: Player#1234';
         }
         return '';

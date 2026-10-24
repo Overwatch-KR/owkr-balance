@@ -24,7 +24,7 @@ describe('draft roster and catalogue boundaries', () => {
     expect(() => validateDraftRoster(players.map((p, i) => i === 1 ? { ...p, userSheetId: players[0].userSheetId } : p))).toThrow('중복');
   });
   it('rejects missing Discord identity even when a name matches', () => {
-    expect(() => validateDraftRoster(players.map((p, i) => i === 0 ? { ...p, discordId: '' } : p))).toThrow('Discord');
+    expect(() => validateDraftRoster(players.map((p, i) => i === 0 ? { ...p, discordId: '' } : p))).toThrow('디스코드');
   });
   it('requires catalogue approval metadata instead of trusting old hero roles', () => {
     expect(() => validateHeroCatalog({ ...heroes, approval: { ...heroes.approval, approvedBy: '' } })).toThrow('카탈로그');

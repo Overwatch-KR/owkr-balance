@@ -48,7 +48,7 @@ export function PublicDraftPage() {
         : controller.snapshot && !controller.participantAuthRequired
         ? <DraftRoomPanel controller={controller} sound={sound} />
         : authFailure || controller.participantAuthRequired
-          ? <DraftParticipantEntry pending={pending} error={error || (controller.error === 'Discord로 참여해 주세요.' ? '' : controller.error)} login={login} authFailure={authFailure} reconnect={() => { setAuthFailure(''); controller.reconnect(); }} />
+          ? <DraftParticipantEntry pending={pending} error={error || (controller.error === '디스코드로 참여해 주세요.' ? '' : controller.error)} login={login} authFailure={authFailure} reconnect={() => { setAuthFailure(''); controller.reconnect(); }} />
           : <section className="mx-auto w-full max-w-lg border-y border-slate-700 py-10 text-center">
             <h2 className="text-lg font-semibold text-white" role="status">{controller.error && !controller.reconnecting ? '내전 연결을 확인해 주세요' : '참가 인증을 확인하고 있습니다'}</h2>
             <p className="mt-3 text-sm text-slate-400">{controller.error || '저장된 인증으로 내전에 연결하고 있습니다. 잠시만 기다려 주세요.'}</p>

@@ -13,7 +13,7 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const clientId = process.env.DISCORD_CLIENT_ID;
-    if (!clientId) return res.status(503).send('Discord 로그인이 아직 설정되지 않았습니다.');
+    if (!clientId) return res.status(503).send('디스코드 로그인이 아직 설정되지 않았습니다.');
 
     const { state, cookie } = createOAuthState(req);
     const params = new URLSearchParams({

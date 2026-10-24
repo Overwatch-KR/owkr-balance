@@ -102,7 +102,7 @@ describe('포지션 완전 제외', () => {
         const players = flexiblePlayers().map((player, index): Player => ({
             ...player, excludedRoles: index === 0 ? [] : ['TANK'],
         }));
-        expect(() => balancePlayers(players, { ignorePreferences: true })).toThrow('포지션 제외 조건');
+        expect(() => balancePlayers(players, { ignorePreferences: true })).toThrow('역할 제외 조건');
     });
 
     it('수동 교체에서 양쪽 모두의 제외 포지션을 검증한다', () => {

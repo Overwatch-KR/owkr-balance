@@ -19,7 +19,6 @@ src/
 ├── application/         # Cross-component use cases and orchestration
 │   └── roster/          # Roster editing/import workflows
 ├── components/          # Presentation by feature
-│   ├── event/           # Event participation registration and management
 │   ├── layout/          # Shared page/header structure
 │   ├── player/form/     # Player input + bulk paste
 │   ├── player/list/     # Player list display

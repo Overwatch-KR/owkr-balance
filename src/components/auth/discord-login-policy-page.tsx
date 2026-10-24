@@ -19,11 +19,11 @@ export function DiscordLoginPolicyPage() {
                             OWKR 관리자 인증
                         </p>
                         <h1 className="mt-3 text-2xl font-bold tracking-tight text-white sm:text-3xl">
-                            Discord 로그인 정보 이용 안내
+                            디스코드 로그인 정보 이용 안내
                         </h1>
                         <p className="mt-4 text-sm leading-7 text-slate-400">
-                            OWKR Balance는 등록된 관리자만 접근할 수 있도록 확인하고, 별도 계정
-                            생성 없이 간편하게 로그인하기 위해 Discord 인증을 사용합니다.
+                            OWKR Match는 등록된 관리자만 접근할 수 있도록 확인하고, 별도 계정
+                            생성 없이 간편하게 로그인하기 위해 디스코드 인증을 사용합니다.
                         </p>
                     </header>
 
@@ -33,7 +33,7 @@ export function DiscordLoginPolicyPage() {
                         </h2>
                         <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-slate-400">
                             <li>사전에 등록된 관리자만 서비스에 접근할 수 있도록 확인</li>
-                            <li>별도 관리자 계정 생성 없이 Discord 계정으로 간편 로그인</li>
+                            <li>별도 관리자 계정 생성 없이 디스코드 계정으로 간편 로그인</li>
                             <li>유저 시트에 마지막으로 정보를 수정한 관리자 이름을 자동 기록</li>
                         </ul>
                     </section>
@@ -44,7 +44,7 @@ export function DiscordLoginPolicyPage() {
                         </h2>
                         <dl className="mt-4 space-y-5 text-sm leading-6">
                             <div>
-                                <dt className="font-medium text-slate-200">Discord 사용자 ID</dt>
+                                <dt className="font-medium text-slate-200">디스코드 사용자 ID</dt>
                                 <dd className="mt-1 text-slate-400">
                                     사전에 등록된 관리자 목록과 대조해 접근 권한을 확인합니다.
                                 </dd>
@@ -70,7 +70,7 @@ export function DiscordLoginPolicyPage() {
                         </h2>
                         <div className="mt-3 space-y-3 text-sm leading-6 text-slate-400">
                             <p>
-                                Discord OAuth의 기본 프로필 확인 권한만 요청합니다. 이메일, 서버
+                                디스코드 OAuth의 기본 프로필 확인 권한만 요청합니다. 이메일, 서버
                                 목록, 멤버 목록, 메시지는 조회하지 않습니다.
                             </p>
                             <p>

@@ -22,7 +22,7 @@ export const GuideResumePrompt = ({
 }: GuideResumePromptProps) => {
     const dialogRef = useDialogFocus({ onClose: onDismiss });
     const position = getGuideStepPosition(progress.variant, progress.stepId);
-    const guideLabel = progress.variant === 'result' ? '결과 활용 가이드' : '참가자·팀 편성 가이드';
+    const guideLabel = progress.variant === 'result' ? '결과 활용 가이드' : '참가자·팀 배정 가이드';
 
     return (
         <div className="fixed inset-0 z-[100] grid place-items-center bg-black/70 px-4 backdrop-blur-sm">

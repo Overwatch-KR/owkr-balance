@@ -151,14 +151,14 @@ export function RosterIdentityResolver({
         const resolvedEntry = getResolvedEntry(draft);
         if (!isLocalOnly && draft.requiresDiscordUserId && !discordUserId) {
             return draft.matchKind === 'DISCORD_NAME'
-                ? '이름만 일치하고 배틀태그가 다릅니다. 실제 Discord ID를 입력해 주세요.'
-                : '신규 또는 중복 후보는 Discord ID가 필요합니다.';
+                ? '이름만 일치하고 배틀태그가 다릅니다. 실제 디스코드 ID를 입력해 주세요.'
+                : '신규 또는 중복 후보는 디스코드 ID가 필요합니다.';
         }
         if (discordUserId && !isValidDiscordUserId(discordUserId)) {
-            return 'Discord ID는 17~20자리 숫자여야 합니다.';
+            return '디스코드 ID는 17~20자리 숫자여야 합니다.';
         }
         if (discordUserId && duplicateIds.has(discordUserId)) {
-            return '같은 Discord ID가 이번 명단에 두 번 입력되었습니다.';
+            return '같은 디스코드 ID가 이번 명단에 두 번 입력되었습니다.';
         }
         if (resolvedEntry && duplicateEntryIds.has(resolvedEntry.id)) {
             return '같은 기존 유저가 이번 명단에 두 번 연결되었습니다.';
@@ -168,7 +168,7 @@ export function RosterIdentityResolver({
             && discordUserId
             && resolvedEntry.discordUserId !== discordUserId
         ) {
-            return '선택한 기존 유저에 다른 Discord ID가 등록되어 있습니다.';
+            return '선택한 기존 유저에 다른 디스코드 ID가 등록되어 있습니다.';
         }
         return '';
     }, [duplicateEntryIds, duplicateIds, getResolvedEntry, isLocalOnly]);
@@ -211,9 +211,9 @@ export function RosterIdentityResolver({
         if (!entry) return [];
         const ranks = getIncomingRanks(draft.player);
         return [
-            makeChange('Discord ID', entry.discordUserId, cleanDiscordUserId(draft.discordUserId)),
+            makeChange('디스코드 ID', entry.discordUserId, cleanDiscordUserId(draft.discordUserId)),
             makeChange(
-                'Discord 이름',
+                '디스코드 이름',
                 entry.discordName,
                 draft.player.discordName?.trim() || entry.discordName,
             ),
@@ -278,7 +278,7 @@ export function RosterIdentityResolver({
             })
             .filter(item => item.id);
         if (parsed.length === 0) {
-            setBulkMessage('붙여넣은 내용에서 Discord ID를 찾지 못했습니다.');
+            setBulkMessage('붙여넣은 내용에서 디스코드 ID를 찾지 못했습니다.');
             return;
         }
 
@@ -303,7 +303,7 @@ export function RosterIdentityResolver({
             }
             return next;
         });
-        setBulkMessage(`${parsed.length}개의 Discord ID를 입력란에 반영했습니다.`);
+        setBulkMessage(`${parsed.length}개의 디스코드 ID를 입력란에 반영했습니다.`);
     };
 
     const toggleAllExistingTiers = () => {
@@ -358,7 +358,7 @@ export function RosterIdentityResolver({
                     <div className="flex shrink-0 items-start gap-2 border-b border-emerald-500/15 bg-emerald-500/[0.06] px-4 py-3 text-xs text-emerald-100/80 md:px-6">
                         <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-emerald-300" aria-hidden="true" />
                         <p>
-                            로컬 전용 테스트 · 참가자 {drafts.length}명 · Discord ID와 유저 시트 저장을 생략합니다.
+                            로컬 전용 테스트 · 참가자 {drafts.length}명 · 디스코드 ID와 유저 시트 저장을 생략합니다.
                         </p>
                     </div>
                 ) : (
@@ -426,7 +426,7 @@ export function RosterIdentityResolver({
                         <div className="flex flex-wrap items-start justify-between gap-3">
                             <div>
                                 <label htmlFor="bulk-discord-ids" className="text-xs font-medium text-slate-300">
-                                    Discord ID 한 번에 붙여넣기
+                                    디스코드 ID 한 번에 붙여넣기
                                 </label>
                                 <p className="mt-1 text-xs text-slate-400">
                                     `별명 123456789012345678` 형식 또는 미해결 인원 순서대로 한 줄씩 입력하세요.

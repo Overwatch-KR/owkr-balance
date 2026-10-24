@@ -106,7 +106,7 @@ export class DraftEngine {
     const previous = await this.store.findCreate(ticket.sub, commandId, sourceId);
     if (previous) { await this.requireRoom(previous); return previous; }
     const { source, raw, now } = await this.store.readSource(sourceId);
-    requireDraft(source && raw, 'SOURCE_EXPIRED', '유효한 원본 공동 작업이 필요합니다.');
+    requireDraft(source && raw, 'SOURCE_EXPIRED', '유효한 원본 명단이 필요합니다.');
     validateDraftSource(source, source, now, true);
     const history = createDraftHistory(randomUUID(), ticket.sub, now);
     const code = Array.from(randomBytes(10), byte => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[byte % 32]).join('');

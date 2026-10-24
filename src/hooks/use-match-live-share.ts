@@ -157,9 +157,9 @@ export const useMatchLiveShare = ({
     }, [applyLoadedSession]);
 
     const startSession = useCallback(async (): Promise<MatchLiveSessionSnapshot> => {
-        if (!enabled) throw new Error('원격 Redis를 사용하는 환경에서만 공동 작업을 시작할 수 있습니다.');
+        if (!enabled) throw new Error('원격 Redis를 사용하는 환경에서만 함께 편집을 시작할 수 있습니다.');
         if (!participants) {
-            throw new Error('Discord ID가 없는 참가자가 있어 공동 작업을 시작할 수 없습니다.');
+            throw new Error('디스코드 ID가 없는 참가자가 있어 함께 편집을 시작할 수 없습니다.');
         }
         setIsConnecting(true);
         setSyncError('');
@@ -179,7 +179,7 @@ export const useMatchLiveShare = ({
     }, [csrfToken, enabled, markSyncActive, participants, players, rememberSessionCode, result]);
 
     const joinSession = useCallback(async (code: string): Promise<LoadedMatchLiveSession> => {
-        if (!enabled) throw new Error('원격 Redis를 사용하는 환경에서만 공동 작업에 참여할 수 있습니다.');
+        if (!enabled) throw new Error('원격 Redis를 사용하는 환경에서만 함께 편집에 참여할 수 있습니다.');
         setIsConnecting(true);
         setSyncError('');
         try {
@@ -240,7 +240,7 @@ export const useMatchLiveShare = ({
         const expire = () => {
             forgetSessionCode();
             resetSessionState();
-            setSyncError('공동 작업 세션이 만료되었습니다. 새 코드를 만들어 참여해 주세요.');
+            setSyncError('함께 편집 세션이 만료되었습니다. 새 코드를 만들어 참여해 주세요.');
         };
         const timeoutId = window.setTimeout(expire, Math.max(0, session.expiresAt - Date.now()));
         const checkExpiry = () => {
@@ -312,7 +312,7 @@ export const useMatchLiveShare = ({
                         setSyncError('실시간 공유가 만료되었습니다. 새 공유를 시작하거나 다른 코드로 참여해 주세요.');
                         return;
                     }
-                    setSyncError(getErrorMessage(error, '공동 작업 연결을 확인하지 못했습니다.'));
+                    setSyncError(getErrorMessage(error, '함께 편집 연결을 확인하지 못했습니다.'));
                 }
             } finally {
                 isPollingRef.current = false;
@@ -350,7 +350,7 @@ export const useMatchLiveShare = ({
     useEffect(() => {
         if (!enabled || !session) return;
         if (!participants) {
-            setSyncError('Discord ID가 없는 참가자가 있어 현재 변경을 공유하지 못하고 있습니다.');
+            setSyncError('디스코드 ID가 없는 참가자가 있어 현재 변경을 공유하지 못하고 있습니다.');
             return;
         }
         if (localSignature === lastSyncedSignatureRef.current) return;
@@ -387,11 +387,11 @@ export const useMatchLiveShare = ({
                             if (generation !== sessionGenerationRef.current) return;
                             setSyncError(getErrorMessage(
                                 hydrateError,
-                                '충돌한 공동 작업 상태를 다시 불러오지 못했습니다.',
+                                '충돌한 함께 편집 상태를 다시 불러오지 못했습니다.',
                             ));
                         }
                     } else {
-                        setSyncError(getErrorMessage(error, '공동 작업 변경을 저장하지 못했습니다.'));
+                        setSyncError(getErrorMessage(error, '함께 편집 변경을 저장하지 못했습니다.'));
                         const apiError = findApiError(error);
                         if (apiError?.status === 404) {
                             forgetSessionCode();

@@ -28,7 +28,7 @@ describe('same-site participant session bridge', () => {
     expect(res.status).toHaveBeenCalledWith(410);
     expect(res.json).toHaveBeenCalledWith({ code: 'ROOM_CLOSED', error: '종료된 내전입니다. 운영자에게 새 공유 링크를 요청해 주세요.' });
   });
-  it('sets an HttpOnly browser context while exposing only the Discord redirect', async () => {
+  it('sets an HttpOnly browser context while exposing only the 디스코드 redirect', async () => {
     configure(); vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ redirect: 'https://discord.com/oauth2/authorize?state=abc' }))));
     const res = response(); await handler(request({ action: 'start', roomCode: 'ROOM234567' }), res);
     const cookie = (res.setHeader as ReturnType<typeof vi.fn>).mock.calls.find((call: readonly unknown[]) => call[0] === 'Set-Cookie')?.[1] as string;

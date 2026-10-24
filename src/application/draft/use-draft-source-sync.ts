@@ -7,7 +7,7 @@ import { fetchMatchLiveSession, updateMatchLiveSession } from '../../utils/match
 export async function publishDraftSource(sourceId: string, players: Player[], result: MatchResultData | null, csrfToken: string) {
   const source = await fetchMatchLiveSession(sourceId);
   const participants = createMatchLiveParticipants(players, result);
-  if (!participants) throw new Error('밴픽 명단의 Discord 연결을 확인해 주세요.');
+  if (!participants) throw new Error('밴픽 명단의 디스코드 연결을 확인해 주세요.');
   if (JSON.stringify(source.participants) === JSON.stringify(participants)) return;
   await updateMatchLiveSession(sourceId, source.revision, players, result, csrfToken);
 }

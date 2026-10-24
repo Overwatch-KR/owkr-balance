@@ -15,7 +15,7 @@ describe('RosterParticipantSelect', () => {
         );
 
         expect(markup).toContain('aria-haspopup="listbox"');
-        expect(markup).toContain('로스터에서 내 이름 선택');
+        expect(markup).toContain('참가 명단에서 내 이름 선택');
         expect(markup).not.toContain('<select');
     });
 

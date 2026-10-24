@@ -34,7 +34,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 startTime: body?.startTime,
                 roster: body?.roster,
             }, { id: user.id, name: user.globalName ?? user.username });
-            return record ? res.status(201).json({ scrim: record }) : res.status(400).json({ error: '진행 날짜, 시작 시간, 로스터를 확인해 주세요.' });
+            return record ? res.status(201).json({ scrim: record }) : res.status(400).json({ error: '진행 날짜, 시작 시간, 참가 명단을 확인해 주세요.' });
         }
         if (req.method === 'PATCH') {
             const id = typeof body?.id === 'string' ? body.id : '';

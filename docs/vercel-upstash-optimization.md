@@ -1,6 +1,6 @@
 # Vercel·Upstash 최적화 점검
 
-점검일: 2026-10-24 (Asia/Seoul). 서울 리전 전환은 운영 적용했으며, 추가 코드 최적화는 아래 배포 기록을 따릅니다.
+점검일: 2026-10-24 (Asia/Seoul). 서울 리전·Vercel 코드·실시간 서버·저장 게이트웨이 최적화를 운영 적용했습니다.
 
 ## 확인한 운영 상태
 
@@ -55,3 +55,10 @@
 - 인증된 `/storage/status`의 `upstream`, `pendingKeys`, `lastSyncAt`, `nextRetryAt`과 공개 readiness를 확인합니다. 한도 초과 중에는 로컬 읽기·쓰기를 유지하고 다음 확인까지 최대 1시간 기다립니다. 월 한도 초과 자체는 코드 최적화로 초기화되지 않습니다.
 - 기존 설정으로 되돌릴 때도 동기화 저널·삭제 표식을 제거하지 않습니다.
 - CDN은 한국 가까운 지점에서 정적 자료를 제공하며 Functions 리전과 별도입니다. 한국 전용 운영을 지리적 접속 차단으로 해석하지 않고, 인증·Origin·OAuth 콜백 도메인은 유지했습니다. Discord 외부 서비스의 자체 실행 위치도 앱에서 바꾸지 않습니다.
+
+## 최종 배포 확인
+
+- 배포 커밋: `f722d3341d040741843529184384c55581abbb1e`. Vercel `dpl_HPxMbqLTNo4urAgJq3htFCk48AeQ`, Production READY, `icn1`. 운영 `version.json`도 동일 커밋입니다.
+- [Verify](https://github.com/Overwatch-KR/owkr-balance/actions/runs/40075184879), [실시간 서버·게이트웨이 배포](https://github.com/Overwatch-KR/owkr-balance/actions/runs/40075184882) 모두 성공했습니다. 기존 GitHub SSH 비밀값으로 게이트웨이 코드를 반영하고 서버의 기존 인증값으로 상태 확인했습니다. 시작 직후 연결 거절 1회 뒤 재시도에서 정상화됐고 앱 readiness를 통과했습니다.
+- 운영 API `/api/auth/me` 200·공유 API 비로그인 401에서 `icn1::icn1`, 폰트·티어 이미지 200과 설정한 캐시 헤더, 공개 실시간 서버 `ready/redis` 200을 확인했습니다. 실제 사용자 방이나 명단은 변경하지 않았습니다.
+- 배포 직후 오류 조회에는 직전 배포의 기존 `url.parse()` 사용 중단 경고 1개가 반환됐습니다. 장시간 운영 부하·월 명령 감소량·최초 Upstash 복구 병합은 이후 관측이 필요합니다. 이미 소진된 월 한도와 그 초기화 시각을 이번 배포로 바꾸지는 않습니다.

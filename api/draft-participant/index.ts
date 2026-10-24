@@ -10,11 +10,11 @@ const BRIDGE_FAILURES: Record<string, { status: number; error: string }> = {
   ROOM_EXPIRED: { status: 410, error: '내전 방이 없거나 만료되었습니다. 운영자에게 새 공유 링크를 요청해 주세요.' },
   INACTIVE_ROOM: { status: 410, error: '현재 사용 중인 내전 방이 아닙니다. 운영자에게 새 공유 링크를 요청해 주세요.' },
   SOURCE_OUTDATED: { status: 503, error: '최신 명단을 확인하고 있습니다. 잠시 후 다시 확인해 주세요.' },
-  NOT_PARTICIPANT: { status: 403, error: '이 내전 명단에 등록된 Discord 계정으로 참여해 주세요. 운영자에게 명단을 확인해 주세요.' },
+  NOT_PARTICIPANT: { status: 403, error: '이 내전 명단에 등록된 디스코드 계정으로 참여해 주세요. 운영자에게 명단을 확인해 주세요.' },
   EXCHANGE_EXPIRED: { status: 401, error: '참가 인증 교환 코드가 만료되었거나 이미 사용되었습니다. 방에서 다시 인증해 주세요.' },
   INVALID_AUTH_CONTEXT: { status: 401, error: '인증을 시작한 브라우저에서 다시 참여해 주세요.' },
-  INVALID_SESSION: { status: 401, error: '이 방의 참가 인증이 필요합니다. Discord로 다시 참여해 주세요.' },
-  PARTICIPANT_SESSION_EXPIRED: { status: 401, error: '참가 인증이 만료되었습니다. Discord로 다시 참여해 주세요.' },
+  INVALID_SESSION: { status: 401, error: '이 방의 참가 인증이 필요합니다. 디스코드로 다시 참여해 주세요.' },
+  PARTICIPANT_SESSION_EXPIRED: { status: 401, error: '참가 인증이 만료되었습니다. 디스코드로 다시 참여해 주세요.' },
   BRIDGE_ACCESS_DENIED: { status: 503, error: '참가 인증 서버 연결 설정을 확인해야 합니다. 운영자에게 문의해 주세요.' },
   UNAVAILABLE: { status: 503, error: '참가 인증 서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.' },
   INVALID_RESPONSE: { status: 502, error: '참가 인증 서버 응답을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.' },
@@ -84,7 +84,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const handle = cookies[`owkr_draft_participant_${body.roomCode}`];
       if (!handle) {
         await call('status', { roomCode: body.roomCode });
-        return res.status(401).json({ error: 'Discord로 참여해 주세요.' });
+        return res.status(401).json({ error: '디스코드로 참여해 주세요.' });
       }
       return res.status(200).json({ ...await call('refresh', { roomCode: body.roomCode, handle }), realtimeUrl: base });
     }

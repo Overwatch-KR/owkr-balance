@@ -15,9 +15,9 @@ interface UserSheetGuideProps {
 
 const GUIDE_ITEMS = [
     {
-        description: 'Discord 이름이나 BattleTag가 바뀌어도 같은 유저를 찾을 수 있도록 고유 ID를 최종 식별자로 사용합니다.',
+        description: '디스코드 이름이나 배틀태그가 바뀌어도 같은 유저를 찾을 수 있도록 고유 ID를 최종 식별자로 사용합니다.',
         icon: KeyRound,
-        title: 'Discord ID가 기준이에요',
+        title: '디스코드 ID가 기준이에요',
     },
     {
         description: '이 시트는 반복해서 만나는 유저의 공유 정보용입니다. 이번 내전에 넣을 10명은 참가자 페이지에서 따로 선택하고 관리합니다.',
@@ -66,7 +66,7 @@ export function UserSheetGuide({ onClose, onStartTour }: UserSheetGuideProps) {
                             운영진이 함께 관리하는 유저 정보
                         </h2>
                         <p className="mt-1.5 text-sm leading-relaxed text-slate-400">
-                            자주 만나는 유저의 정보와 특이사항을 관리하는 공유 목록입니다. 이번 내전의 참가자·티어 입력은 참가자 페이지에서, 팀 편성은 대진표에서 진행합니다.
+                            자주 만나는 유저의 정보와 특이사항을 관리하는 공유 목록입니다. 이번 내전의 참가자·티어 입력은 참가자 페이지에서, 팀 배정은 대진표에서 진행합니다.
                         </p>
                     </div>
                     <button
@@ -102,11 +102,11 @@ export function UserSheetGuide({ onClose, onStartTour }: UserSheetGuideProps) {
                         </p>
                         <div className="mt-3 overflow-x-auto rounded-lg border border-slate-800 bg-slate-950/60 px-3 py-2.5">
                             <code className="whitespace-nowrap text-[11px] text-slate-300">
-                                디스코드 표시명 · Discord ID · BattleTag · 탱커 · 딜러 · 힐러 · 특이사항
+                                디스코드 표시명 · 디스코드 ID · 배틀태그 · 탱커 · 딜러 · 힐러 · 특이사항
                             </code>
                         </div>
                         <p className="mt-2 text-[11px] leading-relaxed text-slate-400">
-                            Discord ID는 필수입니다. 기존 6열 데이터를 붙여넣은 경우 각 행의 ID를 모두 입력해야 저장할 수 있습니다.
+                            디스코드 ID는 필수입니다. 기존 6열 데이터를 붙여넣은 경우 각 행의 ID를 모두 입력해야 저장할 수 있습니다.
                         </p>
                     </article>
 

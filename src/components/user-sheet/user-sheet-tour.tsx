@@ -54,7 +54,7 @@ const USER_SHEET_TOUR_STEPS: readonly UserSheetTourStep[] = [
         icon: KeyRound,
         target: '#user-sheet-overview',
         title: '시트와 현재 명단을 구분해요',
-        description: '유저 시트는 운영진이 함께 관리하는 공유 목록입니다. 현재 내전의 참가자와 티어는 참가자 페이지에서 관리하고, 여기서는 Discord ID를 기준으로 유저 정보를 유지합니다.',
+        description: '유저 시트는 운영진이 함께 관리하는 공유 목록입니다. 현재 내전의 참가자와 티어는 참가자 페이지에서 관리하고, 여기서는 디스코드 ID를 기준으로 유저 정보를 유지합니다.',
     },
     {
         id: 'search',
@@ -62,8 +62,8 @@ const USER_SHEET_TOUR_STEPS: readonly UserSheetTourStep[] = [
         target: '#user-sheet-search',
         fallback: '#user-sheet-browse-tools',
         title: '필요한 유저를 빠르게 찾아요',
-        description: '이름, BattleTag, 역할 티어, 특이사항으로 검색한 뒤 목록에서 유저를 선택하면 오른쪽에 상세 정보가 열립니다.',
-        emptyDescription: '아직 등록된 유저가 없어요. 먼저 유저를 추가하면 이름, BattleTag, 역할 티어, 특이사항으로 검색할 수 있습니다.',
+        description: '이름, 배틀태그, 역할 티어, 특이사항으로 검색한 뒤 목록에서 유저를 선택하면 오른쪽에 상세 정보가 열립니다.',
+        emptyDescription: '아직 등록된 유저가 없어요. 먼저 유저를 추가하면 이름, 배틀태그, 역할 티어, 특이사항으로 검색할 수 있습니다.',
     },
     {
         id: 'quick-edit',
@@ -71,7 +71,7 @@ const USER_SHEET_TOUR_STEPS: readonly UserSheetTourStep[] = [
         target: '#user-sheet-quick-edit',
         fallback: '#user-sheet-actions',
         title: '한 명은 상세 화면에서 수정해요',
-        description: '선택한 유저의 공용 정보 수정을 누르면 이름, BattleTag, 역할 티어와 공용 특이사항을 수정합니다. 개인 운영 메모는 별도 저장 버튼으로 관리하며, 이 화면의 티어 수정은 현재 명단을 바꾸지 않습니다.',
+        description: '선택한 유저의 공용 정보 수정을 누르면 이름, 배틀태그, 역할 티어와 공용 특이사항을 수정합니다. 개인 운영 메모는 별도 저장 버튼으로 관리하며, 이 화면의 티어 수정은 현재 명단을 바꾸지 않습니다.',
         emptyDescription: '유저를 등록한 뒤 목록에서 선택하면 공용 정보 수정과 개인 운영 메모 저장을 서로 분리해 관리할 수 있습니다.',
     },
     {
@@ -87,7 +87,7 @@ const USER_SHEET_TOUR_STEPS: readonly UserSheetTourStep[] = [
         target: '#user-sheet-import',
         fallback: '#user-sheet-editor',
         title: '명단과 표를 한 번에 반영해요',
-        description: 'Discord 명단 가져오기로 신규 유저를 추가하거나, Discord ID를 포함한 Google Sheets의 7개 열을 편집 표 첫 셀에 붙여넣을 수 있습니다. ID가 없는 행은 저장할 수 없으며, 가이드는 저장을 실행하지 않습니다.',
+        description: '디스코드 명단 가져오기로 신규 유저를 추가하거나, 디스코드 ID를 포함한 Google Sheets의 7개 열을 편집 표 첫 셀에 붙여넣을 수 있습니다. ID가 없는 행은 저장할 수 없으며, 가이드는 저장을 실행하지 않습니다.',
     },
     {
         id: 'notes',

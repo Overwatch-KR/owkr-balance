@@ -71,14 +71,14 @@ const MODE_COPY: Record<PlayerInputMode, { title: string; description: string }>
     },
     sheet: {
         title: '유저 시트에서 추가',
-        description: '저장된 유저를 검색해 Discord ID와 최신 티어를 그대로 참가 명단에 추가합니다.',
+        description: '저장된 유저를 검색해 디스코드 ID와 최신 티어를 그대로 참가 명단에 추가합니다.',
     },
     manual: {
         title: '참가자 직접 입력',
         description: '배틀태그와 역할별 티어를 입력하거나 기존 참가자 정보를 수정합니다.',
     },
     mentions: {
-        title: '공지 참여자 대조',
+        title: '공지 참가자 대조',
         description: '공지 멘션과 현재 명단을 비교해 누락되거나 잘못 추가된 참가자를 찾습니다.',
     },
 };
@@ -136,7 +136,7 @@ export const ParticipantWorkspace = ({
             >
                 <p className={`text-sm ${isReady ? 'text-emerald-300' : 'text-slate-400'}`}>
                     <span className="font-medium">
-                        {isReady ? '10명 준비 완료' : `팀 편성까지 ${remainingCount}명`}
+                        {isReady ? '10명 준비 완료' : `팀 배정까지 ${remainingCount}명`}
                     </span>
                     <span className="mx-2 text-slate-700" aria-hidden="true">·</span>
                     <span className="text-xs text-slate-400">입력 내용은 30분간 자동 저장</span>
@@ -150,7 +150,7 @@ export const ParticipantWorkspace = ({
                         onClick={onContinueToMatching}
                         className="btn-primary inline-flex min-h-10 shrink-0 items-center justify-center gap-2 px-3 text-sm"
                     >
-                        팀 편성으로
+                        대진표로
                         <ArrowRight size={15} aria-hidden="true" />
                     </button>
                 )}

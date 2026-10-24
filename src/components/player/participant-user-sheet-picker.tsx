@@ -68,7 +68,7 @@ export function ParticipantUserSheetPicker({
                         </h3>
                     </div>
                     <p className="mt-1 text-sm text-slate-400">
-                        저장된 Discord ID와 최신 BattleTag·역할 티어를 그대로 참가 명단에 사용합니다.
+                        저장된 디스코드 ID와 최신 배틀태그·역할 티어를 그대로 참가 명단에 사용합니다.
                     </p>
                 </div>
                 <button
@@ -95,7 +95,7 @@ export function ParticipantUserSheetPicker({
                     id="participant-user-sheet-search"
                     type="search"
                     className="input-base pl-9"
-                    placeholder="Discord 이름, ID 또는 배틀태그 검색"
+                    placeholder="디스코드 이름, ID 또는 배틀태그 검색"
                     value={query}
                     onChange={event => setQuery(event.target.value)}
                     disabled={isLoading}
@@ -139,7 +139,7 @@ export function ParticipantUserSheetPicker({
                                     className="btn-primary shrink-0 disabled:cursor-not-allowed disabled:opacity-40"
                                     disabled={isAdded || !entry.discordUserId}
                                     onClick={() => onAdd(entry)}
-                                    title={!entry.discordUserId ? 'Discord ID가 없는 유저는 추가할 수 없습니다.' : undefined}
+                                    title={!entry.discordUserId ? '디스코드 ID가 없는 유저는 추가할 수 없습니다.' : undefined}
                                 >
                                     {isAdded ? '추가됨' : entry.discordUserId ? '참가자 추가' : 'ID 없음'}
                                 </button>

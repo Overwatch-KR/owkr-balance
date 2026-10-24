@@ -68,15 +68,15 @@ export class DraftParticipantAuth {
     let roomCode: string | null = null;
     try {
       requireDraft(/^[\w-]{43}$/.test(state) && (issuer === 'https://discord.com' || (oauthError !== null && issuer === null)),
-        'INVALID_OAUTH_CALLBACK', 'Discord 인증 응답을 확인해 주세요.');
+        'INVALID_OAUTH_CALLBACK', '디스코드 인증 응답을 확인해 주세요.');
       const raw = await this.options.engine.store.getTransient(`state:${hash(state)}`, true);
       requireDraft(raw, 'OAUTH_STATE_EXPIRED', '인증 요청이 만료되었거나 이미 사용되었습니다.');
       const context = JSON.parse(raw) as OAuthContext;
       requireDraft(/^[A-Z2-9]{10}$/.test(context.roomCode), 'INVALID_OAUTH_CALLBACK', '인증 요청을 확인해 주세요.');
       roomCode = context.roomCode;
       requireDraft(Date.now() < context.expiresAt, 'OAUTH_STATE_EXPIRED', '인증 요청이 만료되었습니다.');
-      requireDraft(oauthError === null, oauthError === 'access_denied' ? 'AUTH_CANCELLED' : 'DISCORD_AUTH_FAILED', 'Discord 인증을 완료하지 못했습니다.');
-      requireDraft(code.length > 0 && code.length <= 1024, 'INVALID_OAUTH_CALLBACK', 'Discord 인증 응답을 확인해 주세요.');
+      requireDraft(oauthError === null, oauthError === 'access_denied' ? 'AUTH_CANCELLED' : 'DISCORD_AUTH_FAILED', '디스코드 인증을 완료하지 못했습니다.');
+      requireDraft(code.length > 0 && code.length <= 1024, 'INVALID_OAUTH_CALLBACK', '디스코드 인증 응답을 확인해 주세요.');
       return await this.authenticate(code, context);
     } catch (error) {
       const allowed = ['NOT_PARTICIPANT', 'AUTH_CANCELLED', 'OAUTH_STATE_EXPIRED', 'ROOM_EXPIRED', 'INACTIVE_ROOM', 'ROOM_CLOSED'];
@@ -94,22 +94,22 @@ export class DraftParticipantAuth {
         grant_type: 'authorization_code', code, redirect_uri: `${this.options.publicOrigin}/auth/discord/callback`,
       }), signal: AbortSignal.timeout(8000),
     });
-    requireDraft(tokenResponse.ok, 'DISCORD_AUTH_FAILED', 'Discord 인증을 완료하지 못했습니다.');
+    requireDraft(tokenResponse.ok, 'DISCORD_AUTH_FAILED', '디스코드 인증을 완료하지 못했습니다.');
     const tokens = await tokenResponse.json() as { access_token?: string; token_type?: string; scope?: string };
     requireDraft(typeof tokens.access_token === 'string' && tokens.token_type?.toLowerCase() === 'bearer'
-      && tokens.scope?.split(' ').includes('identify'), 'DISCORD_AUTH_FAILED', 'Discord 인증 범위를 확인해 주세요.');
+      && tokens.scope?.split(' ').includes('identify'), 'DISCORD_AUTH_FAILED', '디스코드 인증 범위를 확인해 주세요.');
     const userResponse = await this.fetcher('https://discord.com/api/v10/users/@me', {
       headers: { Authorization: `Bearer ${tokens.access_token}` }, signal: AbortSignal.timeout(8000),
     });
-    requireDraft(userResponse.ok, 'DISCORD_AUTH_FAILED', 'Discord 본인 정보를 확인하지 못했습니다.');
+    requireDraft(userResponse.ok, 'DISCORD_AUTH_FAILED', '디스코드 본인 정보를 확인하지 못했습니다.');
     const user = await userResponse.json() as { id?: string; global_name?: string; username?: string };
-    requireDraft(typeof user.id === 'string' && /^\d{17,20}$/.test(user.id), 'DISCORD_AUTH_FAILED', 'Discord 계정을 확인해 주세요.');
+    requireDraft(typeof user.id === 'string' && /^\d{17,20}$/.test(user.id), 'DISCORD_AUTH_FAILED', '디스코드 계정을 확인해 주세요.');
     const bundle = await this.options.engine.requireRoom(context.roomCode);
     const participant = bundle.source?.participants.find(player => player.discordId === user.id);
 
     const exchangeCode = opaque();
     await this.options.engine.store.putTransient(`code:${hash(exchangeCode)}`, JSON.stringify({ ...context,
-      discordId: user.id, displayName: participant?.displayName ?? (user.global_name || user.username || 'Discord 참가자').slice(0, 100), expiresAt: Math.min(Date.now() + 60_000, bundle.room.expiresAt),
+      discordId: user.id, displayName: participant?.displayName ?? (user.global_name || user.username || '디스코드 참가자').slice(0, 100), expiresAt: Math.min(Date.now() + 60_000, bundle.room.expiresAt),
     }), Math.min(Date.now() + 60_000, bundle.room.expiresAt));
     return `${this.options.appOrigin}/draft/${context.roomCode}?draft_code=${encodeURIComponent(exchangeCode)}`;
   }

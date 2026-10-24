@@ -45,7 +45,7 @@ const MERGE_FIELDS: ReadonlyArray<Exclude<UserSheetMergeField, 'presence'>> = [
 
 const FIELD_LABELS: Record<UserSheetMergeField, string> = {
     discordName: '디스코드 이름',
-    discordUserId: 'Discord ID',
+    discordUserId: '디스코드 ID',
     battleTag: '배틀태그',
     tank: '탱커 티어',
     dps: '딜러 티어',

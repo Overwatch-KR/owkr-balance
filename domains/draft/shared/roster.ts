@@ -3,9 +3,9 @@ import { DRAFT_LIMITS, requireDraft, type DraftParticipant, type DraftSource } f
 export function validateDraftRoster(participants: readonly DraftParticipant[]): void {
   requireDraft(participants.length === 10, 'ROSTER_SIZE', '배정된 참가자 10명이 필요합니다.');
   requireDraft(participants.every(player => /^\d{17,20}$/.test(player.discordId)),
-    'DISCORD_ID_REQUIRED', '모든 참가자의 Discord ID를 확인해 주세요.');
+    'DISCORD_ID_REQUIRED', '모든 참가자의 디스코드 ID를 확인해 주세요.');
   requireDraft(new Set(participants.map(player => player.discordId)).size === 10,
-    'DUPLICATE_DISCORD_ID', '같은 Discord 계정을 중복 배정할 수 없습니다.');
+    'DUPLICATE_DISCORD_ID', '같은 디스코드 계정을 중복 배정할 수 없습니다.');
   requireDraft(participants.every(player => player.userSheetId.trim() && player.displayName.trim()),
     'PLAYER_ID_REQUIRED', '유저 시트 식별자와 표시 이름이 필요합니다.');
   requireDraft(new Set(participants.map(player => player.userSheetId)).size === 10,
@@ -28,7 +28,7 @@ export function getDraftRoomExpiry(now: number, sourceExpiresAt: number, session
   requireDraft([now, sourceExpiresAt, sessionExpiresAt].every(Number.isSafeInteger),
     'INVALID_TIME', '유효기간을 확인해 주세요.');
   requireDraft(sourceExpiresAt - now >= DRAFT_LIMITS.minSourceRemainingMs,
-    'SOURCE_EXPIRING', '원본 공동 작업이 10분 이내 만료됩니다. 새 원본을 만들어 주세요.');
+    'SOURCE_EXPIRING', '원본 명단이 10분 이내 만료됩니다. 새 원본을 만들어 주세요.');
   const expiresAt = Math.min(now + DRAFT_LIMITS.roomLifetimeMs, sourceExpiresAt, sessionExpiresAt);
   requireDraft(expiresAt > now, 'SESSION_EXPIRED', '내전 운영 묶음이 만료되었습니다.');
   return expiresAt;
@@ -41,7 +41,7 @@ export function validateDraftSource(
   now: number,
   allowWaiting = false,
 ): asserts source is DraftSource {
-  requireDraft(source && source.expiresAt > now, 'SOURCE_EXPIRED', '원본 공동 작업이 만료되었습니다.');
+  requireDraft(source && source.expiresAt > now, 'SOURCE_EXPIRED', '원본 명단이 만료되었습니다.');
   requireDraft(source.sourceId === expected.sourceId && source.revision === expected.revision
     && source.rosterHash === expected.rosterHash,
   'SOURCE_OUTDATED', '최신 팀을 다시 확인해 주세요.');

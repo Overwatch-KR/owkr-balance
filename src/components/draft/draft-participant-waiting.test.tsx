@@ -5,14 +5,14 @@ import { DraftParticipantWaiting } from './draft-participant-waiting';
 describe('participant admission screen', () => {
   it('shows successful login while waiting for a roster without a ready or voting action', () => {
     const html = renderToStaticMarkup(<DraftParticipantWaiting admission={{ status: 'WAITING', displayName: '하늘', participantCount: 4 }} error="" login={() => {}} />);
-    expect(html).toContain('Discord 로그인 완료'); expect(html).toContain('아직 내전 명단이 작성되지 않았습니다.');
-    expect(html).toContain('티어를 아직 작성하지 않았다면 Discord 내전 티어 채널에 티어를 작성해 주세요.');
+    expect(html).toContain('디스코드 로그인 완료'); expect(html).toContain('아직 내전 명단이 작성되지 않았습니다.');
+    expect(html).toContain('티어를 아직 작성하지 않았다면 디스코드 내전 티어 채널에 티어를 작성해 주세요.');
     expect(html).toContain('자동으로 입장'); expect(html).toContain('4');
     expect(html).not.toContain('준비 완료'); expect(html).not.toContain('투표하기');
   });
   it('shows exclusion rather than a new login requirement when the ten-player roster omits the account', () => {
     const html = renderToStaticMarkup(<DraftParticipantWaiting admission={{ status: 'EXCLUDED', displayName: '하늘', participantCount: 10 }} error="" login={() => {}} />);
-    expect(html).toContain('이번 내전 명단에 포함되지 않았습니다'); expect(html).toContain('Discord 로그인 완료');
-    expect(html).toContain('다른 Discord 계정');
+    expect(html).toContain('이번 내전 명단에 포함되지 않았습니다'); expect(html).toContain('디스코드 로그인 완료');
+    expect(html).toContain('다른 디스코드 계정');
   });
 });

@@ -300,7 +300,7 @@ export const createMatchLiveSession = async (
         return { code, session };
     }
 
-    throw new Error('고유한 공동 작업 코드를 만들지 못했습니다.');
+    throw new Error('고유한 함께 편집 코드를 만들지 못했습니다.');
 };
 
 /**

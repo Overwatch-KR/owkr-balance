@@ -59,7 +59,7 @@ export function MatchSharingPanel({
                                 ? '실시간 연결을 확인해 주세요'
                                 : isLiveConnected && liveSession
                                     ? `${liveSession.code} · ${liveSession.collaborators.length}명 연결 · ${isLivePublishing ? '저장 중…' : '동기화됨'}`
-                                    : '공동 편집 또는 읽기 전용 전달'}
+                                    : '함께 편집 또는 결과 공유'}
                         </span>
                     </span>
                 </span>

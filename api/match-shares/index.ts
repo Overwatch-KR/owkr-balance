@@ -43,7 +43,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!redis) {
         return res.status(503).json({
             error: isLiveRequest
-                ? '실시간 공동 작업 저장소가 아직 설정되지 않았습니다.'
+                ? '실시간 함께 편집 저장소가 아직 설정되지 않았습니다.'
                 : '내전 공유 저장소가 아직 설정되지 않았습니다.',
         });
     }
@@ -53,18 +53,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             if (req.method === 'GET') {
                 const code = normalizeCode(queryValue(req.query.code));
                 if (code.length !== 10) {
-                    return res.status(400).json({ error: '공동 작업 코드 10자리를 확인해 주세요.' });
+                    return res.status(400).json({ error: '함께 편집 코드 10자리를 확인해 주세요.' });
                 }
 
                 const session = await getMatchLiveSession(redis, code, getMatchLiveActor(user));
                 return session
                     ? res.status(200).json({ code, ...session })
-                    : res.status(404).json({ error: '공동 작업 코드를 찾지 못했거나 만료되었습니다.' });
+                    : res.status(404).json({ error: '함께 편집 코드를 찾지 못했거나 만료되었습니다.' });
             }
 
             if (req.method === 'POST') {
                 if (!hasValidCsrfToken(req, user)) {
-                    return res.status(403).json({ error: '공동 작업 요청을 확인할 수 없습니다.' });
+                    return res.status(403).json({ error: '함께 편집 요청을 확인할 수 없습니다.' });
                 }
                 const body = req.body as { participants?: unknown } | undefined;
                 const created = await createMatchLiveSession(
@@ -78,12 +78,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                         ...created.session,
                         expiresInSeconds: Math.max(0, Math.ceil((created.session.expiresAt - Date.now()) / 1000)),
                     })
-                    : res.status(400).json({ error: '참가자의 Discord ID와 팀 배치를 확인해 주세요.' });
+                    : res.status(400).json({ error: '참가자의 디스코드 ID와 팀 배치를 확인해 주세요.' });
             }
 
             if (req.method === 'PUT') {
                 if (!hasValidCsrfToken(req, user)) {
-                    return res.status(403).json({ error: '공동 작업 요청을 확인할 수 없습니다.' });
+                    return res.status(403).json({ error: '함께 편집 요청을 확인할 수 없습니다.' });
                 }
                 const body = req.body as {
                     code?: unknown;
@@ -92,7 +92,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 } | undefined;
                 const code = normalizeCode(body?.code);
                 if (code.length !== 10) {
-                    return res.status(400).json({ error: '공동 작업 코드 10자리를 확인해 주세요.' });
+                    return res.status(400).json({ error: '함께 편집 코드 10자리를 확인해 주세요.' });
                 }
 
                 const result = await updateMatchLiveSession(
@@ -103,10 +103,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     getMatchLiveActor(user),
                 );
                 if (result.status === 'NOT_FOUND') {
-                    return res.status(404).json({ error: '공동 작업 코드를 찾지 못했거나 만료되었습니다.' });
+                    return res.status(404).json({ error: '함께 편집 코드를 찾지 못했거나 만료되었습니다.' });
                 }
                 if (result.status === 'INVALID') {
-                    return res.status(400).json({ error: '공동 작업 명단 또는 revision을 확인해 주세요.' });
+                    return res.status(400).json({ error: '함께 편집 명단 또는 revision을 확인해 주세요.' });
                 }
                 if (result.status === 'CONFLICT') {
                     return res.status(409).json({
@@ -140,7 +140,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     code: shared.code,
                     expiresInSeconds: MATCH_SHARE_TTL_SECONDS,
                 })
-                : res.status(400).json({ error: 'Discord ID와 팀 역할 배치를 확인해 주세요.' });
+                : res.status(400).json({ error: '디스코드 ID와 팀 역할 배치를 확인해 주세요.' });
         }
 
         res.setHeader('Allow', 'GET, POST');
@@ -150,7 +150,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             res,
             error,
             isLiveRequest
-                ? '실시간 공동 작업 데이터를 처리하지 못했습니다.'
+                ? '실시간 함께 편집 데이터를 처리하지 못했습니다.'
                 : '내전 공유 데이터를 처리하지 못했습니다.',
         );
     }

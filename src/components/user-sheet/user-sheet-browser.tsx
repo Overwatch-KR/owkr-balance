@@ -76,7 +76,7 @@ export function UserSheetBrowser({
                             spellCheck={false}
                             value={query}
                             onChange={event => onQueryChange(event.target.value)}
-                            placeholder="이름·Discord ID·배틀태그 검색…"
+                            placeholder="이름·디스코드 ID·배틀태그 검색…"
                             className="form-control h-10 border-slate-800 pl-9 pr-9 text-xs"
                         />
                         {query && (
@@ -139,7 +139,7 @@ export function UserSheetBrowser({
                                 <span className={`mt-0.5 block truncate font-mono text-[10px] ${
                                     entry.discordUserId ? 'text-cyan-300/55' : 'text-rose-300/75'
                                 }`}>
-                                    Discord ID · {entry.discordUserId || '입력 필요'}
+                                    디스코드 ID · {entry.discordUserId || '입력 필요'}
                                 </span>
                                 <span className="mt-2 flex min-w-0 items-center gap-1.5 text-[10px] text-slate-400">
                                     <span className="rounded bg-slate-800/80 px-1.5 py-0.5">탱 {entry.tank || '-'}</span>

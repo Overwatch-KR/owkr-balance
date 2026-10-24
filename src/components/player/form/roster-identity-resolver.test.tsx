@@ -21,7 +21,7 @@ const player: Player = {
 };
 
 describe('RosterIdentityResolver local-only mode', () => {
-    it('Discord ID와 유저 시트 입력 없이 브라우저 명단 적용을 허용한다', () => {
+    it('디스코드 ID와 유저 시트 입력 없이 브라우저 명단 적용을 허용한다', () => {
         const markup = renderToStaticMarkup(
             <RosterIdentityResolver
                 currentPlayers={[]}
@@ -40,7 +40,7 @@ describe('RosterIdentityResolver local-only mode', () => {
         expect(markup).toContain('로컬 전용 테스트');
         expect(markup).toContain('로컬 명단에만 적용');
         expect(markup).toContain('현재 브라우저의 참가 명단에만 추가');
-        expect(markup).not.toContain('Discord 고유 ID');
+        expect(markup).not.toContain('디스코드 고유 ID');
         expect(markup).not.toContain('유저 시트 갱신 중');
     });
 });
@@ -75,7 +75,7 @@ describe('RosterIdentityResolver identity review', () => {
         );
 
         expect(markup).toContain('이름 일치 · ID 확인 필요');
-        expect(markup).toContain('이름만 일치하고 배틀태그가 다릅니다. 실제 Discord ID를 입력해 주세요.');
+        expect(markup).toContain('이름만 일치하고 배틀태그가 다릅니다. 실제 디스코드 ID를 입력해 주세요.');
         expect(markup).toMatch(/name="discord-user-id-1"[^>]*value=""/);
         expect(markup).toContain('1명 확인 필요');
         expect(markup).not.toContain('value="123456789012345678"');

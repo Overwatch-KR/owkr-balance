@@ -52,7 +52,7 @@ describe('AppNavigationShell', () => {
         expect(markup).toContain('href="/participants"');
         expect(markup).toContain('href="/scrims"');
         expect(markup).toContain('href="/user-sheet"');
-        expect(markup).toContain('href="/event-participants"');
+        expect(markup).not.toContain('href="/event-participants"');
         expect(markup).toContain('src="/favicon.webp"');
         expect(markup).toContain('내전 관리');
         expect(markup.match(/aria-current="page"/g)).toHaveLength(2);
@@ -100,7 +100,7 @@ describe('AppNavigationShell', () => {
         expect(markup).toContain('pb-[calc(5rem+env(safe-area-inset-bottom))]');
     });
 
-    it('Discord 프로필 이미지를 사이드바 계정 영역에 표시한다', () => {
+    it('디스코드 프로필 이미지를 사이드바 계정 영역에 표시한다', () => {
         const markup = renderToStaticMarkup(
             <AppNavigationShell><main>내용</main></AppNavigationShell>,
         );
@@ -160,7 +160,7 @@ describe('AppNavigationShell', () => {
         expect(markup).toContain('aria-live="polite"');
         expect(markup).toContain('2명 함께 편집 중');
         expect(markup).toContain('관리자 B · 팀 배정 수정');
-        expect(markup).toContain('현재 공동 작업자 2명');
+        expect(markup).toContain('현재 함께 편집 중인 관리자 2명');
         expect(markup).toContain('LIVE234567');
         expect(markup).toContain('대진표 보기');
     });

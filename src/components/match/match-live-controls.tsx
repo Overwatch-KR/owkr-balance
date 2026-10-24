@@ -118,13 +118,13 @@ export function MatchLiveControls({
                         disabled={!isRemote || !canStart || isBusy}
                         title={canStart
                             ? '현재 명단으로 실시간 대진표 공유를 시작합니다.'
-                            : 'Discord ID가 없는 참가자를 유저 시트와 먼저 연결해 주세요.'}
+                            : '디스코드 ID가 없는 참가자를 유저 시트와 먼저 연결해 주세요.'}
                         className="btn-primary w-full text-sm disabled:cursor-not-allowed disabled:opacity-40"
                     >
                         {isConnecting
                             ? <Loader2 size={14} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
                             : <Users size={14} aria-hidden="true" />}
-                        {isConnecting ? '연결 중…' : '새 공동 작업 시작'}
+                        {isConnecting ? '연결 중…' : '함께 편집 시작'}
                     </button>
                     <span className="hidden self-center text-xs text-slate-600 lg:inline">또는</span>
                     <div>
@@ -178,7 +178,7 @@ export function MatchLiveControls({
 
             {!isRemote && (
                 <p className="mt-3 text-xs text-amber-300/80">
-                    원격 데이터 환경에서만 공동 작업을 사용할 수 있습니다.
+                    원격 데이터 환경에서만 함께 편집을 사용할 수 있습니다.
                 </p>
             )}
         </section>

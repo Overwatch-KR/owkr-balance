@@ -138,7 +138,7 @@ describe('MatchResult', () => {
         expect(markup).toContain('다시 배정</button>');
     });
 
-    it('재매칭 중에는 경고 안의 버튼에도 진행 상태를 표시한다', () => {
+    it('팀 자동 재배정 중에는 경고 안의 버튼에도 진행 상태를 표시한다', () => {
         const markup = renderToStaticMarkup(
             <MatchResult
                 isRematching
@@ -163,7 +163,7 @@ describe('MatchResult', () => {
             />,
         );
 
-        expect(markup).not.toContain('포지션별 티어 차이');
+        expect(markup).not.toContain('역할별 티어 차이');
         expect(markup).toContain('탱커');
         expect(markup).toContain('탱커 평균 차이');
         expect(markup).toContain('1팀 약 3단계');
@@ -303,7 +303,7 @@ describe('MatchResult', () => {
         expect(markup).toContain('현재 조합');
         expect(markup).toContain('추천 12위');
         expect(markup).toContain('1팀 합류');
-        expect(markup).toContain('전체 로스터와 배정 티어');
+        expect(markup).toContain('전체 참가 명단와 배정 티어');
         expect(markup.match(/data-assigned-rank=/g)).toHaveLength(120);
         expect(markup.match(/data-candidate-matchup-row=/g)).toHaveLength(60);
         expect(markup.match(/data-candidate-change-slot=/g)).toHaveLength(12);

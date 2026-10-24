@@ -27,7 +27,7 @@ describe('RosterPasteTextarea', () => {
         expect(markup).toContain('비선호 역할은 한 개만 지정해 주세요.');
         expect(markup).toContain('aria-label="이전 입력 오류로 이동"');
         expect(markup).toContain('aria-label="다음 입력 오류로 이동"');
-        expect(markup).not.toContain('비선호 포지션을 한 개만 남겨 주세요');
+        expect(markup).not.toContain('비선호 역할을 한 개만 남겨 주세요');
     });
 
     it('오류가 한 개여도 해당 위치로 다시 이동할 수 있다', () => {

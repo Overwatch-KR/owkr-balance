@@ -52,7 +52,7 @@ const START_GUIDE_STEPS: readonly GuideStep[] = [
         icon: CheckCircle2,
         target: '#participant-workspace-header',
         title: '참가자 입력은 작업실에서 시작해요',
-        description: '명단을 추가하거나 수정하면 이 브라우저에 30분 동안 바로 저장됩니다. 10명을 채운 뒤 팀 편성 화면으로 이동하면 팀 배정을 시작할 수 있어요.',
+        description: '명단을 추가하거나 수정하면 이 브라우저에 30분 동안 바로 저장됩니다. 10명을 채운 뒤 대진표 화면으로 이동하면 팀 배정을 시작할 수 있어요.',
     },
     {
         id: 'start-discord',
@@ -86,15 +86,15 @@ const START_GUIDE_STEPS: readonly GuideStep[] = [
         id: 'start-continue',
         icon: ChevronRight,
         target: '#participant-next-step',
-        title: '준비가 끝나면 팀 편성으로 이어가세요',
-        description: '참가자 10명이 준비되면 이 영역의 팀 편성 화면으로 이동 버튼을 누르세요. 저장 버튼을 따로 누를 필요는 없습니다.',
+        title: '준비가 끝나면 대진표로 이어가세요',
+        description: '참가자 10명이 준비되면 이 영역의 대진표 화면으로 이동 버튼을 누르세요. 저장 버튼을 따로 누를 필요는 없습니다.',
     },
     {
         id: 'start-matching',
         icon: Shuffle,
         target: '#matching-action',
         title: '팀 자동 배정을 실행하세요',
-        description: '팀 편성 화면에서 강조된 팀 자동 배정 버튼을 눌러주세요. 역할 선호와 티어 차이를 고려해 여러 팀 조합을 계산합니다.',
+        description: '대진표 화면에서 강조된 팀 자동 배정 버튼을 눌러주세요. 역할 선호와 티어 차이를 고려해 여러 팀 조합을 계산합니다.',
     },
 ] as const;
 
@@ -438,7 +438,7 @@ export const OnboardingGuide = ({
                         </span>
                         <div className="min-w-0 flex-1" aria-live="polite">
                             <p className="text-xs font-semibold text-cyan-300">
-                                {variant === 'result' ? '결과 활용 가이드' : '참가자·팀 편성 가이드'} · {stepIndex + 1}/{steps.length}
+                                {variant === 'result' ? '결과 활용 가이드' : '참가자·팀 배정 가이드'} · {stepIndex + 1}/{steps.length}
                             </p>
                             <h2 id="onboarding-guide-title" className="mt-1 text-pretty text-base font-bold text-white sm:text-lg">
                                 {step.title}

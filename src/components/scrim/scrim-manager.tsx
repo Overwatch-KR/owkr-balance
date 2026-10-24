@@ -312,7 +312,7 @@ export function ScrimManager({ csrfToken, players, userId }: ScrimManagerProps) 
                             <p className="mt-1 text-sm text-slate-400">진행 일시는 한국 시간(Asia/Seoul)으로 저장됩니다.</p>
                         </div>
                         <span className="rounded-sm border-l-2 border-cyan-400 bg-cyan-400/[0.06] px-2.5 py-1 text-xs font-medium text-cyan-200">
-                            로스터 {Math.min(players.length, 10)}명
+                            참가 명단 {Math.min(players.length, 10)}명
                         </span>
                     </div>
                     <div className="mt-5 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">

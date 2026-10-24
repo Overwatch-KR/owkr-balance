@@ -24,7 +24,7 @@ const fetchDiscordJson = async <T>(url: string, accessToken: string): Promise<T>
     const response = await fetch(url, {
         headers: { Authorization: `Bearer ${accessToken}` },
     });
-    if (!response.ok) throw new Error(`Discord API 요청 실패 (${response.status})`);
+    if (!response.ok) throw new Error(`디스코드 API 요청 실패 (${response.status})`);
     return response.json() as Promise<T>;
 };
 
@@ -44,7 +44,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const clientId = process.env.DISCORD_CLIENT_ID;
     const clientSecret = process.env.DISCORD_CLIENT_SECRET;
     if (!clientId || !clientSecret) {
-        return res.status(503).send('Discord 로그인이 아직 설정되지 않았습니다.');
+        return res.status(503).send('디스코드 로그인이 아직 설정되지 않았습니다.');
     }
 
     try {
@@ -60,7 +60,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 redirect_uri: `${origin}/api/auth/callback`,
             }),
         });
-        if (!tokenResponse.ok) throw new Error(`Discord 토큰 발급 실패 (${tokenResponse.status})`);
+        if (!tokenResponse.ok) throw new Error(`디스코드 토큰 발급 실패 (${tokenResponse.status})`);
 
         const tokenData = await tokenResponse.json() as DiscordTokenResponse;
         const discordUser = await fetchDiscordJson<DiscordUserResponse>(
@@ -83,6 +83,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.redirect(302, origin);
     } catch (error) {
         console.error('Discord OAuth callback failed', error);
-        return res.status(502).send('Discord 로그인 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+        return res.status(502).send('디스코드 로그인 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.');
     }
 }
