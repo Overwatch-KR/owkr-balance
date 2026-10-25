@@ -266,6 +266,12 @@ OWKR Match의 운영 배포 내용을 날짜별로 정리한 문서입니다.
 - 로그인 목적에 사용하지 않는 Discord 프로필 이미지가 세션과 인증 응답에 포함되지 않도록 정리했습니다.
 - 앞으로 기능·운영·정책 변경 시 `CHANGELOG.md`를 함께 갱신하도록 저장소 작업 규칙을 추가했습니다.
 
+## 2026-10-24 — 화면별 메타데이터
+
+- 배포 커밋: `b057360d41c16ffaf1a265e387810198b687d227`. Vercel Production `dpl_GJg7gDDxJLFzcR1uKfBMvALys6tR`가 서울 `icn1`에서 READY이며, [Verify](https://github.com/Overwatch-KR/owkr-balance/actions/runs/40078074116)와 [실시간 서버 배포](https://github.com/Overwatch-KR/owkr-balance/actions/runs/40078074147)가 성공했습니다. 2026-10-25 재확인한 최신 운영 커밋 `5760427`에도 포함되어 있습니다.
+- 브라우저 탭 제목과 페이지 설명을 현재 화면에 맞게 설정했습니다. 관리자 메뉴 이동·뒤로/앞으로 가기·경로 교체·로그인 상태 변경에도 갱신하며, 공개 링크의 밴픽 참여·영웅 밴 투표·만족도 조사를 구분합니다. 제목은 `현재 화면 | OWKR Match`로 통일하고 공유 코드·사용자 정보는 포함하지 않습니다.
+- 타입·린트·564개 테스트·경계 검사·프런트/서버 빌드를 통과했습니다. 운영 브라우저에서 메뉴 이동과 뒤로/앞으로 가기의 제목·설명 갱신, 비로그인 직접 진입의 로그인 제목을 확인했습니다.
+
 ## 2026-10-24 — 이벤트 참여자 제거·화면 용어 통일
 
 - 배포 커밋: `da5d7e11cffd4eb9dbb60b9c9da188260ec2e4c2`. Vercel Production `dpl_5keoQE1GDTw8PsFSPJ2Mjov6kTUa`의 서울 `icn1` READY와 운영 version.json 일치를 확인했습니다. [Verify](https://github.com/Overwatch-KR/owkr-balance/actions/runs/40076459712)와 [실시간 서버 배포](https://github.com/Overwatch-KR/owkr-balance/actions/runs/40076459729)가 성공했습니다.
