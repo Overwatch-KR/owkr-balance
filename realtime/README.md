@@ -93,7 +93,7 @@ pnpm check
 
 main push 자동 배포의 `REALTIME_SSH_HOST`·`REALTIME_SSH_USER`·`REALTIME_SSH_PRIVATE_KEY` Secret 등록 방법과 실제 civilwar.devbot.me 서버 설치·인증 설정·재배포·격리 Redis 부하 시험 절차는 [운영 안내](deploy/OPERATIONS.md)를 참고한다.
 
-## 로컬 Redis 우선과 일일 동기화 (2026-10-26, 미배포)
+## 로컬 Redis 우선과 일일 동기화 (2026-10-26 운영 적용)
 
 일반 읽기·쓰기는 1코어·1GB 서버의 로컬 Redis에서 처리한다. 기존 Redis 96MB 제한과 SQLite 변경 저널을 유지하며 새 상주 프로세스를 추가하지 않는다. Upstash는 백업·Vercel API 폴백 저장소로 사용한다. 정기 동기화는 서버 시간대와 무관하게 매일 `03:00 Asia/Seoul`에 실행하고, 서버 시작 시 복구 동기화도 한 번 수행한다. 일반 변경으로 동기화를 깨우거나 정상 조회를 Upstash로 보내지 않는다. 동기화 실패는 기존 지수 지연으로 재시도하고 사용량 한도 오류는 한 시간 뒤 재시도한다.
 
@@ -107,7 +107,7 @@ Vercel 폴백 대상은 기존 HTTP API다. 같은 서버의 WebSocket 밴픽 �
 
 검증: `pnpm check`와 `python realtime/deploy/storage-sync-test.py`. Python 검사는 Python `redis` 패키지와 `redis-server`가 필요하며 운영 데이터에 접속하지 않는 임시 Redis 두 개를 사용한다.
 
-## 날짜별 백업 DB (2026-10-26, 미배포)
+## 날짜별 백업 DB (2026-10-26 운영 적용)
 
 게이트웨이는 동기화 저널과 별개인 SQLite DB `/var/lib/owkr-storage-gateway/backups.sqlite3`에 Redis 사본을 누적한다. 시작 시 최초 사본을 만들고 이후 한국 시간 새벽 3시에 백업한다. Upstash 연결·한도·동기화 성공 여부와 독립된 작업이며 실패하면 5분 뒤 재시도한다. 상주 DB 서버를 추가하지 않고 기존 게이트웨이 안에서 실행한다. 경로는 서버 전용 환경 변수 `STORAGE_BACKUP_DB`로 지정할 수 있으며 디렉터리는 서비스 사용자가 쓸 수 있어야 한다.
 
@@ -117,4 +117,4 @@ Vercel 폴백 대상은 기존 HTTP API다. 같은 서버의 WebSocket 밴픽 �
 
 백업 기준은 캡처 시점의 로컬 Redis다. 폴백 중 Upstash에만 생긴 변경은 로컬 동기화 이후의 백업에 포함된다. 같은 서버 디스크의 사본이므로 Redis 삭제·오수정에는 대응하지만 서버 디스크 유실을 보호하지는 않는다. 외부 보관용 `export`는 실행 중인 SQLite의 WAL까지 포함한 독립 DB 파일을 생성하며 외부 업로드·저장소 연결은 별도 구성 대상이다.
 
-검증: `python realtime/deploy/storage-backup-test.py`에서 날짜별 사본 유지·Upstash 장애 독립성·유저 명단 복구·만료 비연장·손상 검사·일관된 캡처·온라인 내보내기를 확인한다. 새 모듈은 설치 및 기존 서버 배포·롤백 경로에도 포함한다. 아직 운영 서버 설치·실제 사용자 데이터 백업은 수행하지 않았다.
+검증: `python realtime/deploy/storage-backup-test.py`에서 날짜별 사본 유지·Upstash 장애 독립성·유저 명단 복구·만료 비연장·손상 검사·일관된 캡처·온라인 내보내기를 확인한다. 새 모듈은 설치 및 기존 서버 배포·롤백 경로에도 포함한다. 2026-10-26 `ab15e44` 배포에서 운영 서버 설치와 첫 실제 백업 사본(ID 1, 키 6개), 새벽 3시 일정·15일 보존·백업 오류 없음을 확인했다.

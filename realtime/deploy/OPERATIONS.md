@@ -14,7 +14,7 @@
 
 ## Redis 날짜별 DB 백업과 명단 복구
 
-2026-10-26 추가, 미배포. 기존 설치·배포 경로는 `storage-backup.py`도 설치하고 게이트웨이와 함께 갱신·롤백한다. 별도 DB 서버·타이머 설치 없이 게이트웨이 시작 시 및 매일 `03:00 Asia/Seoul`에 `/var/lib/owkr-storage-gateway/backups.sqlite3`로 백업한다. `STORAGE_BACKUP_DB`로 경로를 바꿀 수 있다. 서비스 계정 `owkr-storage`가 디렉터리에 접근할 수 있어야 하고 systemd의 쓰기 허용 범위도 확인한다. 기본 위치는 기존 `StateDirectory` 안이므로 추가 권한 설정이 필요 없다.
+2026-10-26 `ab15e44` 운영 적용. 첫 SQLite 사본(ID 1, 키 6개), 새벽 3시 일정·15일 보존·백업 오류 없음을 배포 검사에서 확인했다. 기존 설치·배포 경로는 `storage-backup.py`도 설치하고 게이트웨이와 함께 갱신·롤백한다. 별도 DB 서버·타이머 설치 없이 게이트웨이 시작 시 및 매일 `03:00 Asia/Seoul`에 `/var/lib/owkr-storage-gateway/backups.sqlite3`로 백업한다. `STORAGE_BACKUP_DB`로 경로를 바꿀 수 있다. 서비스 계정 `owkr-storage`가 디렉터리에 접근할 수 있어야 하고 systemd의 쓰기 허용 범위도 확인한다. 기본 위치는 기존 `StateDirectory` 안이므로 추가 권한 설정이 필요 없다.
 
 Upstash 동기화와 DB 백업은 서로 다른 작업이다. Upstash 장애 중에도 로컬 Redis의 유저 명단·배틀태그 인덱스·버전·이벤트·메모 및 유효한 임시 업무 자료를 백업한다. 내전 기록과 순번(`scrims:`)은 SQLite 백업·복구 대상에서 제외하며 Redis 저장·Upstash 동기화는 유지한다. 인증 토큰·nonce·writer lease·방 생성 중복 처리 키는 제외한다. `/storage/status`의 인증된 응답에 있는 `backup`에서 마지막 성공 시각·사본 수·오류를 확인한다. 실패 시 5분 뒤 재시도하며 백업 장애로 일반 Redis 요청을 중지하지 않는다. 사본은 생성 시각 기준 최근 15일 미만만 보존한다. 시작 시 및 백업 성공 시 15일 이상 지난 사본·연결 항목·미참조 내용을 자동 삭제하고 DB 빈 공간을 회수한다. 삭제되거나 빈 명단을 다음 날 백업해도 보존 기간 안의 이전 사본은 유지한다.
 
