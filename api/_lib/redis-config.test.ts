@@ -15,8 +15,13 @@ describe('temporary server storage selection', () => {
     vi.stubEnv('UPSTASH_REDIS_REST_TOKEN', 'old-token');
     const { getRedis } = await import('./redis');
     expect(getRedis()).toBe(getRedis());
-    expect(constructor).toHaveBeenCalledExactlyOnceWith({ url: 'https://draft.invalid/storage',
-      token: createHmac('sha256', 's'.repeat(40)).update('owkr-local-storage-v1').digest('hex') });
+    expect(constructor).toHaveBeenCalledExactlyOnceWith({ request: expect.any(Function) });
+    const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => new Response(JSON.stringify({ backend: 'local' })));
+    const requester = constructor.mock.calls[0][0];
+    await requester.request({ body: ['GET', 'scrims:test'] });
+    expect(fetch).toHaveBeenLastCalledWith('https://draft.invalid/storage', expect.objectContaining({
+      headers: expect.objectContaining({ Authorization: `Bearer ${createHmac('sha256', 's'.repeat(40)).update('owkr-local-storage-v1').digest('hex')}` }) }));
+    fetch.mockRestore();
   });
 
   it('allows an explicit rollback to the unchanged Upstash configuration', async () => {
@@ -28,6 +33,6 @@ describe('temporary server storage selection', () => {
     vi.stubEnv('UPSTASH_REDIS_REST_TOKEN', 'old-token');
     const { getRedis } = await import('./redis');
     getRedis();
-    expect(constructor).toHaveBeenCalledExactlyOnceWith({ url: 'https://upstash.invalid', token: 'old-token' });
+    expect(constructor).toHaveBeenCalledExactlyOnceWith({ url: 'https://upstash.invalid', token: 'old-token', retry: false });
   });
 });

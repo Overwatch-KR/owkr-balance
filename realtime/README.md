@@ -92,3 +92,17 @@ pnpm check
 - 방의 고정 3시간 만료는 다음 경기나 재접속으로 연장하지 않는다. 원본 팀이 바뀌면 기존 규칙대로 다시 준비하며 팟지 선수도 현재 명단에서 지정해야 한다.
 
 main push 자동 배포의 `REALTIME_SSH_HOST`·`REALTIME_SSH_USER`·`REALTIME_SSH_PRIVATE_KEY` Secret 등록 방법과 실제 civilwar.devbot.me 서버 설치·인증 설정·재배포·격리 Redis 부하 시험 절차는 [운영 안내](deploy/OPERATIONS.md)를 참고한다.
+
+## 로컬 Redis 우선과 일일 동기화 (2026-10-26, 미배포)
+
+일반 읽기·쓰기는 1코어·1GB 서버의 로컬 Redis에서 처리한다. 기존 Redis 96MB 제한과 SQLite 변경 저널을 유지하며 새 상주 프로세스를 추가하지 않는다. Upstash는 백업·Vercel API 폴백 저장소로 사용한다. 정기 동기화는 서버 시간대와 무관하게 매일 `03:00 Asia/Seoul`에 실행하고, 서버 시작 시 복구 동기화도 한 번 수행한다. 일반 변경으로 동기화를 깨우거나 정상 조회를 Upstash로 보내지 않는다. 동기화 실패는 기존 지수 지연으로 재시도하고 사용량 한도 오류는 한 시간 뒤 재시도한다.
+
+Vercel의 `getRedis()`는 인증된 로컬 상태 확인 후 명령을 보낸다. 서버·게이트웨이·Redis 연결 장애 시 기존 `UPSTASH_REDIS_REST_URL/TOKEN` 또는 `KV_REST_API_URL/TOKEN`으로 직접 전환한다. 실패한 로컬 상태 확인은 30초 동안 반복하지 않는다. 폴백 중 쓰기가 있으면 해당 연결은 그 이후의 로컬 동기화 완료를 확인한 뒤 로컬로 돌아간다. 서버 재시작 복구 동기화에 실패하더라도 기존 로컬 데이터는 사용할 수 있다. `OWKR_STORAGE_BACKEND=upstash`는 명시적인 직접 연결 모드다.
+
+읽기 응답을 잃으면 Upstash에서 다시 조회할 수 있지만, 쓰기·Lua·일회 토큰 소비·쓰기 포함 트랜잭션은 실행 여부가 불명확하므로 다른 저장소에 재실행하지 않는다. 해당 요청은 반영 여부 확인 오류로 종료하고 이후 요청에서 폴백한다. 인증·명령 오류는 장애 전환으로 숨기지 않는다.
+
+일일 백업이므로 로컬 장애 중에는 마지막 성공한 동기화 시점의 자료를 사용한다. 정상 일일 동기화 기준 최대 24시간 차이를 허용하며, 백업 자체가 실패하면 차이는 더 길어질 수 있다. 복구 동기화는 기존 항목별 최신 수정 시각·삭제 기록 병합과 절대 만료 시각을 유지한다. 이 구성은 실시간 복제나 저장소 간 단일 트랜잭션을 제공하지 않는다. 전환·복구 구간에는 연결별로 저장소가 달라질 수 있다.
+
+Vercel 폴백 대상은 기존 HTTP API다. 같은 서버의 WebSocket 밴픽 프로세스가 중지되면 실시간 밴픽은 서버가 복구될 때까지 중지된다. 적용에는 Vercel Functions와 별도 서버의 `storage-gateway.py`·`storage-sync.py` 배포가 모두 필요하다. Vercel의 기존 KV/Upstash 읽기·쓰기 자격 증명을 보존해야 한다.
+
+검증: `pnpm check`와 `python realtime/deploy/storage-sync-test.py`. Python 검사는 Python `redis` 패키지와 `redis-server`가 필요하며 운영 데이터에 접속하지 않는 임시 Redis 두 개를 사용한다.

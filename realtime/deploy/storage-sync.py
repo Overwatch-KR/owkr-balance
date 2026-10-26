@@ -7,11 +7,21 @@ import threading
 import time
 import urllib.request
 import urllib.error
+from datetime import datetime, timedelta, timezone
 
 PREFIXES = ('user-sheet:', 'scrims:', 'events:', 'match-live:', 'match-shares:', 'player-note:', 'draft:v1:')
 META = 'owkr:storage-sync:v1'
 READS = frozenset('GET EXISTS TTL PTTL HGET HGETALL HVALS HLEN HMGET MGET ZRANGE ZRANGEBYSCORE ZCARD PING TIME'.split())
 QUOTA_RETRY_SECONDS = 3600
+KST = timezone(timedelta(hours=9))
+
+
+def next_daily_sync(stamp):
+    current = datetime.fromtimestamp(stamp / 1000, KST)
+    scheduled = current.replace(hour=3, minute=0, second=0, microsecond=0)
+    if scheduled <= current:
+        scheduled += timedelta(days=1)
+    return int(scheduled.timestamp() * 1000)
 
 
 def is_quota_error(error):
@@ -287,25 +297,6 @@ class StorageSync:
     def execute(self, commands, batch=False, transaction=False):
         with self.lock:
             readonly = all(c[0].upper() in READS for c in commands)
-            managed = self.keys_for(commands) == self.keys_for(commands, managed=False)
-            # The sole local writer owns this index; idle housekeeping must not poll Upstash every second.
-            local_room_index = self.keys_for(commands, managed=False) == {'draft:v1:active'}
-            if readonly and self.ready and managed and not local_room_index and any(c[0].upper() not in ('PING', 'TIME') for c in commands):
-                try:
-                    # Each command is read-only, so an ambiguous timeout can safely fall back.
-                    def raw(value):
-                        if isinstance(value, str):
-                            return value.encode()
-                        if isinstance(value, list):
-                            return [raw(item) for item in value]
-                        return value
-                    return [raw(self.upstream.execute_command(*c)) for c in commands]
-                except Exception as error:
-                    self.ready = False
-                    self.last_error = 'upstream_quota' if is_quota_error(error) else 'upstream_unavailable'
-                    if is_quota_error(error):
-                        self.retry_at = time.monotonic() + QUOTA_RETRY_SECONDS
-                    self.wake.set()
             keys = self.keys_for(commands) if not readonly else set()
             before = {key: snapshot(self.client, key)[0] for key in keys}
             stamp = now()
@@ -331,7 +322,6 @@ class StorageSync:
                 self.db.commit()
                 if changed:
                     self.ready = False
-                    self.wake.set()
 
     def scan(self, client):
         keys = set()
@@ -431,18 +421,22 @@ class StorageSync:
             self.last_error = None
 
     def run(self):
-        failures, last_full = 0, 0
+        failures = 0
+        scheduled_at = now()
         while not self.stopped.is_set():
             self.wake.clear()
-            if self.stopped.wait(max(0, self.retry_at - time.monotonic())):
+            delay = max(0, self.retry_at - time.monotonic(), (scheduled_at - now()) / 1000)
+            if self.stopped.wait(min(delay, 30)):
+                break
+            if delay > 30:
+                continue
+            if self.stopped.is_set():
                 break
             try:
-                full = failures > 0 or last_full == 0 or time.monotonic() - last_full > 900
-                self.cycle(full)
-                if full:
-                    last_full = time.monotonic()
+                self.cycle()
                 failures = 0
-                self.wake.wait(1 if not self.ready else 30)
+                self.retry_at = 0
+                scheduled_at = next_daily_sync(now())
             except Exception as error:
                 with self.lock:
                     self.ready = False
@@ -452,6 +446,7 @@ class StorageSync:
                 # Writes cannot bypass backoff and spend the failed provider's quota.
                 delay = QUOTA_RETRY_SECONDS if is_quota_error(error) else min(300, 2 ** min(failures, 8))
                 self.retry_at = time.monotonic() + delay
+                scheduled_at = now()
 
     def start(self):
         self.thread = threading.Thread(target=self.run, name='storage-sync', daemon=True)
@@ -459,7 +454,7 @@ class StorageSync:
 
     def status(self):
         with self.lock:
-            return {'backend': 'upstash' if self.ready else 'local', 'pendingKeys': self.db.execute('SELECT COUNT(*) FROM states WHERE dirty=1').fetchone()[0],
+            return {'backend': 'local', 'syncSchedule': '03:00 Asia/Seoul', 'nextSyncAt': next_daily_sync(now()), 'pendingKeys': self.db.execute('SELECT COUNT(*) FROM states WHERE dirty=1').fetchone()[0],
                     'lastSyncAt': self.last_sync, 'upstream': self.last_error or ('ready' if self.ready else 'recovering'),
                     'nextRetryAt': now() + int((self.retry_at - time.monotonic()) * 1000) if self.retry_at > time.monotonic() else None}
 

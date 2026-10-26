@@ -81,14 +81,14 @@ class SyncTest(unittest.TestCase):
     def write(self, *command):
         return self.sync.execute([list(command)])[0]
 
-    def test_missing_both_directions_and_remote_preferred_reads(self):
+    def test_missing_both_directions_and_local_preferred_reads(self):
         self.local.set('scrims:local', 'local')
         self.remote.set('scrims:remote', 'remote')
         self.sync.cycle()
         self.assertEqual(self.remote.get('scrims:local'), b'local')
         self.assertEqual(self.local.get('scrims:remote'), b'remote')
         self.remote.set('scrims:remote', 'read upstream')
-        self.assertEqual(self.write('GET', 'scrims:remote'), b'read upstream')
+        self.assertEqual(self.write('GET', 'scrims:remote'), b'remote')
 
     def test_local_writes_and_reads_continue_during_outage(self):
         self.sync.cycle()
@@ -254,30 +254,59 @@ class SyncTest(unittest.TestCase):
         self.assertEqual(self.upstream.calls, calls)
         self.assertTrue(self.sync.ready)
 
-    def test_mixed_active_index_and_data_reads_keep_upstream_semantics(self):
+    def test_mixed_active_index_and_data_reads_stay_local(self):
         self.write('SET', 'scrims:remote-read', 'local')
         self.sync.cycle()
         self.remote.set('scrims:remote-read', 'remote')
         result = self.sync.execute([['ZRANGE', 'draft:v1:active', 0, -1], ['GET', 'scrims:remote-read']], batch=True)
-        self.assertEqual(result, [[], b'remote'])
+        self.assertEqual(result, [[], b'local'])
 
-    def test_quota_cooldown_cannot_be_bypassed_by_writes(self):
-        self.sync.cycle()
-        with patch.object(self.upstream, 'execute_command', side_effect=RuntimeError('ERR max requests limit exceeded')) as remote:
-            self.assertEqual(self.write('GET', 'scrims:missing'), None)
-            self.assertEqual(self.sync.last_error, 'upstream_quota')
-            self.assertGreater(self.sync.status()['nextRetryAt'], m.now() + 3_500_000)
-            self.sync.start()
-            try:
-                self.write('SET', 'scrims:during-quota', 'local')
-                time.sleep(.1)
-                self.assertEqual(remote.call_count, 1)
-                self.assertEqual(self.write('GET', 'scrims:during-quota'), b'local')
-            finally:
+    def test_daily_schedule_is_korean_three_am_including_midnight(self):
+        for current, expected in (
+            ('2026-10-26T02:59:59+09:00', '2026-10-26T03:00:00+09:00'),
+            ('2026-10-26T03:00:00+09:00', '2026-10-27T03:00:00+09:00'),
+            ('2026-10-26T23:59:59+09:00', '2026-10-27T03:00:00+09:00'),
+        ):
+            stamp = int(m.datetime.fromisoformat(current).timestamp() * 1000)
+            self.assertEqual(m.next_daily_sync(stamp), int(m.datetime.fromisoformat(expected).timestamp() * 1000))
+
+    def test_local_writes_do_not_wake_daily_sync(self):
+        self.sync.start()
+        try:
+            deadline = time.monotonic() + 2
+            while self.sync.last_sync is None and time.monotonic() < deadline:
+                time.sleep(.01)
+            self.assertIsNotNone(self.sync.last_sync)
+            calls = self.upstream.calls
+            self.write('SET', 'scrims:daily', 'local')
+            time.sleep(.1)
+            self.assertEqual(self.write('GET', 'scrims:daily'), b'local')
+            self.assertEqual(self.upstream.calls, calls)
+            self.assertIsNone(self.remote.get('scrims:daily'))
+            self.assertEqual(self.sync.status()['backend'], 'local')
+            self.assertEqual(self.sync.status()['pendingKeys'], 1)
+        finally:
+            self.sync.stopped.set()
+            self.sync.thread.join(timeout=2)
+
+    def test_worker_runs_bootstrap_then_waits_until_korean_three_am(self):
+        clock = [int(m.datetime.fromisoformat('2026-10-26T02:59:59+09:00').timestamp() * 1000)]
+        runs = []
+
+        def cycle():
+            runs.append(clock[0])
+            if len(runs) == 2:
                 self.sync.stopped.set()
-                self.sync.wake.set()
-                self.sync.thread.join(timeout=2)
-            self.assertFalse(self.sync.thread.is_alive())
+
+        def wait(seconds):
+            clock[0] += int(seconds * 1000)
+            return False
+
+        with patch.object(m, 'now', side_effect=lambda: clock[0]), \
+                patch.object(self.sync.stopped, 'wait', side_effect=wait), \
+                patch.object(self.sync, 'cycle', side_effect=cycle):
+            self.sync.run()
+        self.assertEqual(runs[1] - runs[0], 1000)
 
     def test_background_quota_failure_uses_hourly_retry(self):
         with patch.object(self.upstream, 'execute_command', side_effect=RuntimeError('ERR quota exceeded')) as remote:
@@ -318,7 +347,7 @@ class SyncTest(unittest.TestCase):
             self.assertEqual(base64.b64decode(json.load(response)['result']).decode(), '한글')
         request = urllib.request.Request(url + '/status', data=b'{}', headers={'Authorization': 'Bearer ' + 't' * 64})
         with urllib.request.urlopen(request) as response:
-            self.assertEqual(json.load(response)['backend'], 'upstash')
+            self.assertEqual(json.load(response)['backend'], 'local')
         with self.assertRaises(urllib.error.HTTPError):
             urllib.request.urlopen(urllib.request.Request(url + '/status', data=b'{}'))
 
@@ -329,6 +358,21 @@ class SyncTest(unittest.TestCase):
         self.local.hset('scrims:hash', 'a', 'b')
         with self.assertRaises(RuntimeError):
             upstream.execute_command('GET', 'scrims:hash')
+
+    def test_health_waits_for_bootstrap_but_retains_local_availability_on_upstream_failure(self):
+        url = self.adapter(self.sync)
+
+        def request():
+            return urllib.request.urlopen(urllib.request.Request(url + '/status', data=b'{}', headers={
+                'Authorization': 'Bearer ' + 't' * 64}))
+
+        with self.assertRaises(urllib.error.HTTPError) as error:
+            request()
+        self.assertEqual(error.exception.code, 503)
+        error.exception.close()
+        self.sync.last_error = 'upstream_quota'
+        with request() as response:
+            self.assertEqual(json.load(response)['backend'], 'local')
 
     def test_legacy_sheet_migrates_before_v2_guard(self):
         old = {'id': 'old', 'battleTag': 'Old#123', 'updatedAt': 1000}

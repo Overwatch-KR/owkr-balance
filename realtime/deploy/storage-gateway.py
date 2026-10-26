@@ -72,7 +72,14 @@ def create_server(token, socket_path, port=8790):
                 self.reply(401, {'error': 'Unauthorized'})
                 return
             if self.path == '/status':
-                self.reply(200, sync.status() if sync else {'backend': 'local', 'upstream': 'disabled'})
+                try:
+                    client.ping()
+                    if sync and sync.last_sync is None and sync.last_error is None:
+                        self.reply(503, {'error': 'Storage recovery in progress'})
+                        return
+                    self.reply(200, sync.status() if sync else {'backend': 'local', 'upstream': 'disabled'})
+                except redis.RedisError:
+                    self.reply(503, {'error': 'Storage unavailable'})
                 return
             if self.path not in ('', '/', '/pipeline', '/multi-exec'):
                 self.reply(404, {'error': 'Not found'})

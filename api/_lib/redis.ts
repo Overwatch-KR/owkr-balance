@@ -1,5 +1,6 @@
 import { Redis } from '@upstash/redis';
 import { createHmac } from 'node:crypto';
+import { createStorageRequester } from './redis-failover.js';
 
 let redis: Redis | null = null;
 
@@ -9,7 +10,7 @@ let redis: Redis | null = null;
 export const isLocalDataOnly = (): boolean => process.env.OWKR_LOCAL_DATA_ONLY === 'true';
 
 /**
- * @description Upstash 우선 조회·장애 전환·동기화를 조정하는 게이트웨이에 서버 전용 인증으로 연결한다.
+ * @description 로컬 Redis를 우선 사용하며 연결 장애 시 Vercel에서 Upstash로 직접 전환한다.
  */
 export const getRedis = (): Redis | null => {
     if (isLocalDataOnly()) return null;
@@ -25,6 +26,10 @@ export const getRedis = (): Redis | null => {
         : process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN;
     if (!url || !token) return null;
 
-    redis = new Redis({ url, token });
+    const fallbackUrl = process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL;
+    const fallbackToken = process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN;
+    redis = serverStorage
+        ? new Redis(createStorageRequester({ url, token }, fallbackUrl && fallbackToken ? { url: fallbackUrl, token: fallbackToken } : null))
+        : new Redis({ url, token, retry: false });
     return redis;
 };
