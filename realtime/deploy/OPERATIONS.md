@@ -12,6 +12,34 @@
 - 기본 허용 사이트: `https://owkr-internal-balance.vercel.app`. 실제 사이트가 바뀌면 `DRAFT_APP_ORIGIN`도 변경한다. Preview 주소는 자동 허용하지 않는다.
 - Redis는 기존 사이트와 같은 Upstash를 사용한다. 기존 운영 키는 읽고 밴픽 키만 쓴다.
 
+## Redis 날짜별 DB 백업과 명단 복구
+
+2026-10-26 추가, 미배포. 기존 설치·배포 경로는 `storage-backup.py`도 설치하고 게이트웨이와 함께 갱신·롤백한다. 별도 DB 서버·타이머 설치 없이 게이트웨이 시작 시 및 매일 `03:00 Asia/Seoul`에 `/var/lib/owkr-storage-gateway/backups.sqlite3`로 백업한다. `STORAGE_BACKUP_DB`로 경로를 바꿀 수 있다. 서비스 계정 `owkr-storage`가 디렉터리에 접근할 수 있어야 하고 systemd의 쓰기 허용 범위도 확인한다. 기본 위치는 기존 `StateDirectory` 안이므로 추가 권한 설정이 필요 없다.
+
+Upstash 동기화와 DB 백업은 서로 다른 작업이다. Upstash 장애 중에도 로컬 Redis의 유저 명단·배틀태그 인덱스·버전·이벤트·메모 및 유효한 임시 업무 자료를 백업한다. 내전 기록과 순번(`scrims:`)은 SQLite 백업·복구 대상에서 제외하며 Redis 저장·Upstash 동기화는 유지한다. 인증 토큰·nonce·writer lease·방 생성 중복 처리 키는 제외한다. `/storage/status`의 인증된 응답에 있는 `backup`에서 마지막 성공 시각·사본 수·오류를 확인한다. 실패 시 5분 뒤 재시도하며 백업 장애로 일반 Redis 요청을 중지하지 않는다. 사본은 생성 시각 기준 최근 15일 미만만 보존한다. 시작 시 및 백업 성공 시 15일 이상 지난 사본·연결 항목·미참조 내용을 자동 삭제하고 DB 빈 공간을 회수한다. 삭제되거나 빈 명단을 다음 날 백업해도 보존 기간 안의 이전 사본은 유지한다.
+
+서버에서 백업 목록을 조회한다. 아래 목록·미리보기·내보내기는 실행 중인 서비스에서도 사용할 수 있다. 목록에는 데이터 내용 대신 사본 ID·시각·키 수만 표시한다.
+
+```sh
+sudo -u owkr-storage /usr/bin/python3 /opt/owkr-storage/storage-backup.py list
+sudo -u owkr-storage /usr/bin/python3 /opt/owkr-storage/storage-backup.py restore --snapshot 1 --prefix user-sheet:
+sudo -u owkr-storage /usr/bin/python3 /opt/owkr-storage/storage-backup.py export --output /var/lib/owkr-storage-gateway/backup-export.sqlite3
+```
+
+`1`은 목록에서 선택한 실제 사본 ID로 바꾼다. `restore` 기본 동작은 미리보기이며 Redis를 수정하지 않는다. `export`는 SQLite 온라인 백업 API로 WAL에 기록된 내용까지 포함한 독립 파일을 만들고, 기존 파일은 덮어쓰지 않는다. 만들어진 파일은 서버 외부의 신뢰할 수 있는 저장소로 별도 전달해야 서버 디스크 유실에도 대비할 수 있다. DB에는 유저 정보가 있으므로 권한 `0600`을 유지하고 Git에 넣지 않는다. 백업 시점에 로컬로 아직 동기화되지 않은 Upstash 전용 변경은 포함하지 않는다.
+
+실제 복구 전에는 `owkr-draft`와 `owkr-storage-gateway`를 중지해 쓰기·동기화를 멈춘다. 선택한 네임스페이스가 빈 대상 Redis에만 복구할 수 있다. 현재 자료가 남아 있다면 먼저 별도로 보관하고, 기존 데이터를 지우는 절차는 대상과 사본을 확인한 뒤 운영자가 수행한다. 아래 예시는 대상이 이미 비어 있는 장애 복구용이며 기존 데이터 삭제 명령은 포함하지 않는다.
+
+```sh
+sudo systemctl stop owkr-draft owkr-storage-gateway
+sudo -u owkr-storage /usr/bin/python3 /opt/owkr-storage/storage-backup.py restore --snapshot 1 --prefix user-sheet: --apply
+sudo systemctl start owkr-storage-gateway owkr-draft
+```
+
+`--prefix`는 `user-sheet:`, `events:`, `player-note:`, `match-live:`, `match-shares:`, `draft:v1:` 중 필요한 것을 반복해 지정한다. 유저 명단은 `user-sheet:` 전체를 선택해야 항목·배틀태그 인덱스·버전이 같이 복구된다. 내용·목록 해시와 DB 무결성을 먼저 검증하고, 만료된 임시 세션은 제외하며 만료 시각을 연장하지 않는다. 복구 내용은 기존 동기화 저널에 새 변경으로 기록하므로 Upstash 복구 후 동기화 대상이 된다. 기본 Redis 소켓·저널 경로를 바꾼 서버는 같은 `--socket`·`--journal`을 지정한다. 백업 파일을 바꿔 읽으려면 하위 명령 앞에 `--db PATH`를 지정한다.
+
+검증: `/usr/bin/python3 realtime/deploy/storage-backup-test.py`. 임시 Redis 두 개와 임시 SQLite DB만 사용하며 실제 명단을 수정하지 않는다.
+
 ## 최초 인증 설정과 시작
 
 `participant-oauth.env`에 실제 참가자 전용 Discord 앱의 다음 두 값을 넣고 root 전용 600 권한으로 저장한다. 파일이 없으면 systemd는 시작을 건너뛴다. 가짜 OAuth 자격증명으로 서비스를 기동하지 않는다.

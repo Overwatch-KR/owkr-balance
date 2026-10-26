@@ -35,3 +35,6 @@ dist-ssr
 # Deployment credentials
 /ubuntu.pem
 /.deployment-secrets/
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm

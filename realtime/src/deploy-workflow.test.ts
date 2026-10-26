@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -27,6 +27,7 @@ function fixture(withStorage = false) {
       writeFileSync(join(storage, file), 'old gateway');
       writeFileSync(join(payload, 'deploy', file), 'new gateway');
     }
+    writeFileSync(join(payload, 'deploy', 'storage-backup.py'), 'new backup');
     writeFileSync(join(config, 'gateway.env'), 'STORAGE_TOKEN=test-only');
   }
   const archive = join(directory, 'release.tar.gz');
@@ -62,6 +63,7 @@ describe('realtime release deployment', () => {
     const app = fixture(true); const result = app.run();
     expect(result.status, result.stderr).toBe(0);
     expect(readFileSync(join(app.storage, 'storage-sync.py'), 'utf8')).toBe('new gateway');
+    expect(readFileSync(join(app.storage, 'storage-backup.py'), 'utf8')).toBe('new backup');
     const commands = readFileSync(app.log, 'utf8');
     expect(commands.indexOf('stop owkr-draft')).toBeLessThan(commands.indexOf('stop owkr-storage-gateway'));
     expect(commands.indexOf('start owkr-storage-gateway')).toBeLessThan(commands.indexOf('start owkr-draft'));
@@ -73,6 +75,7 @@ describe('realtime release deployment', () => {
     expect(realpathSync(join(app.root, 'current'))).toBe(app.previous);
     expect(readFileSync(join(app.storage, 'storage-sync.py'), 'utf8')).toBe('old gateway');
     expect(readFileSync(join(app.storage, 'storage-gateway.py'), 'utf8')).toBe('old gateway');
+    expect(existsSync(join(app.storage, 'storage-backup.py'))).toBe(false);
     expect(result.stderr).toContain('Previous release restored and healthy');
   });
   it('stops the previous writer before starting the new release and skips a healthy rerun', () => {

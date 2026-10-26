@@ -17,43 +17,54 @@ previous=
 transitioning=0
 storage_backup=
 storage_changed=0
+storage_files=(storage-sync.py storage-gateway.py storage-backup.py)
 
 storage_ready() {
-  "$PYTHON_BIN" - "$STORAGE_ENV" <<'PY'
+  "$PYTHON_BIN" - "$STORAGE_ENV" "${1:-compat}" <<'PY'
 import json, sys, urllib.request
 from pathlib import Path
 values = dict(line.split('=', 1) for line in Path(sys.argv[1]).read_text().splitlines() if '=' in line and not line.startswith('#'))
 request = urllib.request.Request('http://127.0.0.1:8790/status', data=b'{}', headers={
     'Authorization': 'Bearer ' + values['STORAGE_TOKEN'].strip().strip('"').strip("'")})
 with urllib.request.urlopen(request, timeout=5) as response:
-    assert json.load(response)['backend'] in ('local', 'upstash')
+    status = json.load(response)
+    assert status['backend'] in ('local', 'upstash')
+    if sys.argv[2] == 'backup':
+        backup = status['backup']
+        assert status['backend'] == 'local' and backup['lastSnapshotId'] is not None
+        assert backup['retentionDays'] == 15 and backup['lastError'] is None
+        print(json.dumps({'backend': status['backend'], 'backup': backup}))
 PY
 }
 
 prepare_storage() {
   if [[ ! -d "$STORAGE_ROOT" ]]; then return 0; fi
   [[ -r "$STORAGE_ENV" && -x "$PYTHON_BIN" ]]
-  local file
-  for file in storage-sync.py storage-gateway.py; do
-    [[ -f "$release/deploy/$file" && -f "$STORAGE_ROOT/$file" ]]
+  local file changed=0
+  [[ -f "$STORAGE_ROOT/storage-sync.py" && -f "$STORAGE_ROOT/storage-gateway.py" ]]
+  for file in "${storage_files[@]}"; do
+    [[ -f "$release/deploy/$file" ]]
     "$PYTHON_BIN" -c 'import sys; from pathlib import Path; compile(Path(sys.argv[1]).read_text(), sys.argv[1], "exec")' "$release/deploy/$file"
+    if ! cmp -s "$release/deploy/$file" "$STORAGE_ROOT/$file"; then changed=1; fi
   done
-  if cmp -s "$release/deploy/storage-sync.py" "$STORAGE_ROOT/storage-sync.py" \
-    && cmp -s "$release/deploy/storage-gateway.py" "$STORAGE_ROOT/storage-gateway.py"; then return 0; fi
+  if (( changed == 0 )); then return 0; fi
   storage_backup="$(mktemp -d "$STORAGE_ROOT/.before-deploy-$commit.XXXXXX")"
   chmod 700 "$storage_backup"
-  cp -p "$STORAGE_ROOT/storage-sync.py" "$STORAGE_ROOT/storage-gateway.py" "$storage_backup/"
+  for file in "${storage_files[@]}"; do
+    if [[ -f "$STORAGE_ROOT/$file" ]]; then cp -p "$STORAGE_ROOT/$file" "$storage_backup/"; fi
+  done
 }
 
 deploy_storage() {
   if [[ -z "$storage_backup" ]]; then return 0; fi
   storage_changed=1
   systemctl stop owkr-storage-gateway
-  install -m 0644 "$release/deploy/storage-sync.py" "$release/deploy/storage-gateway.py" "$STORAGE_ROOT/"
+  local file
+  for file in "${storage_files[@]}"; do install -m 0644 "$release/deploy/$file" "$STORAGE_ROOT/"; done
   systemctl start owkr-storage-gateway
   local attempt
   for attempt in {1..30}; do
-    if systemctl is-active --quiet owkr-storage-gateway && storage_ready; then return 0; fi
+    if systemctl is-active --quiet owkr-storage-gateway && storage_ready backup; then return 0; fi
     sleep 1
   done
   return 1
@@ -91,7 +102,13 @@ rollback() {
     systemctl stop "$SERVICE" || true
     if (( storage_changed )); then
       systemctl stop owkr-storage-gateway || true
-      cp -p "$storage_backup/storage-sync.py" "$storage_backup/storage-gateway.py" "$STORAGE_ROOT/" || true
+      for file in "${storage_files[@]}"; do
+        if [[ -f "$storage_backup/$file" ]]; then
+          cp -p "$storage_backup/$file" "$STORAGE_ROOT/" || true
+        else
+          rm -f -- "$STORAGE_ROOT/$file"
+        fi
+      done
       systemctl start owkr-storage-gateway || true
       if ! storage_ready; then printf '%s\n' 'GATEWAY ROLLBACK FAILED: inspect owkr-storage-gateway.' >&2; fi
     fi

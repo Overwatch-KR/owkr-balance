@@ -106,3 +106,15 @@ Vercel의 `getRedis()`는 인증된 로컬 상태 확인 후 명령을 보낸다
 Vercel 폴백 대상은 기존 HTTP API다. 같은 서버의 WebSocket 밴픽 프로세스가 중지되면 실시간 밴픽은 서버가 복구될 때까지 중지된다. 적용에는 Vercel Functions와 별도 서버의 `storage-gateway.py`·`storage-sync.py` 배포가 모두 필요하다. Vercel의 기존 KV/Upstash 읽기·쓰기 자격 증명을 보존해야 한다.
 
 검증: `pnpm check`와 `python realtime/deploy/storage-sync-test.py`. Python 검사는 Python `redis` 패키지와 `redis-server`가 필요하며 운영 데이터에 접속하지 않는 임시 Redis 두 개를 사용한다.
+
+## 날짜별 백업 DB (2026-10-26, 미배포)
+
+게이트웨이는 동기화 저널과 별개인 SQLite DB `/var/lib/owkr-storage-gateway/backups.sqlite3`에 Redis 사본을 누적한다. 시작 시 최초 사본을 만들고 이후 한국 시간 새벽 3시에 백업한다. Upstash 연결·한도·동기화 성공 여부와 독립된 작업이며 실패하면 5분 뒤 재시도한다. 상주 DB 서버를 추가하지 않고 기존 게이트웨이 안에서 실행한다. 경로는 서버 전용 환경 변수 `STORAGE_BACKUP_DB`로 지정할 수 있으며 디렉터리는 서비스 사용자가 쓸 수 있어야 한다.
+
+유저 명단의 항목·배틀태그 인덱스·버전을 포함해 `user-sheet:`, `events:`, `player-note:`, `match-live:`, `match-shares:`, `draft:v1:` 업무 데이터를 보관한다. 내전 기록·순번(`scrims:`)은 SQLite 백업·복구 대상에서 제외한다. writer lease·배포 시험 키·일회성 인증·nonce·방 생성 중복 처리 키는 제외한다. 게이트웨이 변경 및 동기화와 같은 잠금을 사용해 명단과 인덱스를 일관되게 저장하며, Redis 만료 시각을 함께 기록한다. 스냅샷 생성에 실패하면 해당 DB 트랜잭션을 취소해 이전 사본을 유지한다.
+
+사본은 생성 시각 기준 최근 15일 미만의 데이터만 보존한다. 시작 시 및 백업 성공 시 15일 이상 지난 사본·연결 항목·더 이상 참조되지 않는 내용을 자동 삭제하고 DB의 빈 공간도 회수한다. 삭제·빈 데이터도 새 사본으로 기록하며, 보존 기간 안의 과거 명단은 유지한다. 같은 내용은 해시로 중복 저장을 줄인다. DB 파일 접근 권한은 `0600`이고 앱 응답에는 백업 내용 대신 인증된 `/storage/status`의 `backup` 요약만 표시한다. 무결성을 확인한 날짜별 복구와 실행 예시는 [운영 안내](deploy/OPERATIONS.md#redis-날짜별-db-백업과-명단-복구)를 따른다.
+
+백업 기준은 캡처 시점의 로컬 Redis다. 폴백 중 Upstash에만 생긴 변경은 로컬 동기화 이후의 백업에 포함된다. 같은 서버 디스크의 사본이므로 Redis 삭제·오수정에는 대응하지만 서버 디스크 유실을 보호하지는 않는다. 외부 보관용 `export`는 실행 중인 SQLite의 WAL까지 포함한 독립 DB 파일을 생성하며 외부 업로드·저장소 연결은 별도 구성 대상이다.
+
+검증: `python realtime/deploy/storage-backup-test.py`에서 날짜별 사본 유지·Upstash 장애 독립성·유저 명단 복구·만료 비연장·손상 검사·일관된 캡처·온라인 내보내기를 확인한다. 새 모듈은 설치 및 기존 서버 배포·롤백 경로에도 포함한다. 아직 운영 서버 설치·실제 사용자 데이터 백업은 수행하지 않았다.

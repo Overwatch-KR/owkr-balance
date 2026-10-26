@@ -323,7 +323,8 @@ class StorageSync:
                 if changed:
                     self.ready = False
 
-    def scan(self, client):
+    @staticmethod
+    def scan(client):
         keys = set()
         cursor = '0'
         while True:

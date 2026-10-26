@@ -10,6 +10,7 @@ install -d -m 0755 /opt/owkr-storage
 install -d -m 0750 -o redis -g redis /var/lib/owkr-storage
 install -m 0644 "$source_dir/storage-gateway.py" /opt/owkr-storage/storage-gateway.py
 install -m 0644 "$source_dir/storage-sync.py" /opt/owkr-storage/storage-sync.py
+install -m 0644 "$source_dir/storage-backup.py" /opt/owkr-storage/storage-backup.py
 install -m 0640 -o root -g redis "$source_dir/storage-redis.conf" /etc/owkr-storage/redis.conf
 install -m 0644 "$source_dir/owkr-storage-redis.service" "$source_dir/owkr-storage-gateway.service" /etc/systemd/system/
 python3 - <<'PY'
@@ -39,7 +40,7 @@ with os.fdopen(descriptor, 'w') as output:
         output.write('STORAGE_UPSTREAM_URL=' + upstream['UPSTASH_REDIS_REST_URL'] + '\n')
         output.write('STORAGE_UPSTREAM_TOKEN=' + upstream['UPSTASH_REDIS_REST_TOKEN'] + '\n')
     for line in existing.splitlines():
-        if line.startswith(('STORAGE_UPSTREAM_URL=', 'STORAGE_UPSTREAM_TOKEN=', 'STORAGE_SYNC_DB=')):
+        if line.startswith(('STORAGE_UPSTREAM_URL=', 'STORAGE_UPSTREAM_TOKEN=', 'STORAGE_SYNC_DB=', 'STORAGE_BACKUP_DB=')):
             output.write(line + '\n')
 PY
 systemctl daemon-reload

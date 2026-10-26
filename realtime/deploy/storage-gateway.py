@@ -12,6 +12,9 @@ import redis
 spec = importlib.util.spec_from_file_location('storage_sync', os.path.join(os.path.dirname(__file__), 'storage-sync.py'))
 sync_module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(sync_module)
+backup_spec = importlib.util.spec_from_file_location('storage_backup', os.path.join(os.path.dirname(__file__), 'storage-backup.py'))
+backup_module = importlib.util.module_from_spec(backup_spec)
+backup_spec.loader.exec_module(backup_module)
 
 
 MAX_BODY = 2 * 1024 * 1024
@@ -41,12 +44,16 @@ def encode(value, use_base64, top=True):
     return value
 
 
-def create_server(token, socket_path, port=8790):
+def create_server(token, socket_path, port=8790, backup_path=None):
     if len(token) < 32:
         raise ValueError('A storage token of at least 32 characters is required')
     client = redis.Redis(unix_socket_path=socket_path, socket_timeout=5, socket_connect_timeout=3, max_connections=24)
     client.response_callbacks.clear()
     sync = sync_module.from_environment(client)
+    storage_lock = sync.lock if sync else threading.RLock()
+    backup = backup_module.StorageBackup(client, storage_lock,
+        backup_path or os.environ.get('STORAGE_BACKUP_DB', backup_module.DEFAULT_DB), sync_module)
+    backup.start()
     slots = threading.BoundedSemaphore(16)
 
     class Handler(BaseHTTPRequestHandler):
@@ -77,7 +84,8 @@ def create_server(token, socket_path, port=8790):
                     if sync and sync.last_sync is None and sync.last_error is None:
                         self.reply(503, {'error': 'Storage recovery in progress'})
                         return
-                    self.reply(200, sync.status() if sync else {'backend': 'local', 'upstream': 'disabled'})
+                    status = sync.status() if sync else {'backend': 'local', 'upstream': 'disabled'}
+                    self.reply(200, dict(status, backup=backup.status()))
                 except redis.RedisError:
                     self.reply(503, {'error': 'Storage unavailable'})
                 return
@@ -118,14 +126,15 @@ def create_server(token, socket_path, port=8790):
                     if not batch:
                         payload = payload[0]
                 elif batch:
-                    with client.pipeline(transaction=self.path == '/multi-exec') as pipeline:
+                    with storage_lock, client.pipeline(transaction=self.path == '/multi-exec') as pipeline:
                         for command in commands:
                             pipeline.execute_command(*command)
                         results = pipeline.execute(raise_on_error=False)
                     payload = [encode(item, use_base64) if isinstance(item, Exception)
                                else {'result': encode(item, use_base64)} for item in results]
                 else:
-                    payload = {'result': encode(client.execute_command(*commands[0]), use_base64)}
+                    with storage_lock:
+                        payload = {'result': encode(client.execute_command(*commands[0]), use_base64)}
                 self.reply(200, payload)
             except redis.ResponseError as error:
                 self.reply(200, {'error': str(error)})
@@ -137,6 +146,13 @@ def create_server(token, socket_path, port=8790):
     class Server(ThreadingHTTPServer):
         daemon_threads = True
         request_queue_size = 32
+
+        def server_close(self):
+            backup.stopped.set()
+            backup.thread.join(timeout=30)
+            if not backup.thread.is_alive() and backup.db is not None:
+                backup.db.close()
+            super().server_close()
 
     return Server(('127.0.0.1', port), Handler)
 

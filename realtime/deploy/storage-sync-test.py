@@ -330,7 +330,7 @@ class SyncTest(unittest.TestCase):
         gateway = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(gateway)
         gateway.sync_module.from_environment = lambda _client: sync
-        server = gateway.create_server('t' * 64, self.local.connection_pool.connection_kwargs['path'], 0)
+        server = gateway.create_server('t' * 64, self.local.connection_pool.connection_kwargs['path'], 0, self.path + '.backup')
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
         self.addCleanup(server.server_close)
