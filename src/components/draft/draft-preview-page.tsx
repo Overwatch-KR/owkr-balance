@@ -137,6 +137,12 @@ function DraftPreviewContent({ heroes }: { heroes: readonly DraftHero[] }) {
       });
       if (type === 'draft.start') setSnapshot(previous => ({ ...exampleSnapshot(previous.mapSelection.mode === 'POTG' ? 'potg' : 'map', heroes),
         isOperator: previous.isOperator, gameIndex: previous.gameIndex, mapSelection: previous.mapSelection }));
+      if (type === 'draft.restart') setSnapshot(previous => ({ ...exampleSnapshot('operator', heroes),
+        epoch: previous.epoch + 1, gameId: previous.gameId, gameIndex: previous.gameIndex, isOperator: previous.isOperator,
+        timer: { ...previous.timer, phase: 'LOBBY', status: 'ACTIVE', epoch: previous.epoch + 1, deadlineAt: null, remainingMs: null },
+        candidates: null, readyCount: previous.readyCount,
+        mapSelection: previous.mapSelection, previousGame: previous.previousGame,
+        progress: previous.progress?.map(player => ({ ...player, ready: player.connectionStatus === 'CONNECTED' && player.inputConnected, confirmed: false })) }));
       if (type === 'map.swapSides') setSnapshot(previous => ({ ...previous, mapResult: previous.mapResult && { ...previous.mapResult, firstAttackTeam: previous.mapResult.firstAttackTeam === 'A' ? 'B' : 'A' } }));
       if (type === 'game.confirmApplied') setSnapshot(previous => ({ ...previous, phase: 'COMPLETED' }));
       if (type === 'game.markStarted') setSnapshot(previous => ({ ...previous, playStatus: 'PLAYING' }));

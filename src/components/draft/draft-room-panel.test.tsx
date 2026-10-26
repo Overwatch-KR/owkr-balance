@@ -295,6 +295,25 @@ describe('draft selection and ban results', () => {
     expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>밴픽 시작/);
   });
 
+  it('설정 적용 전 진행 중인 밴픽에만 운영자 취소 버튼을 표시하고 연결이 끊기면 잠근다', () => {
+    const view = snapshot(); view.isOperator = true;
+    const controller = { snapshot: view, connected: true, pending: false, error: '', command: vi.fn(), reconnect: vi.fn() };
+    for (const phase of ['MAP_VOTING', 'MAP_PICKING', 'MAP_RESOLVED', 'HERO_VOTING', 'HERO_RESOLVED'] as const) {
+      view.phase = phase;
+      expect(render(<DraftOperatorActions controller={controller} execute={vi.fn()} />)).toContain('밴픽 취소');
+    }
+    expect(render(<DraftOperatorActions controller={{ ...controller, connected: false }} execute={vi.fn()} />))
+      .toMatch(/<button[^>]*disabled=""[^>]*>밴픽 취소/);
+    expect(render(<DraftOperatorActions controller={{ ...controller, pending: true }} execute={vi.fn()} />))
+      .toMatch(/<button[^>]*disabled=""[^>]*>밴픽 취소/);
+    for (const phase of ['LOBBY', 'COMPLETED'] as const) {
+      view.phase = phase;
+      expect(render(<DraftOperatorActions controller={controller} execute={vi.fn()} />)).not.toContain('밴픽 취소');
+    }
+    view.phase = 'HERO_VOTING'; view.isOperator = false;
+    expect(render(<DraftOperatorActions controller={controller} execute={vi.fn()} />)).not.toContain('밴픽 취소');
+  });
+
   it('운영자에게만 방 닫기를 표시하고 경기 진행 중에는 종료 기록을 요구한다', () => {
     const view = snapshot(); view.isOperator = true;
     const controller = { snapshot: view, connected: true, pending: false, error: '', command: vi.fn(), reconnect: vi.fn() };

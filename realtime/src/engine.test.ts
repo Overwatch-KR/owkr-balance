@@ -36,6 +36,25 @@ async function setup(options: { realCatalogs?: boolean } = {}) {
 }
 
 describe('local server persisted flow', () => {
+  it('cancels a draft back to the same lobby and rejects votes from the cancelled epoch', async () => {
+    const app = await setup(); await app.readyAll(); await app.run(0, 'draft.start');
+    const before = await app.engine.requireRoom(app.code);
+    const oldEpoch = before.room.epoch;
+    const selection = [before.room.candidates!.candidates[0].map.mapId];
+    await app.run(1, 'ballot.save', { selection });
+    await expect(app.run(1, 'draft.restart')).rejects.toThrow('권한');
+    await app.run(0, 'draft.restart', { reason: '운영자 밴픽 취소' });
+    const { room, history } = await app.engine.requireRoom(app.code);
+    expect(room).toMatchObject({ roomCode: app.code, gameId: before.room.gameId, gameIndex: before.room.gameIndex,
+      epoch: oldEpoch + 1, phase: 'LOBBY', stage: null, candidates: null, mapResult: null, heroResult: null,
+      timer: { status: 'ACTIVE', deadlineAt: null } });
+    expect(history.activeRoomId).toBe(app.code);
+    expect(history.games).toEqual(before.history.games);
+    await expect(app.run(1, 'ballot.save', { selection, epoch: oldEpoch })).rejects.toThrow('세대');
+    await app.run(0, 'draft.start');
+    expect((await app.engine.requireRoom(app.code)).room.phase).toBe('MAP_VOTING');
+  });
+
   it('shares the randomized roll deadline and holds the confirmed map for another full four seconds', async () => {
     const app = await setup(); await app.readyAll(); await app.run(0, 'draft.start');
     const { room } = await app.engine.requireRoom(app.code);

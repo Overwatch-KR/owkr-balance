@@ -17,6 +17,8 @@ export function DraftOperatorActions({ controller, execute }: { controller: Draf
   const startBlocked = progress.length !== 10 || problems.length > 0 || snapshot.availableMapCount === 0 || pickerMissing || (remainingConfirmation && !remainingMapsConfirmed);
   const disabled = !controller.connected || controller.pending || (action?.type === 'draft.start' && startBlocked)
     || (action?.requiresActive && snapshot.timer.status !== 'ACTIVE');
+  const canCancel = snapshot.phase !== 'LOBBY' && snapshot.phase !== 'COMPLETED' && snapshot.playStatus === 'NOT_STARTED'
+    && !['EXPIRED', 'CANCELLED'].includes(snapshot.timer.status);
   if (!snapshot.isOperator || controller.roomClosed) return null;
   return <section className="draft-operator-actions" aria-label="다음 운영 작업">
     <div className="draft-operator-action-row"><div className="min-w-0">
@@ -40,6 +42,13 @@ export function DraftOperatorActions({ controller, execute }: { controller: Draf
       {remainingConfirmation && <label className="flex min-h-11 items-center gap-2"><input type="checkbox" disabled={!controller.connected || controller.pending} checked={remainingMapsConfirmed} onChange={event => setRemainingMapsConfirmed(event.target.checked)} />남은 맵 {snapshot.availableMapCount}개로 진행 · 무작위 없음</label>}
       <details><summary className="cursor-pointer py-2">고급 맵 설정 · 모드 다양성 예외</summary><label className="mt-1 block">예외 사유 (필요할 때만)
         <input className="form-control mt-1" maxLength={500} disabled={!controller.connected || controller.pending} value={diversityExceptionReason} onChange={event => setDiversityExceptionReason(event.target.value)} /></label></details>
+    </div>}
+    {canCancel && <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-800 pt-3">
+      <p className="text-xs text-slate-400">현재 투표·맵·밴 결과를 초기화하고 대기실로 돌아갑니다. 방과 공유 링크는 유지됩니다.</p>
+      <button type="button" className="btn-ghost text-xs text-amber-300" disabled={!controller.connected || controller.pending}
+        onClick={() => {
+          if (window.confirm('진행 중인 밴픽을 취소하고 대기실로 돌아갈까요? 현재 투표·맵·밴 결과가 초기화됩니다. 이미 공개된 정보는 회수할 수 없으며 방과 공유 링크는 유지됩니다.')) execute('draft.restart', { reason: '운영자 밴픽 취소' });
+        }}>밴픽 취소</button>
     </div>}
     <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-800 pt-3">
       <p className="text-xs text-slate-500">{snapshot.playStatus === 'PLAYING' ? '진행 중인 경기의 종료 또는 중단을 먼저 기록해 주세요.' : '방을 닫으면 모든 연결과 공유 링크 참여가 종료됩니다.'} 2시간 동안 조작이 없으면 자동 종료됩니다.</p>
