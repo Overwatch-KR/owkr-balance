@@ -2,8 +2,8 @@ import type { Plugin } from 'vite';
 
 const TITLE = '내전 밴픽 | OWKR Match';
 const DESCRIPTION = '초대받은 내전에서 팀을 확인하고 맵 선정과 영웅 밴에 참여하세요.';
-const IMAGE_URL = 'https://owkr-internal-balance.vercel.app/og/draft-v1.png';
-const IMAGE_ALT = 'OWKR 내전 밴픽 · 팀 확인, 맵 선정, 영웅 밴 참가 안내';
+const IMAGE_URL = 'https://owkr-internal-balance.vercel.app/og/draft-v2.png';
+const IMAGE_ALT = 'OWKR 내전 밴픽의 영웅 선택과 투표 화면 예시';
 
 /** @description 방 데이터나 코드를 조회하지 않고 크롤러가 읽을 밴픽 초대 정보를 HTML에 넣는다. */
 export function buildDraftShareHtml(html: string): string {
