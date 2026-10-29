@@ -363,3 +363,14 @@ Overwatch, Blizzard Entertainment, Battle.net 및 관련 이름, 로고, 랭크 
 - [내전 규정](https://github.com/Overwatch-KR/owkr-docs) · 규정, 참가 안내와 FAQ
 - [관리자 시험](https://github.com/Overwatch-KR/owkr-exam) · 내전 관리자 시험 웹
 - [내전 워크샵](https://github.com/Overwatch-KR/owkr-scrim-workshop) · 준비 중인 OverPy 소스
+
+### 밴픽 링크 미리보기
+
+`/draft/<방 코드>`와 `/draft-control`은 같은 앱 번들을 사용하는 `draft.html`로 연결합니다.
+이 HTML에 공통 Open Graph·Twitter 이미지와 초대 설명을 포함하므로 Discord 등에서
+자바스크립트 실행이나 참가자 로그인 없이 링크 미리보기를 읽을 수 있습니다.
+방·참가자·투표 데이터는 미리보기 생성에 조회하거나 포함하지 않습니다. 실제 방 주소는 유지합니다.
+
+이미지는 `public/og/draft-v1.png`(1200×630)입니다. `pnpm assets:share`로 저장소의
+맵·영웅 이미지와 Pretendard 폰트를 사용해 다시 만들 수 있습니다. 그림은 공통 초대 이미지이며
+해당 방의 실제 맵·밴 결과가 아닙니다. 이미지 내용 변경 시 파일 버전을 올려 공유 서비스의 캐시와 구분합니다.
