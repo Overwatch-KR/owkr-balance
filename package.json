@@ -31,7 +31,8 @@
     "boundaries": "boundra check-boundaries --root . --format json",
     "domains:graph": "boundra graph-domains --root . --format mermaid",
     "check": "npm run typecheck && npm run lint && npm run test && npm run boundaries && npm run build && npm run realtime:build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "assets:share": "node scripts/generate-draft-share-image.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.102.8",

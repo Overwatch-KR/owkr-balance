@@ -1,17 +1,29 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
-  "regions": ["icn1"],
+  "regions": [
+    "icn1"
+  ],
   "buildCommand": "pnpm build",
   "outputDirectory": "dist",
   "headers": [
     {
       "source": "/draft/:roomCode",
-      "headers": [{ "key": "Cache-Control", "value": "no-store, max-age=0, must-revalidate" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0, must-revalidate"
+        }
+      ]
     },
     {
       "source": "/draft-control",
-      "headers": [{ "key": "Cache-Control", "value": "no-store, max-age=0, must-revalidate" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0, must-revalidate"
+        }
+      ]
     },
     {
       "source": "/",
@@ -138,16 +150,34 @@
           "value": "public, max-age=3600, s-maxage=86400"
         }
       ]
+    },
+    {
+      "source": "/draft.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/og/:path*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
     }
   ],
   "rewrites": [
     {
       "source": "/draft/:roomCode",
-      "destination": "/index.html"
+      "destination": "/draft.html"
     },
     {
       "source": "/draft-control",
-      "destination": "/index.html"
+      "destination": "/draft.html"
     },
     {
       "source": "/participants",

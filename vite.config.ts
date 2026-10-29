@@ -2,6 +2,7 @@ import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { boundra } from 'boundra/vite'
 import path from 'path'
+import { draftSharePagePlugin } from './scripts/draft-share-page'
 
 const buildVersion = process.env.VERCEL_GIT_COMMIT_SHA
   ?? process.env.GITHUB_SHA
@@ -34,7 +35,7 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(buildVersion),
   },
-  plugins: [boundra(), react(), appVersionPlugin(buildVersion)],
+  plugins: [boundra(), react(), appVersionPlugin(buildVersion), draftSharePagePlugin()],
   resolve: {
     alias: {
       src: path.resolve(__dirname, './src'),
