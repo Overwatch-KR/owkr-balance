@@ -7,7 +7,7 @@ describe('draft link preview', () => {
     it('exposes absolute image metadata before JavaScript without replacing the bundled app', () => {
         const html = buildDraftShareHtml(entry);
         expect(html).toContain('<meta property="og:title" content="내전 밴픽 | OWKR Match"');
-        expect(html).toContain('content="https://owkr-internal-balance.vercel.app/og/draft-v1.png"');
+        expect(html).toContain('content="https://owkr-internal-balance.vercel.app/og/draft-v2.png"');
         expect(html).toContain('content="1200"');
         expect(html).toContain('content="630"');
         expect(html).toContain('name="twitter:card" content="summary_large_image"');

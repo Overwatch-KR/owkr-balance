@@ -371,6 +371,9 @@ Overwatch, Blizzard Entertainment, Battle.net 및 관련 이름, 로고, 랭크 
 자바스크립트 실행이나 참가자 로그인 없이 링크 미리보기를 읽을 수 있습니다.
 방·참가자·투표 데이터는 미리보기 생성에 조회하거나 포함하지 않습니다. 실제 방 주소는 유지합니다.
 
-이미지는 `public/og/draft-v1.png`(1200×630)입니다. `pnpm assets:share`로 저장소의
-맵·영웅 이미지와 Pretendard 폰트를 사용해 다시 만들 수 있습니다. 그림은 공통 초대 이미지이며
-해당 방의 실제 맵·밴 결과가 아닙니다. 이미지 내용 변경 시 파일 버전을 올려 공유 서비스의 캐시와 구분합니다.
+이미지는 `public/og/draft-v2.png`(1200×630)입니다. `pnpm assets:share`로 저장소의
+가상 참가자의 실제 밴픽 UI 캡처와 Pretendard 폰트를 사용해 다시 만들 수 있습니다.
+캡처 원본은 `scripts/assets/draft-vote-ui.png`입니다. 로컬 `pnpm dev:frontend`의
+`/__preview/draft?screen=ban`에서 1200×674 화면의 실제 `.draft-selection` 영역
+(x=24, y=188, 1152×470)을 캡처했습니다. 개발 메뉴·타이머는 제외했고 가상 참가자만 사용했습니다.
+그림에는 ‘참가 화면 예시’를 표시하며 해당 방의 실제 맵·밴 결과가 아닙니다. 이미지 내용 변경 시 파일 버전을 올려 공유 서비스의 캐시와 구분합니다.
