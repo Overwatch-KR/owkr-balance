@@ -81,6 +81,86 @@ class SyncTest(unittest.TestCase):
     def write(self, *command):
         return self.sync.execute([list(command)])[0]
 
+
+    def test_writer_renewal_bypasses_sync_lock_but_normal_writes_wait(self):
+        writer = 'draft:v1:writer'
+        self.local.set(writer, 'owner', px=15000)
+        renewed, written = threading.Event(), threading.Event()
+        result = []
+        def renew():
+            result.extend(self.sync.execute([['EVAL', next(script for script in m.WRITER_SCRIPTS if 'PEXPIRE' in script),
+                                             1, writer, 'owner']]))
+            renewed.set()
+        def write():
+            self.sync.execute([['SET', 'scrims:waiting', 'value']])
+            written.set()
+        threads = [threading.Thread(target=renew), threading.Thread(target=write)]
+        with self.sync.lock:
+            for thread in threads:
+                thread.start()
+            self.assertTrue(renewed.wait(1), 'writer renewal blocked on reconciliation')
+            self.assertFalse(written.wait(.05), 'managed writes bypassed journal serialization')
+            self.assertEqual(result, [1])
+            self.assertGreater(self.local.pttl(writer), 13000)
+        for thread in threads:
+            thread.join(3)
+        self.assertTrue(written.is_set())
+        self.assertEqual(self.sync.db.execute("SELECT COUNT(*) FROM states WHERE key=?", (writer,)).fetchone()[0], 0)
+
+    def test_writer_lease_survives_sixteen_second_upstream_reconciliation(self):
+        entered, release = threading.Event(), threading.Event()
+        self.write('SET', 'scrims:slow-upstream', 'data')
+        self.local.set('draft:v1:writer', 'owner', px=15000)
+        original = self.upstream.execute_command
+        def delayed(*command):
+            if command[0] == 'EVAL' and command[1] == m.SNAPSHOT:
+                entered.set()
+                release.wait(20)
+            return original(*command)
+        failures = []
+        def reconcile():
+            try:
+                self.sync.reconcile('scrims:slow-upstream')
+            except Exception as error:
+                failures.append(type(error).__name__)
+        with patch.object(self.upstream, 'execute_command', side_effect=delayed):
+            worker = threading.Thread(target=reconcile)
+            worker.start()
+            try:
+                self.assertTrue(entered.wait(2))
+                script = next(script for script in m.WRITER_SCRIPTS if 'PEXPIRE' in script)
+                for _ in range(4):
+                    time.sleep(4)
+                    self.assertEqual(self.sync.execute([['EVAL', script, 1, 'draft:v1:writer', 'owner']]), [1])
+                self.assertEqual(self.local.get('draft:v1:writer'), b'owner')
+                self.assertGreater(self.local.pttl('draft:v1:writer'), 13000)
+            finally:
+                release.set()
+                worker.join(5)
+        self.assertFalse(worker.is_alive())
+        self.assertEqual(failures, [])
+
+    def test_lease_fast_path_preserves_other_owner_and_missing_key(self):
+        writer = 'draft:v1:writer'
+        self.local.set(writer, 'other', px=15000)
+        for script in m.WRITER_SCRIPTS:
+            self.assertEqual(self.sync.execute([['EVAL', script, 1, writer, 'old']]), [0])
+            self.assertEqual(self.local.get(writer), b'other')
+        self.assertEqual(self.sync.execute([['SET', writer, 'old', 'NX', 'PX', 15000]]), [None])
+        self.local.delete(writer)
+        for script in m.WRITER_SCRIPTS:
+            self.assertEqual(self.sync.execute([['EVAL', script, 1, writer, 'old']]), [0])
+        self.assertFalse(self.local.exists(writer))
+
+    def test_only_known_pure_writer_operations_bypass_journal(self):
+        self.assertFalse(m.writer_command(['EVAL', "return redis.call('DEL','scrims:data')", 1, 'draft:v1:writer', 'owner']))
+        self.assertFalse(m.writer_command(['EVALSHA', 'hash', 1, 'draft:v1:writer', 'owner']))
+        self.assertFalse(m.writer_command(['MGET', 'draft:v1:writer', 'scrims:data']))
+        self.sync.execute([['SET', 'draft:v1:writer', 'owner'], ['SET', 'scrims:mixed', 'value']], batch=True, transaction=True)
+        self.assertEqual(self.local.get('scrims:mixed'), b'value')
+        self.assertEqual(self.sync.db.execute("SELECT dirty FROM states WHERE key='scrims:mixed'").fetchone()[0], 1)
+
+
     def test_missing_both_directions_and_local_preferred_reads(self):
         self.local.set('scrims:local', 'local')
         self.remote.set('scrims:remote', 'remote')
@@ -336,6 +416,43 @@ class SyncTest(unittest.TestCase):
         self.addCleanup(server.server_close)
         self.addCleanup(server.shutdown)
         return 'http://127.0.0.1:' + str(server.server_address[1])
+
+    def test_writer_http_capacity_is_reserved_when_all_data_slots_wait(self):
+        url = self.adapter(self.sync)
+        self.local.set('draft:v1:writer', 'owner', px=15000)
+        waiting = threading.Event()
+        counter_lock = threading.Lock()
+        counter, failures = [], []
+        original = self.sync.execute
+        def execute(commands, *args):
+            if commands[0][0] == 'SET':
+                with counter_lock:
+                    counter.append(1)
+                    if len(counter) == 16:
+                        waiting.set()
+            return original(commands, *args)
+        self.sync.execute = execute
+        def post(command):
+            request = urllib.request.Request(url, data=m.dumps(command).encode(), headers={'Authorization': 'Bearer ' + 't' * 64})
+            with urllib.request.urlopen(request, timeout=5) as response:
+                return json.load(response)
+        def data_request(index):
+            try:
+                post(['SET', 'scrims:capacity:' + str(index), 'value'])
+            except Exception as error:
+                failures.append(type(error).__name__)
+        threads = [threading.Thread(target=data_request, args=(index,)) for index in range(16)]
+        try:
+            with self.sync.lock:
+                for thread in threads:
+                    thread.start()
+                self.assertTrue(waiting.wait(3))
+                script = next(script for script in m.WRITER_SCRIPTS if 'PEXPIRE' in script)
+                self.assertEqual(post(['EVAL', script, 1, 'draft:v1:writer', 'owner']), {'result': 1})
+        finally:
+            for thread in threads:
+                thread.join(6)
+        self.assertEqual(failures, [])
 
     def test_rest_base64_with_upstash_reads_and_authenticated_status(self):
         self.write('SET', 'scrims:unicode', '한글')

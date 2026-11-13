@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 import sqlite3
+import sys
 import threading
 import time
 import urllib.request
@@ -32,6 +33,22 @@ def is_quota_error(error):
 def managed_key(key):
     # The single-writer lease is local coordination, not shared application data.
     return key.startswith(PREFIXES) and key != 'draft:v1:writer' and not key.startswith('draft:v1:deploytest:')
+
+
+WRITER_SCRIPTS = frozenset((
+    "if redis.call('GET',KEYS[1]) == ARGV[1] then return redis.call('PEXPIRE',KEYS[1],15000) end return 0",
+    "if redis.call('GET',KEYS[1]) == ARGV[1] then return redis.call('DEL',KEYS[1]) end return 0",
+))
+
+
+def writer_command(command):
+    name = command[0].upper()
+    if name in ('GET', 'TTL', 'PTTL'):
+        return len(command) == 2 and command[1] == 'draft:v1:writer'
+    if name == 'SET':
+        return len(command) >= 3 and command[1] == 'draft:v1:writer'
+    return (name == 'EVAL' and len(command) == 5 and str(command[2]) == '1'
+            and command[3] == 'draft:v1:writer' and command[1] in WRITER_SCRIPTS)
 
 
 def equivalent(a, b):
@@ -294,7 +311,24 @@ class StorageSync:
             keys.update(str(key) for key in values if not managed or managed_key(str(key)))
         return keys
 
+    def execute_local(self, commands, batch, transaction):
+        if batch:
+            with self.client.pipeline(transaction=transaction) as pipeline:
+                for command in commands:
+                    pipeline.execute_command(*command)
+                return pipeline.execute(raise_on_error=False)
+        return [self.client.execute_command(*commands[0])]
+
     def execute(self, commands, batch=False, transaction=False):
+        # Only known single-key lease operations bypass reconciliation and its SQLite connection.
+        if commands and all(writer_command(command) for command in commands):
+            began = time.monotonic()
+            try:
+                return self.execute_local(commands, batch, transaction)
+            finally:
+                elapsed = round((time.monotonic() - began) * 1000)
+                if elapsed >= 1000:
+                    print(dumps({'event': 'storage_writer_slow', 'durationMs': elapsed}), file=sys.stderr, flush=True)
         with self.lock:
             readonly = all(c[0].upper() in READS for c in commands)
             keys = self.keys_for(commands) if not readonly else set()
@@ -304,12 +338,7 @@ class StorageSync:
                 self.db.execute('INSERT OR REPLACE INTO pending VALUES (?,?,?)', (key, dumps(before[key]), stamp))
             self.db.commit()
             try:
-                if batch:
-                    with self.client.pipeline(transaction=transaction) as pipeline:
-                        for command in commands:
-                            pipeline.execute_command(*command)
-                        return pipeline.execute(raise_on_error=False)
-                return [self.client.execute_command(*commands[0])]
+                return self.execute_local(commands, batch, transaction)
             finally:
                 changed = False
                 for key in keys:

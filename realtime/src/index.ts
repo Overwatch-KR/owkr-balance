@@ -40,6 +40,7 @@ const participantAuth = localOnly ? undefined : new DraftParticipantAuth({ engin
   publicOrigin: required('DRAFT_PUBLIC_ORIGIN'), clientId: required('DRAFT_DISCORD_CLIENT_ID'),
   clientSecret: required('DRAFT_DISCORD_CLIENT_SECRET'), privateKey: realtimePrivateKey });
 const app = await createRealtimeServer({ engine, allowedOrigin, localOnly,
+  onLeaseLost: () => process.exit(1),
   adminPublicKey: keys?.publicKey ?? readKey('DRAFT_ADMIN_PUBLIC_KEY_PATH'),
   realtimePrivateKey,
   realtimePublicKey: keys?.publicKey ?? readKey('DRAFT_REALTIME_PUBLIC_KEY_PATH'),

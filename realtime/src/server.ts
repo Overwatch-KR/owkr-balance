@@ -5,6 +5,7 @@ import { DRAFT_CONNECTION_REPLACED_CLOSE_CODE, DRAFT_ROOM_CLOSED_CLOSE_CODE, Dra
 import { DraftEngine, parseDraftCommand } from './engine.js';
 import { signDraftTicket, verifyDraftTicket } from './tickets.js';
 import type { RoomBundle } from './model.js';
+import { superviseWriterLease, type LeaseLossReason } from './writer-lease.js';
 import type { DraftParticipantAuth } from './participant-auth.js';
 
 export interface RealtimeServerOptions {
@@ -18,6 +19,7 @@ export interface RealtimeServerOptions {
   localUserIds?: readonly string[];
   participantAuth?: DraftParticipantAuth;
   bridgeSecret?: string;
+  onLeaseLost?: (reason: LeaseLossReason, elapsedMs: number) => void;
 }
 
 function respond(response: ServerResponse, status: number, value: unknown): void {
@@ -52,7 +54,7 @@ export async function createRealtimeServer(options: RealtimeServerOptions) {
   let healthy = true;
   let shuttingDown = false;
   let housekeeping = false;
-  let lastLeaseAt = Date.now();
+  let leaseLost = false;
   const sockets = new Map<string, WebSocket>();
   const streams = new Map<string, { cursor: DraftStreamCursor; fingerprint: string }>();
   const rates = new Map<string, { tokens: number; updatedAt: number; finalTokens: number }>();
@@ -284,26 +286,22 @@ export async function createRealtimeServer(options: RealtimeServerOptions) {
     });
   });
 
-  let renewingLease = false;
-  const leaseInterval = setInterval(() => {
-    if (renewingLease || shuttingDown) return;
-    renewingLease = true;
-    void engine.store.renewLease().then(renewed => {
-      if (renewed) lastLeaseAt = Date.now();
-      else healthy = false;
-    }).catch(() => { healthy = false; }).finally(() => { renewingLease = false; });
-  }, 5000);
-  leaseInterval.unref();
+  const lease = superviseWriterLease(engine.store, (reason, elapsedMs) => {
+    leaseLost = true; healthy = false; shuttingDown = true;
+    console.error(JSON.stringify({ event: 'draft_writer_lease_lost', reason, elapsedMs }));
+    for (const socket of sockets.values()) socket.terminate();
+    options.onLeaseLost?.(reason, elapsedMs);
+  });
 
   const interval = setInterval(() => {
     if (housekeeping || shuttingDown) return;
     housekeeping = true;
     void engine.serial(async () => {
       try {
-        if (!healthy || Date.now() - lastLeaseAt >= 5000) {
-          requireDraft(await engine.store.renewLease(), 'WRITER_LOST', '서버 쓰기 잠금을 잃었습니다.');
+        if (!healthy) {
+          requireDraft(await lease.renew(), 'WRITER_LOST', '서버 쓰기 잠금을 잃었습니다.');
           if (!healthy) await engine.recover();
-          lastLeaseAt = Date.now(); healthy = true;
+          healthy = true;
         }
         for (const code of engine.drainClosedRooms()) closeRoomSockets(code);
         for (const [id, client] of engine.clients) {
@@ -327,9 +325,9 @@ export async function createRealtimeServer(options: RealtimeServerOptions) {
   return {
     server,
     async close(): Promise<void> {
-      shuttingDown = true; clearInterval(interval); clearInterval(leaseInterval);
+      shuttingDown = true; clearInterval(interval); lease.stop();
       for (const socket of wss.clients) socket.terminate();
-      await engine.serial(async () => { await engine.recover(); await engine.store.releaseLease(); });
+      await engine.serial(async () => { if (!leaseLost) await engine.recover(); await engine.store.releaseLease(); });
       await new Promise<void>(resolve => wss.close(() => resolve()));
       if (server.listening) await new Promise<void>(resolve => server.close(() => resolve()));
     },

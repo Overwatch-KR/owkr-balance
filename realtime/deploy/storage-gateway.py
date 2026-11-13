@@ -1,4 +1,5 @@
 import base64
+from contextlib import nullcontext
 import hmac
 import json
 import os
@@ -55,6 +56,7 @@ def create_server(token, socket_path, port=8790, backup_path=None):
         backup_path or os.environ.get('STORAGE_BACKUP_DB', backup_module.DEFAULT_DB), sync_module)
     backup.start()
     slots = threading.BoundedSemaphore(16)
+    writer_slots = threading.BoundedSemaphore(2)
 
     class Handler(BaseHTTPRequestHandler):
         protocol_version = 'HTTP/1.1'
@@ -114,7 +116,9 @@ def create_server(token, socket_path, port=8790, backup_path=None):
             except (ValueError, UnicodeError, TimeoutError):
                 self.reply(400, {'error': 'Invalid request'})
                 return
-            if not slots.acquire(blocking=False):
+            writer_only = all(sync_module.writer_command(command) for command in commands)
+            request_slots = writer_slots if writer_only else slots
+            if not request_slots.acquire(blocking=False):
                 self.reply(503, {'error': 'Storage busy'})
                 return
             try:
@@ -126,14 +130,14 @@ def create_server(token, socket_path, port=8790, backup_path=None):
                     if not batch:
                         payload = payload[0]
                 elif batch:
-                    with storage_lock, client.pipeline(transaction=self.path == '/multi-exec') as pipeline:
+                    with (nullcontext() if writer_only else storage_lock), client.pipeline(transaction=self.path == '/multi-exec') as pipeline:
                         for command in commands:
                             pipeline.execute_command(*command)
                         results = pipeline.execute(raise_on_error=False)
                     payload = [encode(item, use_base64) if isinstance(item, Exception)
                                else {'result': encode(item, use_base64)} for item in results]
                 else:
-                    with storage_lock:
+                    with (nullcontext() if writer_only else storage_lock):
                         payload = {'result': encode(client.execute_command(*commands[0]), use_base64)}
                 self.reply(200, payload)
             except redis.ResponseError as error:
@@ -141,7 +145,7 @@ def create_server(token, socket_path, port=8790, backup_path=None):
             except (redis.RedisError, UnicodeError, sqlite3.Error):
                 self.reply(503, {'error': 'Storage unavailable'})
             finally:
-                slots.release()
+                request_slots.release()
 
     class Server(ThreadingHTTPServer):
         daemon_threads = True

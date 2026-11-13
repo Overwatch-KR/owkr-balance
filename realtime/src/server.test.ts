@@ -15,11 +15,11 @@ const origin = 'https://test.example.invalid';
 const cleanup: (() => Promise<void>)[] = [];
 afterEach(async () => { for (const close of cleanup.splice(0)) await close(); });
 
-async function setup(realCatalogs = false) {
+async function setup(realCatalogs = false, onLeaseLost?: () => void) {
   const fixture = createLocalDraftFixtures(Date.now(), { syntheticCatalogs: !realCatalogs });
   const engine = new DraftEngine(fixture.store, fixture.catalogs);
   const app = await createRealtimeServer({ engine, allowedOrigin: origin, adminPublicKey: keys.publicKey,
-    realtimePrivateKey: keys.privateKey, realtimePublicKey: keys.publicKey, localOnly: false });
+    realtimePrivateKey: keys.privateKey, realtimePublicKey: keys.publicKey, localOnly: false, onLeaseLost });
   await new Promise<void>(resolve => app.server.listen(0, '127.0.0.1', resolve));
   cleanup.push(app.close);
   const base = `http://127.0.0.1:${(app.server.address() as AddressInfo).port}`;
@@ -170,6 +170,17 @@ describe('realtime HTTP and WebSocket transport', () => {
       expect((await snapshot).type).toBe('room.snapshot');
     } finally { release(); socket.terminate(); renew.mockRestore(); }
   }, 10000);
+
+  it('notifies the process supervisor and rejects new work after losing writer ownership', async () => {
+    const onLeaseLost = vi.fn(); const app = await setup(false, onLeaseLost);
+    const renew = vi.spyOn(app.fixture.store, 'renewLease').mockResolvedValue(false);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 5500));
+      expect(onLeaseLost).toHaveBeenCalledExactlyOnceWith('ownership-lost', expect.any(Number));
+      expect((await fetch(`${app.base}/health/ready`)).status).toBe(503);
+      expect((await app.post('/v1/rooms', { sourceId: 'LOCAL23456', commandId: 'lost-writer' })).status).toBe(400);
+    } finally { renew.mockRestore(); }
+  }, 8000);
 
   it('restricts ticket issuer, purpose, audience, lifetime and signature', () => {
     const now = Math.floor(Date.now() / 1000);
