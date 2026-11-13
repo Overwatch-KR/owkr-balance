@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import type { DraftRoomSnapshot } from '#domain/draft';
 import type { DraftRoomController } from '@application/draft/use-draft-room';
 import { PageHeader } from '../layout/page-header';
-import { DRAFT_PHASE_LABELS, getDraftGuidance, getDraftStep } from './draft-room-view';
+import { DraftAsset } from './draft-asset';
+import { DRAFT_PHASE_LABELS, getDraftGuidance, getDraftSideSummary, getDraftStep } from './draft-room-view';
 
 function DraftCountdown({ snapshot, connected }: { snapshot: DraftRoomSnapshot; connected: boolean }) {
   const [elapsed, setElapsed] = useState(0);
@@ -54,6 +55,12 @@ export function DraftRoomHeader({ controller, admin, onOpenOperator, sound }: { 
     <ol className="draft-steps" aria-label="밴픽 진행 단계">{labels.map((label, index) => <li key={index} aria-current={step === index ? 'step' : undefined}
       className={step === index ? 'draft-step-current' : step > index ? 'draft-step-done' : ''}><span>{index < step ? '✓' : index + 1}</span>{label}</li>)}</ol>
     <div className="draft-guidance"><p className="text-sm font-medium text-slate-200">{!controller.connected ? '연결 상태를 먼저 확인해 주세요.' : controller.pending ? '요청을 서버에서 확인하고 있습니다.' : getDraftGuidance(snapshot)}</p>
-      <span className="text-xs text-slate-500">{snapshot.phase === 'MAP_RESOLVED' ? '맵 선정 중' : snapshot.mapResult?.map.nameKo ?? '맵 선택 전'}</span></div>
+      {snapshot.phase === 'HERO_VOTING' && snapshot.mapResult ? <section aria-label="이번 경기 맵" className="flex min-w-0 max-w-full items-center gap-2">
+        <div className="w-16 shrink-0 overflow-hidden rounded-sm"><DraftAsset kind="maps" id={snapshot.mapResult.map.mapId} name={snapshot.mapResult.map.nameKo} /></div>
+        <div className="min-w-0 max-w-72">
+          <p className="truncate text-xs font-semibold text-slate-200">{snapshot.mapResult.map.nameKo}</p>
+          <p className="mt-0.5 text-[11px] leading-4 text-slate-400">{snapshot.mapResult.firstAttackTeam ? getDraftSideSummary(snapshot.mapResult.firstAttackTeam) : '공격·수비 구분 없음'}</p>
+        </div>
+      </section> : <span className="text-xs text-slate-500">{snapshot.phase === 'MAP_RESOLVED' ? '맵 선정 중' : snapshot.mapResult?.map.nameKo ?? '맵 선택 전'}</span>}</div>
   </header>;
 }

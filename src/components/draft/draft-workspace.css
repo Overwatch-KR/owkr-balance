@@ -740,12 +740,12 @@
     background: #171717;
 }
 
-.draft-map-vote-slots > span[data-side="attack"] {
+.draft-map-vote-slots > span[data-team="A"] {
     border-color: #f87171;
     background: #b91c1c;
 }
 
-.draft-map-vote-slots > span[data-side="defense"] {
+.draft-map-vote-slots > span[data-team="B"] {
     border-color: #60a5fa;
     background: #1d4ed8;
 }

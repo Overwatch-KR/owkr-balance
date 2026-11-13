@@ -113,7 +113,7 @@ export function DraftSelection({ controller, onNotice, audio }: { audio?: DraftA
           <div className="p-3"><p className="text-sm font-semibold">{option.map.nameKo}</p>
             <p className="mt-1 text-[11px] text-slate-500">{option.firstAttackTeam ? getDraftSideSummary(option.firstAttackTeam) : '공격·수비 구분 없음'}</p>
             <DraftMapVoteSlots optionId={option.map.mapId} name={option.map.nameKo} count={snapshot.ballots?.mapTotals?.[option.map.mapId] ?? 0}
-              teamCounts={snapshot.ballots?.mapTeamTotals?.[option.map.mapId]} firstAttackTeam={option.firstAttackTeam} />
+              teamCounts={snapshot.ballots?.mapTeamTotals?.[option.map.mapId]} />
             <DraftMapLead optionId={option.map.mapId} name={option.map.nameKo} totals={mapTotals} /></div>
         </button>)}
         {!!snapshot.candidates?.randomPool.length && <button type="button" disabled={disabled} data-landslide={hasLandslide('RANDOM')} aria-pressed={selection[0] === 'RANDOM'} onClick={() => pickMap('RANDOM')}

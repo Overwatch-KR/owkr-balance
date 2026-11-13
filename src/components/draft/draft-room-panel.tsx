@@ -74,7 +74,7 @@ function DraftRoomContent({ controller, admin = false, sound }: Omit<DraftRoomPa
     <DraftGameSummary snapshot={snapshot} hideBans={Boolean(snapshot.heroResult)} />
     {snapshot.heroResult && <DraftBanResult key={snapshot.heroResult.resolutionId} snapshot={snapshot} audio={sound.audio} onCopy={() => void copyResult()} />}
     {snapshot.participants.length > 0 && !snapshot.ballots?.self && !['MAP_PICKING', 'MAP_RESOLVED'].includes(snapshot.phase) && <section aria-label="배정된 팀" className={`grid gap-4 md:grid-cols-2 ${snapshot.heroResult ? 'draft-result-roster' : ''}`}>
-      {(['A', 'B'] as const).map(team => <div key={team} className={`border-t-2 pt-3 ${team === (snapshot.mapResult?.firstAttackTeam ?? 'A') ? 'border-red-500' : 'border-blue-500'}`}>
+      {(['A', 'B'] as const).map(team => <div key={team} data-roster-team={team} className={`border-t-2 pt-3 ${team === 'A' ? 'border-red-500' : 'border-blue-500'}`}>
         <h3 className="mb-2 font-semibold">{getDraftTeamLabel(team, snapshot.mapResult?.firstAttackTeam)} · 게임 로비 {team === 'A' ? 1 : 2}팀</h3>
         {snapshot.participants.filter(player => player.team === team).map(player => <div key={player.discordId} className="flex items-center justify-between border-b border-slate-800 py-3 text-sm">
           <span>{player.displayName}{player.discordId === snapshot.selfDiscordId ? ' (나)' : ''}</span><span className="text-xs text-slate-400">{ROLE_LABELS[player.role]}</span>

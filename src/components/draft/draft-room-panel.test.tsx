@@ -41,15 +41,53 @@ function render(content: React.ReactNode) {
 }
 
 describe('draft selection and ban results', () => {
-  it('투표 칸은 진영 색상을 쓰고 미배정 맵은 1팀 빨강·2팀 파랑, 추첨 칸은 단색이다', () => {
+  it('투표 칸은 팀 번호로 색상을 구분하고 추첨 칸은 단색이다', () => {
     const props = { optionId: 'map', name: '예제 맵', count: 3, teamCounts: { A: 2, B: 1 } };
     const normal = render(<DraftMapVoteSlots {...props} />);
-    expect(normal.match(/data-side="attack"/g)).toHaveLength(2);
-    expect(normal.match(/data-side="defense"/g)).toHaveLength(1);
-    const swapped = render(<DraftMapVoteSlots {...props} firstAttackTeam="B" />);
-    expect(swapped.match(/data-side="attack"/g)).toHaveLength(1);
-    expect(swapped.match(/data-side="defense"/g)).toHaveLength(2);
-    expect(render(<DraftMapVoteSlots optionId="map" name="예제 맵" count={3} />)).not.toContain('data-side');
+    expect(normal.match(/data-team="A"/g)).toHaveLength(2);
+    expect(normal.match(/data-team="B"/g)).toHaveLength(1);
+    expect(render(<DraftMapVoteSlots optionId="map" name="예제 맵" count={3} />)).not.toContain('data-team');
+  });
+
+  it('왕의 길의 양쪽 선공 후보와 에스페란사·무작위에서 같은 팀의 투표 칸 색을 유지한다', () => {
+    const view = snapshot();
+    view.phase = 'MAP_VOTING'; view.stageKind = 'MAP';
+    const kingsRow = DEFAULT_DRAFT_MAP_CATALOG.entries.find(map => map.mapId === 'kings-row')!;
+    const esperanca = DEFAULT_DRAFT_MAP_CATALOG.entries.find(map => map.mapId === 'esperanca')!;
+    const maps = [kingsRow, { ...kingsRow, mapId: 'kings-row-swapped' }, esperanca];
+    view.candidates = { resolutionId: 'map', catalogVersion: 'test', mapHistoryRevision: 1, eligiblePool: maps,
+      candidates: maps.map((map, index) => ({ map, firstAttackTeam: index === 0 ? 'A' : index === 1 ? 'B' : null })),
+      randomPool: [kingsRow], remainingMapsConfirmed: false, diversityExceptionReason: null, draws: [] };
+    const options = [...maps.map(map => map.mapId), 'RANDOM'];
+    view.ballots = { ...view.ballots!, mapTotals: Object.fromEntries(options.map(id => [id, 3])),
+      mapTeamTotals: Object.fromEntries(options.map(id => [id, { A: 2, B: 1 }])) };
+    const markup = render(<DraftSelection controller={{ snapshot: view, connected: true, pending: false, error: '', command: vi.fn(), reconnect: vi.fn() }} />);
+    const slots = [...markup.matchAll(/class="draft-map-vote-slots"[\s\S]*?<\/div>/g)].map(match => match[0]);
+    expect(slots).toHaveLength(4);
+    for (const slot of slots) {
+      expect([...slot.matchAll(/data-team="(.*?)"/g)].map(match => match[1])).toEqual(['A', 'A', 'B']);
+    }
+  });
+
+  it.each(['A', 'B', null] as const)('왕의 길 선공 %s·에스페란사에서도 명단과 밴 색상은 1팀 빨강·2팀 파랑이다', firstAttackTeam => {
+    const view = snapshot();
+    view.phase = 'HERO_RESOLVED'; view.ballots = null;
+    view.mapResult = { ...view.mapResult!, firstAttackTeam,
+      map: DEFAULT_DRAFT_MAP_CATALOG.entries.find(map => map.mapId === (firstAttackTeam ? 'kings-row' : 'esperanca'))! };
+    const markup = render(<DraftRoomPanel controller={{ snapshot: view, connected: true, pending: false, error: '', command: vi.fn(), reconnect: vi.fn() }} />);
+    for (const [team, color, name] of [['A', 'red', '하늘'], ['B', 'blue', '상대']] as const) {
+      const roster = markup.slice(markup.indexOf(`data-roster-team="${team}"`));
+      expect(roster.slice(0, roster.indexOf('>'))).toContain(`border-${color}-500`);
+      expect(roster).toContain(name);
+      const bans = [...markup.matchAll(/data-ban-order="\d"[\s\S]*?<\/li>/g)].map(match => match[0])
+        .filter(slot => slot.includes(`data-ban-team="${team}"`));
+      expect(bans).toHaveLength(2);
+      for (const ban of bans) {
+        expect(ban).toContain(`border-${color}-500/70`);
+        expect(ban).toContain(`bg-${color}-500`);
+        expect(ban).toContain(`${getDraftTeamLabel(team, firstAttackTeam)} 선택`);
+      }
+    }
   });
 
   it('추첨 후에는 후보나 무작위 목록 없이 확정 맵 하나만 표시한다', () => {
@@ -141,7 +179,7 @@ describe('draft selection and ban results', () => {
     expect(markup).toContain('내 밴 투표 1순위: 선택 없음');
     expect(markup).toContain('기권 준비');
   });
-  it('서버 슬롯의 B,A,A,B 순서와 빈 슬롯을 보존하고 진영에 맞는 색을 표시한다', () => {
+  it('서버 슬롯의 B,A,A,B 순서와 빈 슬롯을 보존하고 팀에 맞는 색을 표시한다', () => {
     const markup = render(<DraftBanResult snapshot={snapshot()} onCopy={vi.fn()} />);
     expect([...markup.matchAll(/data-ban-team="(.*?)"/g)].map(match => match[1])).toEqual(['B', 'A', 'A', 'B']);
     expect(markup).toContain('밴 없음');
@@ -164,7 +202,7 @@ describe('draft selection and ban results', () => {
     expect(getDraftTeamLabel('B', 'B')).toBe('공격팀');
     const result = render(<DraftBanResult snapshot={view} onCopy={vi.fn()} />);
     const firstSlot = result.slice(result.indexOf('data-ban-order="1"'), result.indexOf('data-ban-order="2"'));
-    expect(firstSlot).toContain('공격팀 선택'); expect(firstSlot).toContain('border-red-500/70');
+    expect(firstSlot).toContain('공격팀 선택'); expect(firstSlot).toContain('border-blue-500/70');
     const markup = render(<DraftSelection controller={{ snapshot: view, connected: true, pending: false, error: '', command: vi.fn(), reconnect: vi.fn() }} />);
     expect(markup).toContain('우리 팀 · 수비팀');
     expect(markup).not.toContain('A팀'); expect(markup).not.toContain('B팀');
