@@ -279,7 +279,15 @@ export class RedisRealtimeStore implements RealtimeStore {
       'user-sheet:v2:version',
     ], [this.writerId, JSON.stringify(room), JSON.stringify(history), expectedSourceRaw]);
     if (result.startsWith('RETRY:')) return result.slice(6);
-    requireDraft(result === 'OK', result, '방을 만들 수 없습니다. 최신 원본과 서버 상태를 확인해 주세요.');
+    const messages: Record<string, string> = {
+      SOURCE_OUTDATED: '방 생성 중 명단 정보가 변경되었습니다. 잠시 후 다시 시도해 주세요.',
+      ROOM_LIMIT: '동시에 운영할 수 있는 내전 방이 10개에 도달했습니다. 기존 방이 종료된 후 다시 시도해 주세요.',
+      WRITER_LOST: '실시간 서버가 저장 연결을 복구 중입니다. 잠시 후 다시 시도해 주세요.',
+      ROOM_EXPIRED: '방 생성 중 원본의 유효기간이 지났습니다. 대진표에서 다시 시도해 주세요.',
+      CONFLICT: '방 생성 중 식별자가 충돌했습니다. 다시 시도해 주세요.',
+      COMMAND_REUSED: '이전 방 생성 요청과 원본이 일치하지 않습니다. 다시 시도해 주세요.',
+    };
+    requireDraft(result === 'OK', result, messages[result] ?? '방을 만들 수 없습니다. 잠시 후 다시 시도해 주세요.');
     this.rememberRoute(room);
     return room.roomCode;
   }

@@ -23,6 +23,15 @@ async function setup() {
 }
 
 describe('Redis room read contracts', () => {
+  it.each([
+    ['SOURCE_OUTDATED', '명단 정보가 변경'], ['ROOM_LIMIT', '10개'], ['WRITER_LOST', '복구 중'],
+    ['ROOM_EXPIRED', '유효기간'], ['CONFLICT', '충돌'], ['COMMAND_REUSED', '일치하지 않습니다'],
+  ])('provides a specific creation failure message for %s', async (code, message) => {
+    const app = await setup();
+    app.evaluate.mockResolvedValueOnce(code);
+    await expect(app.store.create(app.bundle.room, app.bundle.history, app.bundle.sourceRaw!, 'test-create'))
+      .rejects.toMatchObject({ code, message: expect.stringContaining(message) });
+  });
   it('uses explicit keys and one atomic read after discovering immutable key locations', async () => {
     const app = await setup();
     expect(await app.store.load(app.code)).toEqual(app.bundle);

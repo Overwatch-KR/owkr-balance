@@ -1,6 +1,6 @@
 import { randomBytes, randomUUID, randomInt } from 'node:crypto';
 import {
-  applyBallotCommand, createDraftHistory, createMapCandidates, DEFAULT_DRAFT_TIMINGS, POTG_MAP_PICK_SECONDS, DRAFT_RULES_VERSION, DRAFT_LIMITS,
+  applyBallotCommand, createDraftHistory, createMapCandidates, DEFAULT_DRAFT_TIMINGS, POTG_MAP_PICK_SECONDS, DRAFT_RULES_VERSION, DRAFT_LIMITS, DraftRuleError,
   getDraftRoomExpiry, getOperatorParticipantStatuses, getDraftStartBlockers, hasConnectedOperator,
   isConnectionAlive, isDraftOperator, pauseDraftTimer, projectDraftBallots, requireDraft,
   getUsedDraftMapIds, getEligibleDraftMaps, resolvePotgMap, resolvePotgTimeout, resolveHeroBans, resolveMapVote, resumeDraftTimer, sealBallotStage, validateDraftSource,
@@ -105,7 +105,17 @@ export class DraftEngine {
     requireDraft(/^[A-Z2-9]{10}$/.test(sourceId) && /^[\w-]{1,128}$/.test(commandId), 'INVALID_COMMAND', '원본 코드와 요청 식별자를 확인해 주세요.');
     const previous = await this.store.findCreate(ticket.sub, commandId, sourceId);
     if (previous) { await this.requireRoom(previous); return previous; }
+    for (let attempt = 0; ; attempt++) {
+      try { return await this.createRoomFromSource(ticket, sourceId, commandId); }
+      catch (error) {
+        if (!(error instanceof DraftRuleError) || error.code !== 'SOURCE_OUTDATED' || attempt >= 2) throw error;
+      }
+    }
+  }
+
+  private async createRoomFromSource(ticket: DraftTicket, sourceId: string, commandId: string): Promise<string> {
     const { source, raw, now } = await this.store.readSource(sourceId);
+    requireDraft(now < ticket.exp * 1000, 'AUTH_EXPIRED', '방 생성 입장권이 만료되었습니다. 다시 시도해 주세요.');
     requireDraft(source && raw, 'SOURCE_EXPIRED', '유효한 원본 명단이 필요합니다.');
     validateDraftSource(source, source, now, true);
     const history = createDraftHistory(randomUUID(), ticket.sub, now);

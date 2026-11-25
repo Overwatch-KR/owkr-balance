@@ -122,8 +122,13 @@ export async function createRealtimeServer(options: RealtimeServerOptions) {
       const body = await readBody(request);
       if (url.pathname === '/v1/rooms') {
         requireDraft(typeof body.sourceId === 'string' && typeof body.commandId === 'string', 'INVALID_BODY', '원본 코드와 생성 식별자가 필요합니다.');
-        const code = await engine.serial(() => engine.createRoom(ticket, body.sourceId as string, body.commandId as string));
-        respond(response, 201, { roomCode: code, url: `${options.allowedOrigin}/draft/${code}` }); return;
+        try {
+          const code = await engine.serial(() => engine.createRoom(ticket, body.sourceId as string, body.commandId as string));
+          respond(response, 201, { roomCode: code, url: `${options.allowedOrigin}/draft/${code}` }); return;
+        } catch (error) {
+          console.warn(JSON.stringify({ event: 'draft_room_create_failed', code: errorBody(error).code, at: new Date().toISOString() }));
+          throw error;
+        }
       }
       if (url.pathname === '/v1/entry') {
         requireDraft(ticket.scope === 'join' && ticket.roomCode, 'ROOM_ACCESS_DENIED', '방 입장용 입장권이 필요합니다.');

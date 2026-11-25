@@ -2,7 +2,7 @@ import { generateKeyPairSync } from 'node:crypto';
 import type { AddressInfo } from 'node:net';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { WebSocket } from 'ws';
-import { DRAFT_CONNECTION_REPLACED_CLOSE_CODE } from '../../domains/draft/shared/public.js';
+import { DRAFT_CONNECTION_REPLACED_CLOSE_CODE, DraftRuleError } from '../../domains/draft/shared/public.js';
 import { createRealtimeServer } from './server.js';
 import { createLocalDraftFixtures } from './local-fixtures.js';
 import { DraftEngine } from './engine.js';
@@ -36,6 +36,18 @@ async function setup(realCatalogs = false, onLeaseLost?: () => void) {
 }
 
 describe('realtime HTTP and WebSocket transport', () => {
+  it('logs only the failure code and timestamp for failed room creation', async () => {
+    const app = await setup();
+    vi.spyOn(app.fixture.store, 'create').mockRejectedValueOnce(new DraftRuleError('ROOM_LIMIT', '동시 방 상한'));
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    try {
+      const response = await app.post('/v1/rooms', { sourceId: 'LOCAL23456', commandId: 'logged-create' });
+      expect(response.status).toBe(400);
+      expect(await response.json()).toMatchObject({ code: 'ROOM_LIMIT', message: '동시 방 상한' });
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(JSON.parse(String(warn.mock.calls[0][0]))).toEqual({ event: 'draft_room_create_failed', code: 'ROOM_LIMIT', at: expect.any(String) });
+    } finally { warn.mockRestore(); }
+  });
   it('serves health and rejects wrong origins and missing credentials', async () => {
     const app = await setup();
     expect((await fetch(`${app.base}/health/ready`)).status).toBe(200);
