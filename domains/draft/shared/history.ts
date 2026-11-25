@@ -1,6 +1,6 @@
 import {
   DRAFT_LIMITS, requireDraft, type DraftActor, type DraftHero, type DraftMap, type DraftTeam,
-  type PlayStatus, type DraftCatalog, type DraftMapSelection,
+  type PlayStatus, type DraftCatalog, type DraftMapSelection, type DraftFearlessMode,
 } from './model.js';
 import { isDraftOperator, type DraftOperators } from './presence.js';
 import { validateRetainedBans } from './heroes.js';
@@ -18,6 +18,7 @@ export interface MinimalDraftGame {
   mapSelection?: DraftMapSelection;
   rulesVersion: string;
   bans: readonly DraftHero[];
+  bansByTeam?: Readonly<Record<DraftTeam, readonly string[]>>;
   playStatus: PlayStatus;
   startedAt: number | null;
   finishedAt: number | null;
@@ -57,13 +58,20 @@ function usageValue(history: DraftHistory, game: MinimalDraftGame): MapUsageValu
   const latest = corrections[corrections.length - 1];
   return latest ? { ...latest.after } : {
     mapId: game.map.mapId, canonicalMapId: game.map.canonicalMapId,
-    played: game.startedAt !== null,
+    played: game.startedAt !== null || game.playStatus === 'FINISHED' || game.playStatus === 'ABORTED_PLAYED',
   };
 }
 
 export function getUsedDraftMapIds(history: DraftHistory): string[] {
   return [...new Set(history.games.map(game => usageValue(history, game))
     .filter(value => value.played).map(value => value.canonicalMapId))].sort();
+}
+
+export function getFearlessExcludedHeroIds(history: DraftHistory, mode: DraftFearlessMode, team: DraftTeam): string[] {
+  if (mode === 'OFF') return [];
+  return [...new Set(history.games.filter(game => usageValue(history, game).played).flatMap(game =>
+    mode === 'HARD' ? game.bans.map(hero => hero.heroId) : [...(game.bansByTeam?.[team] ?? [])],
+  ))].sort();
 }
 
 export function validateHistoryMutation(history: DraftHistory, actor: DraftActor, expectedRevision: number, now: number): void {

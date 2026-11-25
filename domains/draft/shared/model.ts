@@ -1,4 +1,5 @@
 export type DraftTeam = 'A' | 'B';
+export type DraftFearlessMode = 'OFF' | 'SOFT' | 'HARD';
 export type DraftRole = 'TANK' | 'DPS' | 'SUPPORT';
 export type MapMode = 'CONTROL' | 'HYBRID' | 'ESCORT' | 'PUSH' | 'FLASHPOINT';
 export type DraftPhase = 'LOBBY' | 'MAP_VOTING' | 'MAP_PICKING' | 'MAP_RESOLVED'

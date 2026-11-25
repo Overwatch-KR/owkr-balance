@@ -1,6 +1,6 @@
 import './draft-workspace.css';
 import { useDraftAudio } from '@application/draft/use-draft-audio';
-import { getDraftTeamLabel, getDraftSideSummary } from './draft-room-view';
+import { DRAFT_FEARLESS_LABELS, getDraftTeamLabel, getDraftSideSummary } from './draft-room-view';
 import { useState } from 'react';
 import { DraftMapSetup } from './draft-map-setup';
 import { DraftMapPick } from './draft-map-pick';
@@ -67,6 +67,7 @@ function DraftRoomContent({ controller, admin = false, sound }: Omit<DraftRoomPa
     </section>}
     {snapshot.phase === 'LOBBY' && snapshot.participants.length === 0 && <section className="border-y border-slate-800 py-5"><h3 className="font-semibold text-white">참가자 로그인 대기방이 열렸습니다</h3><p className="mt-2 text-sm text-slate-400">방 링크를 먼저 공유해 주세요. 참가자는 디스코드 로그인 후 대기하며, 대진표에서 10명을 편성하면 자동으로 입장합니다.</p></section>}
     {snapshot.phase === 'LOBBY' && <p className="text-xs text-slate-400">맵 선정: {snapshot.mapSelection.mode === 'VOTE' ? '참가자 투표' : `팟지 · ${snapshot.participants.find(player => player.discordId === snapshot.mapSelection.pickerDiscordId)?.displayName ?? '선수 지정 필요'}`}</p>}
+    {snapshot.phase === 'LOBBY' && <p className="text-xs text-slate-400">밴픽 규칙: {DRAFT_FEARLESS_LABELS[snapshot.fearlessMode ?? 'OFF']}</p>}
     {snapshot.phase === 'LOBBY' && snapshot.participants.length === 10 && snapshot.isOperator && <DraftMapSetup key={snapshot.epoch} controller={controller} onNotice={setNotice} />}
     {snapshot.phase === 'MAP_PICKING' && <DraftMapPick key={`${snapshot.gameId}:${snapshot.epoch}`} audio={sound.audio} controller={controller} onNotice={setNotice} />}
     {snapshot.phase === 'MAP_RESOLVED' && snapshot.mapResult && <DraftMapReveal key={snapshot.mapResult.resolutionId} snapshot={snapshot} audio={sound.audio} />}

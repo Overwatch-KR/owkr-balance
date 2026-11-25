@@ -1,4 +1,6 @@
-import { DRAFT_LIMITS, type DraftRoomSnapshot, type DraftTeam } from '#domain/draft';
+import { DRAFT_LIMITS, type DraftFearlessMode, type DraftRoomSnapshot, type DraftTeam } from '#domain/draft';
+
+export const DRAFT_FEARLESS_LABELS: Record<DraftFearlessMode, string> = { OFF: '일반 밴픽', SOFT: '소프트 피어리스', HARD: '하드 피어리스' };
 
 /** @description 확정된 선공 배정으로 진영을 표시하고 미배정 팀은 게임 로비 번호로 구분한다. */
 export function getDraftTeamLabel(team: DraftTeam, firstAttackTeam: DraftTeam | null = null): string {
@@ -11,7 +13,7 @@ export function getDraftSideSummary(firstAttackTeam: DraftTeam): string {
 
 export const DRAFT_PHASE_LABELS: Record<DraftRoomSnapshot['phase'], string> = {
   LOBBY: '대기실·팀 확인', MAP_VOTING: '맵 투표', MAP_PICKING: '팟지 맵 선택', MAP_RESOLVED: '선택 맵 확인',
-  HERO_VOTING: '영웅 밴 투표', HERO_RESOLVED: '맵·밴 결과', COMPLETED: '게임 설정 적용 완료',
+  HERO_VOTING: '영웅 밴 투표', HERO_RESOLVED: '맵·밴 결과', COMPLETED: '맵·밴 결과',
 };
 
 export function getDraftStep(snapshot: DraftRoomSnapshot): number {
@@ -42,19 +44,17 @@ export function getDraftGuidance(snapshot: DraftRoomSnapshot): string {
   if (snapshot.stageKind && !snapshot.ballots?.self) return '참가자들이 선택하고 있습니다. 참가 현황에서 확정 상태를 확인하세요.';
   if (snapshot.phase === 'MAP_VOTING') return '플레이할 맵을 선택하세요. 맵 선택 시 자동 준비됩니다.';
   if (snapshot.phase === 'HERO_VOTING') return '밴할 영웅을 선택하세요. 3개 선택 시 자동 준비됩니다.';
-  if (snapshot.phase === 'HERO_RESOLVED') return snapshot.isOperator ? '맵과 밴 결과를 확인하고 게임 로비에 적용해 주세요.' : '맵과 밴 결과 확정 · 운영자의 게임 설정 적용을 기다리는 중';
-  return snapshot.isOperator ? '게임 설정 적용 완료 · 실제 경기 시작을 기록해 주세요.' : '게임 설정 적용 완료 · 실제 경기 시작을 기다리는 중';
+  return snapshot.isOperator ? '맵과 밴 결과를 적용하고 경기 종료 후 다음 경기를 준비해 주세요.' : '맵과 밴 결과 확정 · 게임에 참여해 주세요.';
 }
 
 export interface DraftPrimaryAction { type: string; label: string; requiresActive: boolean }
 export function getDraftPrimaryAction(snapshot: DraftRoomSnapshot): DraftPrimaryAction | null {
-  if (['EXPIRED', 'CANCELLED', 'ROSTER_CHANGED'].includes(snapshot.timer.status)) return null;
+  if (['EXPIRED', 'CANCELLED'].includes(snapshot.timer.status)) return null;
   if (['FINISHED', 'ABORTED_PLAYED', 'NOT_PLAYED'].includes(snapshot.playStatus)) return { type: 'game.next', label: '다음 경기', requiresActive: false };
-  if (snapshot.playStatus === 'PLAYING') return { type: 'game.markFinished', label: '경기 종료', requiresActive: false };
+  if (snapshot.phase === 'HERO_RESOLVED' || snapshot.phase === 'COMPLETED') return { type: 'game.finishAndNext', label: '경기 종료 · 다음 경기', requiresActive: false };
+  if (snapshot.timer.status === 'ROSTER_CHANGED') return null;
   if (snapshot.timer.status === 'PAUSED' || snapshot.timer.status === 'RECOVERY_PAUSED') return { type: 'draft.resume', label: '밴픽 재개', requiresActive: false };
   if (snapshot.phase === 'LOBBY') return { type: 'draft.start', label: '밴픽 시작', requiresActive: true };
-  if (snapshot.phase === 'HERO_RESOLVED') return { type: 'game.confirmApplied', label: '게임 설정 적용 확인', requiresActive: true };
-  if (snapshot.phase === 'COMPLETED') return { type: 'game.markStarted', label: '실제 경기 시작', requiresActive: true };
   return null;
 }
 

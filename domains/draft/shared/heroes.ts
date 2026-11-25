@@ -43,6 +43,7 @@ export function resolveHeroBans(input: {
   participants: readonly DraftParticipant[];
   ballots: readonly SealedHeroBallot[];
   entropy: readonly number[];
+  excludedHeroIdsByTeam?: Readonly<Record<DraftTeam, readonly string[]>>;
 }): HeroResolution {
   validateHeroCatalog(input.catalog);
   validateDraftRoster(input.participants);
@@ -58,6 +59,8 @@ export function resolveHeroBans(input: {
       'INVALID_RANKING', '서로 다른 영웅을 최대 3명 선택해 주세요.');
     requireDraft(ballot.ranking.every(id => id === '' || heroes.has(id)),
     'INVALID_HERO', '비활성 또는 알 수 없는 영웅입니다.');
+    requireDraft(selectedIds.every(id => !input.excludedHeroIdsByTeam?.[participants.get(ballot.discordId)!.team].includes(id)),
+      'FEARLESS_BAN_EXCLUDED', '이전 경기에서 밴한 영웅은 다시 밴할 수 없습니다.');
   }
   const voters = new Map<string, number>();
   for (const ballot of input.ballots) {

@@ -283,14 +283,14 @@ describe('draft selection and ban results', () => {
     const view = snapshot();
     expect(getDraftPrimaryAction(view)).toBeNull();
     view.phase = 'HERO_RESOLVED';
-    expect(getDraftPrimaryAction(view)?.type).toBe('game.confirmApplied');
+    expect(getDraftPrimaryAction(view)?.type).toBe('game.finishAndNext');
     view.phase = 'COMPLETED';
-    expect(getDraftPrimaryAction(view)?.type).toBe('game.markStarted');
+    expect(getDraftPrimaryAction(view)?.type).toBe('game.finishAndNext');
     view.playStatus = 'PLAYING';
-    expect(getDraftPrimaryAction(view)?.type).toBe('game.markFinished');
+    expect(getDraftPrimaryAction(view)?.type).toBe('game.finishAndNext');
     view.playStatus = 'FINISHED';
     expect(getDraftPrimaryAction(view)?.type).toBe('game.next');
-    view.playStatus = 'NOT_STARTED'; view.timer.status = 'RECOVERY_PAUSED';
+    view.phase = 'HERO_VOTING'; view.playStatus = 'NOT_STARTED'; view.timer.status = 'RECOVERY_PAUSED';
     expect(getDraftPrimaryAction(view)?.type).toBe('draft.resume');
     view.timer.status = 'ROSTER_CHANGED';
     expect(getDraftPrimaryAction(view)).toBeNull();
@@ -300,7 +300,8 @@ describe('draft selection and ban results', () => {
     const view = snapshot(); view.phase = 'HERO_RESOLVED'; view.isOperator = true; view.ballots = null;
     const markup = render(<DraftRoomPanel controller={{ snapshot: view, connected: true, pending: false, error: '', command: vi.fn(), reconnect: vi.fn() }} admin />);
     expect(markup).toContain('다음 운영 작업');
-    expect(markup).toContain('게임 설정 적용 확인');
+    expect(markup).toContain('경기 종료 · 다음 경기');
+    expect(markup).not.toContain('게임 설정 적용 확인');
     expect(markup).not.toContain('role="dialog"');
   });
 
@@ -352,21 +353,29 @@ describe('draft selection and ban results', () => {
     expect(render(<DraftOperatorActions controller={controller} execute={vi.fn()} />)).not.toContain('밴픽 취소');
   });
 
-  it('운영자에게만 방 닫기를 표시하고 경기 진행 중에는 종료 기록을 요구한다', () => {
+  it('운영자에게만 방 닫기를 표시하고 마지막 경기 결과를 함께 기록할 수 있다', () => {
     const view = snapshot(); view.isOperator = true;
     const controller = { snapshot: view, connected: true, pending: false, error: '', command: vi.fn(), reconnect: vi.fn() };
     let markup = render(<DraftOperatorActions controller={controller} execute={vi.fn()} />);
     expect(markup).toContain('내전 종료·방 닫기');
     expect(markup).not.toMatch(/<button[^>]*disabled=""[^>]*>내전 종료·방 닫기/);
-    view.playStatus = 'PLAYING';
+    view.phase = 'COMPLETED'; view.playStatus = 'PLAYING';
     markup = render(<DraftOperatorActions controller={controller} execute={vi.fn()} />);
-    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>내전 종료·방 닫기/);
-    expect(markup).toContain('종료 또는 중단을 먼저 기록');
+    expect(markup).not.toMatch(/<button[^>]*disabled=""[^>]*>내전 종료·방 닫기/);
+    expect(markup).toContain('실제 마지막 경기가 끝났다면');
     view.isOperator = false;
     expect(render(<DraftOperatorActions controller={controller} execute={vi.fn()} />)).not.toContain('내전 종료·방 닫기');
     markup = render(<DraftRoomPanel controller={{ ...controller, roomClosed: true }} />);
     expect(markup).toContain('종료된 내전입니다');
     expect(markup).not.toContain('영웅 밴 투표'); expect(markup).not.toContain('다시 연결');
+  });
+
+  it('피어리스에서 제한된 영웅을 명시하고 선택 버튼을 비활성화한다', () => {
+    const view = snapshot(); view.fearlessMode = 'SOFT'; view.fearlessExcludedHeroIds = ['ana'];
+    const markup = render(<DraftSelection controller={{ snapshot: view, connected: true, pending: false, error: '', command: vi.fn(), reconnect: vi.fn() }} />);
+    expect(markup).toContain('소프트 피어리스');
+    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*aria-label="아나 · 피어리스 재밴 금지"/);
+    expect(markup).not.toMatch(/<button[^>]*disabled=""[^>]*aria-label="D.Va"/);
   });
 
   it('연결 문제를 우선 안내하고 이전 저장 알림을 숨긴다', () => {

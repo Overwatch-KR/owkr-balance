@@ -4,7 +4,7 @@ import { Check, RotateCcw } from 'lucide-react';
 import { getMapVoteLead, MAP_LANDSLIDE_MARGIN, type DraftRole } from '#domain/draft';
 import type { DraftRoomController } from '@application/draft/use-draft-room';
 import { DraftAsset } from './draft-asset';
-import { clearDraftBanRank, getDraftTeamLabel, getDraftSideSummary } from './draft-room-view';
+import { clearDraftBanRank, DRAFT_FEARLESS_LABELS, getDraftTeamLabel, getDraftSideSummary } from './draft-room-view';
 import { DraftMyBanVote, DraftTeamScores } from './draft-ban-vote';
 import { DraftMapVoteSlots } from './draft-map-vote-slots';
 import { DraftMapLead } from './draft-map-lead';
@@ -36,6 +36,7 @@ export function DraftSelection({ controller, onNotice, audio }: { audio?: DraftA
   const autoReady = selectedCount === (isBan ? 3 : 1);
   const disabled = !controller.connected || controller.pending || submitting || closed || !snapshot.inputConnected || snapshot.timer.status !== 'ACTIVE';
   const selfPlayer = snapshot.participants.find(player => player.discordId === snapshot.selfDiscordId);
+  const fearlessExcluded = new Set(snapshot.fearlessExcludedHeroIds ?? []);
   const team = snapshot.participants.filter(player => player.team === selfPlayer?.team)
     .sort((left, right) => Number(right.discordId === snapshot.selfDiscordId) - Number(left.discordId === snapshot.selfDiscordId) || left.slot - right.slot);
   const submit = (lock: boolean, nextSelection = selection) => {
@@ -60,7 +61,7 @@ export function DraftSelection({ controller, onNotice, audio }: { audio?: DraftA
   };
   const pickMap = (id: string) => changeSelection(selection[0] === id ? [] : [id]);
   const pickHero = (id: string) => {
-    if (disabled || submittingRef.current) return;
+    if (disabled || submittingRef.current || fearlessExcluded.has(id)) return;
     if (selection.includes(id)) {
       const rank = selection.indexOf(id); changeSelection(clearDraftBanRank(selection, rank)); setActiveRank(rank); return;
     }
@@ -74,7 +75,8 @@ export function DraftSelection({ controller, onNotice, audio }: { audio?: DraftA
   return <section aria-label="내 투표" className={`draft-selection ${isBan ? 'draft-selection-ban' : 'draft-selection-map'}`}>
     <div className="draft-selection-heading">
       <div><h3 className="text-sm font-semibold text-white">{isMap ? '플레이할 맵을 선택하세요' : '밴할 영웅을 선택하세요'}</h3>
-        <p className="mt-1 text-xs leading-5 text-slate-500">{isMap ? '맵을 누르면 자동 준비됩니다. 선택한 맵을 다시 누르면 해제됩니다.' : '3개 선택 시 자동 준비됩니다. 마감 전까지 선택을 바꿀 수 있습니다.'}</p></div>
+        <p className="mt-1 text-xs leading-5 text-slate-500">{isMap ? '맵을 누르면 자동 준비됩니다. 선택한 맵을 다시 누르면 해제됩니다.' : '3개 선택 시 자동 준비됩니다. 마감 전까지 선택을 바꿀 수 있습니다.'}</p>
+        {isBan && snapshot.fearlessMode && snapshot.fearlessMode !== 'OFF' && <p className="mt-1 text-xs text-amber-300">{DRAFT_FEARLESS_LABELS[snapshot.fearlessMode]} · 이전 밴 {fearlessExcluded.size}개 재밴 제한</p>}</div>
       {isBan && <DraftTeamScores snapshot={snapshot} />}
     </div>
     {isBan && <aside aria-label="우리 팀 선택 현황" className="draft-team-list">
@@ -123,11 +125,12 @@ export function DraftSelection({ controller, onNotice, audio }: { audio?: DraftA
       </div> : <div className="draft-role-columns">
         {(['TANK', 'DPS', 'SUPPORT'] as const).map(role => <section key={role} data-active={activeRole === role} aria-label={`${ROLE_LABELS[role]} 영웅`}>
           <h4 className="mb-1 border-b border-slate-800 pb-1 text-xs font-semibold text-slate-400">{ROLE_LABELS[role]}</h4>
-          <div className={`draft-hero-grid ${role === 'DPS' ? 'draft-hero-grid-damage' : ''}`}>{snapshot.heroes.filter(hero => hero.role === role).map(hero => <button key={hero.heroId} type="button" disabled={disabled}
-            aria-label={hero.nameKo} title={hero.nameKo} aria-pressed={selection.includes(hero.heroId)} onClick={() => pickHero(hero.heroId)}
+          <div className={`draft-hero-grid ${role === 'DPS' ? 'draft-hero-grid-damage' : ''}`}>{snapshot.heroes.filter(hero => hero.role === role).map(hero => <button key={hero.heroId} type="button" disabled={disabled || fearlessExcluded.has(hero.heroId)}
+            aria-label={fearlessExcluded.has(hero.heroId) ? `${hero.nameKo} · 피어리스 재밴 금지` : hero.nameKo} title={fearlessExcluded.has(hero.heroId) ? `${hero.nameKo} · 이전 경기 밴` : hero.nameKo} aria-pressed={selection.includes(hero.heroId)} onClick={() => pickHero(hero.heroId)}
             className={`relative min-w-0 overflow-hidden rounded border text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 disabled:opacity-50 ${selection.includes(hero.heroId) ? 'border-cyan-400 ring-1 ring-cyan-400' : 'border-slate-800 hover:border-slate-500'}`}>
             <DraftAsset kind="heroes" id={hero.heroId} name={hero.nameKo} />
             <span className="block truncate bg-surface-elevated px-0.5 py-1 text-center text-[9px] text-slate-300">{hero.nameKo}</span>
+            {fearlessExcluded.has(hero.heroId) && <span className="absolute inset-x-0 top-0 bg-slate-950/90 p-0.5 text-center text-[9px] text-amber-300">재밴 금지</span>}
           </button>)}</div>
         </section>)}
       </div>}
