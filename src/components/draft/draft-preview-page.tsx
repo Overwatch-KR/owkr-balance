@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { DEFAULT_DRAFT_MAP_CATALOG, DEFAULT_DRAFT_HERO_CATALOG, DEFAULT_DRAFT_TIMINGS, DRAFT_LIMITS, getMapRevealDurationMs, resolveMapVote, POTG_MAP_PICK_SECONDS, resolvePotgTimeout } from '#domain/draft';
+import { DEFAULT_DRAFT_MAP_CATALOG, DEFAULT_DRAFT_HERO_CATALOG, DEFAULT_DRAFT_TIMINGS, DRAFT_LIMITS, getMapRevealDurationMs, isDraftFearlessMode, resolveMapVote, POTG_MAP_PICK_SECONDS, resolvePotgTimeout } from '#domain/draft';
 import type { DraftHero, DraftParticipant, DraftPhase, DraftRoomSnapshot } from '#domain/draft';
 import type { DraftRoomController } from '@application/draft/use-draft-room';
 import { DraftRoomPanel } from './draft-room-panel';
@@ -136,18 +136,18 @@ function DraftPreviewContent({ heroes }: { heroes: readonly DraftHero[] }) {
           progress: previous.progress?.map(player => player.discordId === previous.selfDiscordId ? { ...player, ready } : player) };
       });
       if (type === 'draft.start') setSnapshot(previous => ({ ...exampleSnapshot(previous.mapSelection.mode === 'POTG' ? 'potg' : 'map', heroes),
-        isOperator: previous.isOperator, gameIndex: previous.gameIndex, mapSelection: previous.mapSelection }));
+        isOperator: previous.isOperator, gameIndex: previous.gameIndex, mapSelection: previous.mapSelection, fearlessMode: previous.fearlessMode }));
       if (type === 'draft.restart') setSnapshot(previous => ({ ...exampleSnapshot('operator', heroes),
         epoch: previous.epoch + 1, gameId: previous.gameId, gameIndex: previous.gameIndex, isOperator: previous.isOperator,
         timer: { ...previous.timer, phase: 'LOBBY', status: 'ACTIVE', epoch: previous.epoch + 1, deadlineAt: null, remainingMs: null },
         candidates: null, readyCount: previous.readyCount,
-        mapSelection: previous.mapSelection, previousGame: previous.previousGame,
+        mapSelection: previous.mapSelection, previousGame: previous.previousGame, fearlessMode: previous.fearlessMode,
         progress: previous.progress?.map(player => ({ ...player, ready: player.connectionStatus === 'CONNECTED' && player.inputConnected, confirmed: false })) }));
       if (type === 'map.swapSides') setSnapshot(previous => ({ ...previous, mapResult: previous.mapResult && { ...previous.mapResult, firstAttackTeam: previous.mapResult.firstAttackTeam === 'A' ? 'B' : 'A' } }));
       if (type === 'game.confirmApplied') setSnapshot(previous => ({ ...previous, phase: 'COMPLETED' }));
       if (type === 'game.markStarted') setSnapshot(previous => ({ ...previous, playStatus: 'PLAYING' }));
       if (type === 'game.markFinished') setSnapshot(previous => ({ ...previous, playStatus: 'FINISHED' }));
-      if (type === 'fearless.configure' && (values?.fearlessMode === 'OFF' || values?.fearlessMode === 'SOFT' || values?.fearlessMode === 'HARD')) {
+      if (type === 'fearless.configure' && isDraftFearlessMode(values?.fearlessMode)) {
         const fearlessMode = values.fearlessMode;
         setSnapshot(previous => ({ ...previous, fearlessMode }));
       }

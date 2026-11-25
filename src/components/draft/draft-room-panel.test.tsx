@@ -378,6 +378,13 @@ describe('draft selection and ban results', () => {
     expect(markup).not.toMatch(/<button[^>]*disabled=""[^>]*aria-label="D.Va"/);
   });
 
+  it('운영자가 대기실에서 누적 2회 재밴 제한을 선택할 수 있다', () => {
+    const view = snapshot(); view.phase = 'LOBBY'; view.isOperator = true; view.fearlessMode = 'CUMULATIVE_TWO';
+    const markup = render(<DraftOperatorActions controller={{ snapshot: view, connected: true, pending: false, error: '', command: vi.fn(), reconnect: vi.fn() }} execute={vi.fn()} />);
+    expect(markup).toContain('value="CUMULATIVE_TWO" selected=""');
+    expect(markup).toContain('누적 2회 재밴 제한');
+  });
+
   it('연결 문제를 우선 안내하고 이전 저장 알림을 숨긴다', () => {
     const controller = { snapshot: snapshot(), connected: false, reconnecting: true, pending: false, error: '', command: vi.fn(), reconnect: vi.fn() };
     let markup = render(<DraftConnectionStatus controller={controller} notice="지난 저장 알림" />);

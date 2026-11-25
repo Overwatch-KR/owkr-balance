@@ -1,5 +1,10 @@
 export type DraftTeam = 'A' | 'B';
-export type DraftFearlessMode = 'OFF' | 'SOFT' | 'HARD';
+export const DRAFT_FEARLESS_MODES = ['OFF', 'SOFT', 'HARD', 'CUMULATIVE_TWO'] as const;
+export type DraftFearlessMode = typeof DRAFT_FEARLESS_MODES[number];
+
+export function isDraftFearlessMode(value: unknown): value is DraftFearlessMode {
+  return DRAFT_FEARLESS_MODES.some(mode => mode === value);
+}
 export type DraftRole = 'TANK' | 'DPS' | 'SUPPORT';
 export type MapMode = 'CONTROL' | 'HYBRID' | 'ESCORT' | 'PUSH' | 'FLASHPOINT';
 export type DraftPhase = 'LOBBY' | 'MAP_VOTING' | 'MAP_PICKING' | 'MAP_RESOLVED'

@@ -69,7 +69,15 @@ export function getUsedDraftMapIds(history: DraftHistory): string[] {
 
 export function getFearlessExcludedHeroIds(history: DraftHistory, mode: DraftFearlessMode, team: DraftTeam): string[] {
   if (mode === 'OFF') return [];
-  return [...new Set(history.games.filter(game => usageValue(history, game).played).flatMap(game =>
+  const playedGames = history.games.filter(game => usageValue(history, game).played);
+  if (mode === 'CUMULATIVE_TWO') {
+    const counts = new Map<string, number>();
+    for (const game of playedGames) {
+      for (const heroId of new Set(game.bans.map(hero => hero.heroId))) counts.set(heroId, (counts.get(heroId) ?? 0) + 1);
+    }
+    return [...counts].filter(([, count]) => count >= 2).map(([heroId]) => heroId).sort();
+  }
+  return [...new Set(playedGames.flatMap(game =>
     mode === 'HARD' ? game.bans.map(hero => hero.heroId) : [...(game.bansByTeam?.[team] ?? [])],
   ))].sort();
 }

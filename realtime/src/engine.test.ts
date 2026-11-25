@@ -199,6 +199,26 @@ describe('local server persisted flow', () => {
     expect(closed.history.games.every(game => game.playStatus === 'FINISHED')).toBe(true);
   });
 
+  it('allows one repeat ban, then rejects the third attempt for either team', async () => {
+    const app = await setup(); await app.readyAll();
+    await app.run(0, 'fearless.configure', { fearlessMode: 'CUMULATIVE_TWO' });
+    for (let game = 0; game < 3; game++) {
+      await app.run(0, 'draft.start', { remainingMapsConfirmed: true, diversityExceptionReason: '시험' });
+      await app.lockAll([]); await app.engine.tick(app.code); await app.finishMapReveal();
+      if (game < 2) {
+        expect((await app.engine.snapshot('c0')).fearlessExcludedHeroIds).toEqual([]);
+        for (let index = 0; index < 10; index++) await app.run(index, 'ballot.lock', { selection: (index < 5) === (game === 0) ? ['local-hero-0'] : [] });
+        await app.engine.tick(app.code); await app.run(0, 'game.finishAndNext');
+      } else {
+        for (const index of [0, 5]) {
+          expect((await app.engine.snapshot(`c${index}`)).fearlessExcludedHeroIds).toEqual(['local-hero-0']);
+          await expect(app.run(index, 'ballot.save', { selection: ['local-hero-0'] })).rejects.toMatchObject({ code: 'FEARLESS_BAN_EXCLUDED' });
+          await app.run(index, 'ballot.save', { selection: ['local-hero-3'] });
+        }
+      }
+    }
+  });
+
   it('revalidates a changed source and creates only one room with the same request ID', async () => {
     const app = await setup();
     const read = await app.store.readSource('LOCAL23456');

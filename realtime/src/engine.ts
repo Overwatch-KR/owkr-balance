@@ -3,7 +3,7 @@ import {
   applyBallotCommand, createDraftHistory, createMapCandidates, DEFAULT_DRAFT_TIMINGS, POTG_MAP_PICK_SECONDS, DRAFT_RULES_VERSION, DRAFT_LIMITS, DraftRuleError,
   getDraftRoomExpiry, getOperatorParticipantStatuses, getDraftStartBlockers, hasConnectedOperator,
   isConnectionAlive, isDraftOperator, pauseDraftTimer, projectDraftBallots, requireDraft,
-  getUsedDraftMapIds, getFearlessExcludedHeroIds, getEligibleDraftMaps, resolvePotgMap, resolvePotgTimeout, resolveHeroBans, resolveMapVote, resumeDraftTimer, sealBallotStage, validateDraftSource,
+  getUsedDraftMapIds, getFearlessExcludedHeroIds, getEligibleDraftMaps, isDraftFearlessMode, resolvePotgMap, resolvePotgTimeout, resolveHeroBans, resolveMapVote, resumeDraftTimer, sealBallotStage, validateDraftSource,
   type BallotKind, type DraftCatalog, type DraftConnection, type DraftHero,
   type DraftMap, type DraftParticipant, type ParticipantProgress,
   type DraftRoomSnapshot, type DraftFearlessMode, type MinimalDraftGame,
@@ -63,7 +63,7 @@ export function parseDraftCommand(value: unknown): DraftCommand {
   }
   if (raw.type === 'map.pick') requireDraft(typeof raw.mapId === 'string' && raw.mapId.length > 0 && raw.mapId.length <= 100,
     'INVALID_MAP', '선택한 맵을 확인해 주세요.');
-  if (raw.type === 'fearless.configure') requireDraft(raw.fearlessMode === 'OFF' || raw.fearlessMode === 'SOFT' || raw.fearlessMode === 'HARD',
+  if (raw.type === 'fearless.configure') requireDraft(isDraftFearlessMode(raw.fearlessMode),
     'INVALID_FEARLESS_MODE', '피어리스 방식을 확인해 주세요.');
   return {
     commandId: raw.commandId, type: raw.type as DraftCommand['type'], epoch: raw.epoch as number,

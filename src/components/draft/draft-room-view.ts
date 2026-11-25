@@ -1,6 +1,6 @@
 import { DRAFT_LIMITS, type DraftFearlessMode, type DraftRoomSnapshot, type DraftTeam } from '#domain/draft';
 
-export const DRAFT_FEARLESS_LABELS: Record<DraftFearlessMode, string> = { OFF: '일반 밴픽', SOFT: '소프트 피어리스', HARD: '하드 피어리스' };
+export const DRAFT_FEARLESS_LABELS: Record<DraftFearlessMode, string> = { OFF: '일반 밴픽', SOFT: '소프트 피어리스', HARD: '하드 피어리스', CUMULATIVE_TWO: '누적 2회 재밴 제한' };
 
 /** @description 확정된 선공 배정으로 진영을 표시하고 미배정 팀은 게임 로비 번호로 구분한다. */
 export function getDraftTeamLabel(team: DraftTeam, firstAttackTeam: DraftTeam | null = null): string {

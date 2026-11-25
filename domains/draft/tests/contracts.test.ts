@@ -15,6 +15,18 @@ function command(overrides: Partial<BallotCommand> = {}): BallotCommand {
 const operators = { ownerId: players[0].discordId, coOperatorId: players[5].discordId, operatorRevision: 1 };
 
 describe('fearless history', () => {
+  it('excludes a hero after two played games even when the bans are not consecutive or made by the same team', () => {
+    const original = history();
+    const game = original.games[0];
+    const first = { ...game, bans: [heroes.entries[0], heroes.entries[0], heroes.entries[1]], bansByTeam: { A: ['h0'], B: ['h1'] } };
+    const second = { ...game, gameId: 'second', bans: [heroes.entries[2]], bansByTeam: { A: ['h2'], B: [] } };
+    const third = { ...game, gameId: 'third', bans: [heroes.entries[0]], bansByTeam: { A: [], B: ['h0'] } };
+    const unplayed = { ...game, gameId: 'unplayed', startedAt: null, playStatus: 'NOT_PLAYED' as const, bans: [heroes.entries[1]] };
+    expect(getFearlessExcludedHeroIds({ ...original, games: [first, second, unplayed] }, 'CUMULATIVE_TWO', 'A')).toEqual([]);
+    const combined = { ...original, games: [first, second, third, unplayed] };
+    expect(getFearlessExcludedHeroIds(combined, 'CUMULATIVE_TWO', 'A')).toEqual(['h0']);
+    expect(getFearlessExcludedHeroIds(combined, 'CUMULATIVE_TWO', 'B')).toEqual(['h0']);
+  });
   it('uses only played games and does not guess unknown legacy team ownership', () => {
     const original = history();
     const legacy = original.games[0];

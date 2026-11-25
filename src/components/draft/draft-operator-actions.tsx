@@ -48,7 +48,7 @@ export function DraftOperatorActions({ controller, execute }: { controller: Draf
           {Object.entries(DRAFT_FEARLESS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
       </label>
-      <p className="mt-1">소프트: 우리 팀이 밴한 영웅 재밴 금지 · 하드: 양 팀이 밴한 영웅 재밴 금지</p>
+      <p className="mt-1">소프트: 우리 팀이 밴한 영웅 재밴 금지 · 하드: 양 팀이 밴한 영웅 재밴 금지 · 누적 2회: 양 팀 합산 두 경기에서 밴된 영웅은 내전 종료까지 재밴 금지</p>
       {remainingConfirmation && <label className="flex min-h-11 items-center gap-2"><input type="checkbox" disabled={!controller.connected || controller.pending} checked={remainingMapsConfirmed} onChange={event => setRemainingMapsConfirmed(event.target.checked)} />남은 맵 {snapshot.availableMapCount}개로 진행 · 무작위 없음</label>}
       <details><summary className="cursor-pointer py-2">고급 맵 설정 · 모드 다양성 예외</summary><label className="mt-1 block">예외 사유 (필요할 때만)
         <input className="form-control mt-1" maxLength={500} disabled={!controller.connected || controller.pending} value={diversityExceptionReason} onChange={event => setDiversityExceptionReason(event.target.value)} /></label></details>
