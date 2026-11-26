@@ -1,5 +1,10 @@
 import { DRAFT_LIMITS, requireDraft, type DraftParticipant, type DraftSource } from './model.js';
 
+/** @description 역할과 슬롯 번호를 유지하며 각 참가자를 반대편 로비 팀으로 옮긴다. */
+export function swapDraftRosterTeams<T extends DraftParticipant>(participants: readonly T[]): T[] {
+  return participants.map(player => ({ ...player, team: player.team === 'A' ? 'B' : 'A' }));
+}
+
 export function validateDraftRoster(participants: readonly DraftParticipant[]): void {
   requireDraft(participants.length === 10, 'ROSTER_SIZE', '배정된 참가자 10명이 필요합니다.');
   requireDraft(participants.every(player => /^\d{17,20}$/.test(player.discordId)),

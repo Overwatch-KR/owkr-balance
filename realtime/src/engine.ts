@@ -3,9 +3,9 @@ import {
   applyBallotCommand, createDraftHistory, createMapCandidates, DEFAULT_DRAFT_TIMINGS, POTG_MAP_PICK_SECONDS, DRAFT_RULES_VERSION, DRAFT_LIMITS, DraftRuleError,
   getDraftRoomExpiry, getOperatorParticipantStatuses, getDraftStartBlockers, hasConnectedOperator,
   isConnectionAlive, isDraftOperator, pauseDraftTimer, projectDraftBallots, requireDraft,
-  getUsedDraftMapIds, getFearlessExcludedHeroIds, getEligibleDraftMaps, isDraftFearlessMode, resolvePotgMap, resolvePotgTimeout, resolveHeroBans, resolveMapVote, resumeDraftTimer, sealBallotStage, validateDraftSource,
+  getUsedDraftMapIds, getFearlessExcludedHeroIds, getEligibleDraftMaps, isDraftFearlessMode, resolvePotgMap, resolvePotgTimeout, resolveHeroBans, resolveMapVote, resumeDraftTimer, sealBallotStage, swapDraftRosterTeams, validateDraftSource,
   type BallotKind, type DraftCatalog, type DraftConnection, type DraftHero,
-  type DraftMap, type DraftParticipant, type ParticipantProgress,
+  type DraftMap, type DraftMapSelection, type DraftParticipant, type ParticipantProgress,
   type DraftRoomSnapshot, type DraftFearlessMode, type MinimalDraftGame,
 } from '../../domains/draft/shared/public.js';
 import type { DraftRoomRecord, RealtimeStore, RoomBundle, StoreGuard } from './model.js';
@@ -20,7 +20,7 @@ export interface ConnectedDraftClient extends DraftConnection {
 
 export interface DraftCommand {
   commandId: string;
-  type: 'ready.set' | 'draft.start' | 'draft.pause' | 'draft.resume' | 'draft.restart'
+  type: 'ready.set' | 'roster.swapTeams' | 'draft.start' | 'draft.pause' | 'draft.resume' | 'draft.restart'
     | 'map.configure' | 'map.pick' | 'map.swapSides' | 'ballot.save' | 'ballot.lock' | 'game.confirmApplied' | 'game.markStarted'
     | 'game.markFinished' | 'game.markAborted' | 'game.markNotPlayed' | 'game.next' | 'game.finishAndNext' | 'fearless.configure' | 'room.close';
   epoch: number;
@@ -30,6 +30,7 @@ export interface DraftCommand {
   ready: boolean;
   mapMode: 'VOTE' | 'POTG';
   pickerDiscordId: string | null;
+  mapSelection?: DraftMapSelection;
   mapId: string;
   reason: string;
   remainingMapsConfirmed: boolean;
@@ -38,10 +39,19 @@ export interface DraftCommand {
   finishCurrentGame?: boolean;
 }
 
+function parseMapSelection(value: unknown): DraftMapSelection {
+  requireDraft(value && typeof value === 'object' && !Array.isArray(value), 'INVALID_MAP_MODE', '맵 선정 방식을 확인해 주세요.');
+  const { mode, pickerDiscordId } = value as Record<string, unknown>;
+  requireDraft(mode === 'VOTE' || mode === 'POTG', 'INVALID_MAP_MODE', '맵 선정 방식을 확인해 주세요.');
+  if (mode === 'VOTE') return { mode, pickerDiscordId: null };
+  requireDraft(typeof pickerDiscordId === 'string' && /^\d{17,20}$/.test(pickerDiscordId), 'INVALID_PICKER', '팟지 선수를 지정해 주세요.');
+  return { mode, pickerDiscordId };
+}
+
 export function parseDraftCommand(value: unknown): DraftCommand {
   requireDraft(value && typeof value === 'object' && !Array.isArray(value), 'INVALID_COMMAND', '명령 형식을 확인해 주세요.');
   const raw = value as Record<string, unknown>;
-  const types: readonly string[] = ['ready.set', 'draft.start', 'draft.pause', 'draft.resume', 'draft.restart',
+  const types: readonly string[] = ['ready.set', 'roster.swapTeams', 'draft.start', 'draft.pause', 'draft.resume', 'draft.restart',
     'map.configure', 'map.pick', 'map.swapSides', 'ballot.save', 'ballot.lock', 'game.confirmApplied', 'game.markStarted', 'game.markFinished',
     'game.markAborted', 'game.markNotPlayed', 'game.next', 'game.finishAndNext', 'fearless.configure', 'room.close'];
   requireDraft(typeof raw.commandId === 'string' && /^[\w-]{1,128}$/.test(raw.commandId)
@@ -56,11 +66,7 @@ export function parseDraftCommand(value: unknown): DraftCommand {
   requireDraft(raw.reason === undefined || (typeof raw.reason === 'string' && raw.reason.length <= 500), 'INVALID_REASON', '사유는 500자 이내로 입력해 주세요.');
   requireDraft(raw.diversityExceptionReason === undefined || (typeof raw.diversityExceptionReason === 'string'
     && raw.diversityExceptionReason.length <= 500), 'INVALID_REASON', '다양성 예외 사유를 확인해 주세요.');
-  if (raw.type === 'map.configure') {
-    requireDraft(raw.mapMode === 'VOTE' || raw.mapMode === 'POTG', 'INVALID_MAP_MODE', '맵 선정 방식을 확인해 주세요.');
-    requireDraft(raw.mapMode === 'VOTE' || (typeof raw.pickerDiscordId === 'string' && /^\d{17,20}$/.test(raw.pickerDiscordId)),
-      'INVALID_PICKER', '팟지 선수를 지정해 주세요.');
-  }
+  if (raw.type === 'map.configure') parseMapSelection({ mode: raw.mapMode, pickerDiscordId: raw.pickerDiscordId });
   if (raw.type === 'map.pick') requireDraft(typeof raw.mapId === 'string' && raw.mapId.length > 0 && raw.mapId.length <= 100,
     'INVALID_MAP', '선택한 맵을 확인해 주세요.');
   if (raw.type === 'fearless.configure') requireDraft(isDraftFearlessMode(raw.fearlessMode),
@@ -73,6 +79,7 @@ export function parseDraftCommand(value: unknown): DraftCommand {
     selection: (raw.selection as string[] | undefined) ?? [], ready: raw.ready === true,
     reason: (raw.reason as string | undefined)?.trim() ?? '', remainingMapsConfirmed: raw.remainingMapsConfirmed === true,
     diversityExceptionReason: (raw.diversityExceptionReason as string | undefined)?.trim() ?? '',
+    ...(raw.type === 'draft.start' && raw.mapSelection !== undefined ? { mapSelection: parseMapSelection(raw.mapSelection) } : {}),
     ...(raw.type === 'fearless.configure' ? { fearlessMode: raw.fearlessMode as DraftFearlessMode } : {}),
     ...(raw.type === 'room.close' && raw.finishCurrentGame === true ? { finishCurrentGame: true } : {}),
   };
@@ -83,7 +90,8 @@ function entropy(): number[] {
 }
 
 function roster(room: DraftRoomRecord): readonly DraftParticipant[] {
-  return room.fixedRoster ?? room.source.participants;
+  if (room.fixedRoster) return room.fixedRoster;
+  return room.teamsSwapped ? swapDraftRosterTeams(room.source.participants) : room.source.participants;
 }
 
 function emptyProgress(participants: readonly DraftParticipant[]): ParticipantProgress[] {
@@ -261,13 +269,14 @@ export class DraftEngine {
     const bundle = await this.requireRoom(client.roomCode, command.type === 'room.close');
     const { room, history, now } = bundle;
     requireDraft(isConnectionAlive(client, now), 'AUTH_EXPIRED', '입장권 또는 연결을 갱신해 주세요.');
-    const participant = bundle.source?.participants.find(player => player.discordId === client.discordId);
+    const isParticipant = bundle.source?.participants.some(player => player.discordId === client.discordId);
     const operator = isDraftOperator(history.operators, client.discordId);
-    requireDraft(operator || participant, 'ROOM_ACCESS_DENIED', '현재 명단 또는 운영 권한을 확인해 주세요.');
+    requireDraft(operator || isParticipant, 'ROOM_ACCESS_DENIED', '현재 명단 또는 운영 권한을 확인해 주세요.');
     const ballotCommand = command.type === 'ballot.save' || command.type === 'ballot.lock';
     if (ballotCommand) {
       requireDraft(command.epoch === room.epoch, 'STALE_STAGE', '경기 세대가 변경되었습니다.');
       validateDraftSource(bundle.source, room.source, now);
+      const participant = roster(room).find(player => player.discordId === client.discordId);
       requireDraft(participant && room.stage && room.timer.status === 'ACTIVE', 'BALLOT_CLOSED', '현재 입력할 수 있는 투표가 없습니다.');
       if (room.stage.kind === 'BAN') {
         const excluded = getFearlessExcludedHeroIds(history, room.fearlessMode ?? 'OFF', participant.team);
@@ -295,7 +304,7 @@ export class DraftEngine {
       return { revision: bundle.room.revision, duplicate: false,
         ballotRevision: accepted.ballot.ballotRevision, acceptedAt: accepted.acceptedAt };
     }
-    requireDraft(command.type === 'ready.set' || command.type === 'map.pick' ? participant && client.input : operator,
+    requireDraft(command.type === 'ready.set' || command.type === 'map.pick' ? isParticipant && client.input : operator,
       'OPERATOR_REQUIRED', '이 작업을 수행할 권한이 없습니다.');
     const body = JSON.stringify(command);
     const receipt = room.receipts.find(item => item.actorId === client.discordId && item.commandId === command.commandId);
@@ -357,6 +366,11 @@ export class DraftEngine {
       validateDraftSource(bundle.source, room.source, now);
       requireDraft(room.phase === 'LOBBY' && room.timer.status === 'ACTIVE', 'INVALID_PHASE', '준비 단계에서만 준비를 변경할 수 있습니다.');
       // 이전 화면의 준비 명령은 허용하되 입장 연결에서 계산하는 준비 상태를 바꾸지 않는다.
+    } else if (command.type === 'roster.swapTeams') {
+      requireDraft(room.phase === 'LOBBY' && room.timer.status === 'ACTIVE', 'INVALID_PHASE', '준비 단계에서만 두 팀의 자리를 교체할 수 있습니다.');
+      validateDraftSource(bundle.source, room.source, now);
+      room.teamsSwapped = !room.teamsSwapped;
+      guard.expectedSourceRaw = bundle.sourceRaw!;
     } else if (command.type === 'draft.start') {
       requireDraft(room.phase === 'LOBBY' && room.timer.status === 'ACTIVE', 'INVALID_PHASE', '준비 단계에서만 시작할 수 있습니다.');
       validateDraftSource(bundle.source, room.source, now);
@@ -366,9 +380,10 @@ export class DraftEngine {
       const blockers = getDraftStartBlockers(statuses);
       requireDraft(!blockers.disconnected.length && !blockers.inputRequired.length && !blockers.notReady.length,
         'PARTICIPANTS_NOT_READY', `미접속: ${blockers.disconnected.join(', ') || '없음'} / 입력 연결 필요: ${blockers.inputRequired.join(', ') || '없음'} / 미준비: ${blockers.notReady.join(', ') || '없음'}`);
-      room.fixedRoster = structuredClone(bundle.source.participants);
-      if (room.mapSelection.mode === 'POTG') {
-        requireDraft(roster(room).some(player => player.discordId === room.mapSelection.pickerDiscordId), 'INVALID_PICKER', '팟지 선수를 다시 지정해 주세요.');
+      room.fixedRoster = structuredClone(roster(room));
+      const mapSelection = command.mapSelection ?? room.mapSelection;
+      if (mapSelection.mode === 'POTG') {
+        requireDraft(room.fixedRoster.some(player => player.discordId === mapSelection.pickerDiscordId), 'INVALID_PICKER', '팟지 선수를 다시 지정해 주세요.');
         requireDraft(getEligibleDraftMaps(room.mapCatalog, this.usedMaps(bundle)).length > 0, 'MAP_POOL_EXHAUSTED', '미사용 맵이 없습니다.');
         room.phase = 'MAP_PICKING'; room.stage = null;
         room.timer = { ...room.timer, phase: room.phase, deadlineAt: now + POTG_MAP_PICK_SECONDS * 1000, remainingMs: null };
@@ -380,6 +395,7 @@ export class DraftEngine {
         });
         this.newStage(room, 'MAP', now);
       }
+      room.mapSelection = mapSelection;
       guard.expectedSourceRaw = bundle.sourceRaw;
     } else if (command.type === 'draft.pause') {
       requireDraft(command.reason, 'REASON_REQUIRED', '정지 사유를 입력해 주세요.');

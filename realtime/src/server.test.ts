@@ -251,12 +251,10 @@ describe('realtime HTTP and WebSocket transport', () => {
       expect(snapshots.mock.calls.every(([, bundle]) => bundle === sharedBundle)).toBe(true);
       snapshots.mockRestore();
       for (let index = 1; index < clients.length; index++) await clients[index].send('ready.set', index);
-      if (mapMode === 'POTG') {
-        await clients[0].send('map.configure', 0, [], { mapMode: 'POTG', pickerDiscordId: app.fixture.identities[3].discordUserId });
-        for (let index = 0; index < clients.length; index++) await clients[index].send('ready.set', index);
-      }
-      await clients[0].send('draft.start', 0);
+      const mapSelection = { mode: mapMode, pickerDiscordId: mapMode === 'POTG' ? app.fixture.identities[3].discordUserId : null };
+      await clients[0].send('draft.start', 0, [], { mapSelection });
       const started = await app.engine.requireRoom(roomCode);
+      expect(started.room.mapSelection).toEqual(mapSelection);
       if (mapMode === 'POTG') {
         expect(started.room.phase).toBe('MAP_PICKING');
         await expect(clients[0].send('map.pick', 0, [], { mapId: 'grimsvotn' })).rejects.toThrow('팟지 선수만');

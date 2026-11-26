@@ -19,6 +19,7 @@ export interface DraftRoomRecord {
   revision: number;
   source: DraftSource;
   fixedRoster: readonly DraftParticipant[] | null;
+  teamsSwapped?: boolean;
   gameId: string;
   gameIndex: number;
   epoch: number;

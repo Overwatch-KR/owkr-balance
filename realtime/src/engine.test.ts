@@ -423,6 +423,17 @@ describe('POTG selection with the bundled catalog', () => {
     await app.lockAll(['ana', 'dva', 'genji']); await app.engine.tick(app.code);
     await app.run(0, 'game.confirmApplied'); await app.run(0, 'game.markStarted'); await app.run(0, 'game.markFinished');
   }
+  it('validates the submitted start selection and preserves the lobby if the picker is invalid', async () => {
+    const app = await setup(); await app.readyAll();
+    const before = await app.engine.snapshot('c0');
+    for (const pickerDiscordId of [null, '999999999999999999']) {
+      await expect(app.run(0, 'draft.start', { mapSelection: { mode: 'POTG', pickerDiscordId } })).rejects.toMatchObject({ code: 'INVALID_PICKER' });
+    }
+    expect(await app.engine.snapshot('c0')).toMatchObject({ phase: 'LOBBY', epoch: before.epoch, roomRevision: before.roomRevision, readyCount: 10, mapSelection: before.mapSelection });
+    await app.run(0, 'map.configure', { mapMode: 'POTG', pickerDiscordId: app.ids[3] });
+    await app.run(0, 'draft.start', { mapSelection: { mode: 'VOTE', pickerDiscordId: null } });
+    expect(await app.engine.snapshot('c0')).toMatchObject({ phase: 'MAP_VOTING', mapSelection: { mode: 'VOTE', pickerDiscordId: null } });
+  });
   it('gives every participant one sixty-second deadline and resolves the timeout once before bans', async () => {
     const app = await startPotg();
     const initial = await app.engine.snapshot('c0');
@@ -711,6 +722,32 @@ describe('automatic idle room closure', () => {
 
 
 describe('operator side swaps', () => {
+  it('swaps the lobby rosters for everyone and keeps the new teams through the draft and next lobby', async () => {
+    const app = await setup(); await app.readyAll();
+    const before = await app.engine.snapshot('c0');
+    await expect(app.run(1, 'roster.swapTeams')).rejects.toThrow('권한');
+    await app.run(0, 'roster.swapTeams');
+    const expected = before.participants.map(player => ({ ...player, team: player.team === 'A' ? 'B' : 'A' }));
+    expect(await app.engine.snapshot('c1')).toMatchObject({ phase: 'LOBBY', epoch: before.epoch, readyCount: 10, participants: expected });
+    const operator = await app.engine.snapshot('c0');
+    expect(operator.progress?.find(player => player.discordId === app.ids[0])).toMatchObject({ team: 'B', ready: true });
+    expect((await app.engine.requireRoom(app.code)).source?.participants).toEqual(before.participants);
+    await app.run(0, 'roster.swapTeams');
+    expect((await app.engine.snapshot('c1')).participants).toEqual(before.participants);
+    await app.run(0, 'roster.swapTeams');
+    await app.run(0, 'fearless.configure', { fearlessMode: 'SOFT' });
+    await app.run(0, 'draft.start');
+    await expect(app.run(0, 'roster.swapTeams')).rejects.toThrow('준비 단계');
+    expect((await app.engine.requireRoom(app.code)).room.fixedRoster).toEqual(expected);
+    await app.lockAll([]); await app.engine.tick(app.code); await app.finishMapReveal();
+    for (let index = 0; index < 10; index++) await app.run(index, 'ballot.lock', { selection: [index < 5 ? 'local-hero-0' : 'local-hero-3'] });
+    await app.engine.tick(app.code);
+    await app.run(0, 'game.finishAndNext');
+    expect(await app.engine.snapshot('c1')).toMatchObject({ phase: 'LOBBY', gameIndex: 2, participants: expected, fearlessExcludedHeroIds: ['local-hero-0'] });
+    await app.run(0, 'draft.start'); await app.lockAll([]); await app.engine.tick(app.code); await app.finishMapReveal();
+    await expect(app.run(1, 'ballot.save', { selection: ['local-hero-0'] })).rejects.toMatchObject({ code: 'FEARLESS_BAN_EXCLUDED' });
+    await app.run(1, 'ballot.save', { selection: ['local-hero-3'] });
+  });
   async function mapReady(mapId = 'kings-row') {
     const app = await setup({ realCatalogs: true }); await app.readyAll();
     await app.run(0, 'map.configure', { mapMode: 'POTG', pickerDiscordId: app.ids[3] });

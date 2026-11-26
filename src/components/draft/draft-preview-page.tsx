@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { DEFAULT_DRAFT_MAP_CATALOG, DEFAULT_DRAFT_HERO_CATALOG, DEFAULT_DRAFT_TIMINGS, DRAFT_LIMITS, getMapRevealDurationMs, isDraftFearlessMode, resolveMapVote, POTG_MAP_PICK_SECONDS, resolvePotgTimeout } from '#domain/draft';
-import type { DraftHero, DraftParticipant, DraftPhase, DraftRoomSnapshot } from '#domain/draft';
+import { DEFAULT_DRAFT_MAP_CATALOG, DEFAULT_DRAFT_HERO_CATALOG, DEFAULT_DRAFT_TIMINGS, DRAFT_LIMITS, getMapRevealDurationMs, isDraftFearlessMode, resolveMapVote, POTG_MAP_PICK_SECONDS, resolvePotgTimeout, swapDraftRosterTeams } from '#domain/draft';
+import type { DraftHero, DraftMapSelection, DraftParticipant, DraftPhase, DraftRoomSnapshot } from '#domain/draft';
 import type { DraftRoomController } from '@application/draft/use-draft-room';
 import { DraftRoomPanel } from './draft-room-panel';
 import { DraftParticipantWaiting } from './draft-participant-waiting';
@@ -21,14 +21,14 @@ const maps = DEFAULT_DRAFT_MAP_CATALOG.entries;
 const candidates = ['grimsvotn', 'kings-row', 'ilios'].map(id => maps.find(map => map.mapId === id)!);
 const exampleOtherVotes = ['grimsvotn', 'grimsvotn', 'kings-row', 'kings-row', 'kings-row', 'ilios', 'ilios', 'ilios', 'RANDOM'];
 
-function previewMapTotals(selection: readonly string[], otherVotes: readonly string[] = exampleOtherVotes) {
+function previewMapTotals(selection: readonly string[], otherVotes: readonly string[] = exampleOtherVotes, roster: readonly DraftParticipant[] = participants) {
   const votes = [selection[0], ...otherVotes];
   const options = [...candidates.map(map => map.mapId), 'RANDOM'];
   return {
     mapTotals: Object.fromEntries(options.map(id => [id, votes.filter(vote => vote === id).length])),
     mapTeamTotals: Object.fromEntries(options.map(id => [id, {
-      A: votes.filter((vote, index) => vote === id && participants[index].team === 'A').length,
-      B: votes.filter((vote, index) => vote === id && participants[index].team === 'B').length,
+      A: votes.filter((vote, index) => vote === id && roster[index].team === 'A').length,
+      B: votes.filter((vote, index) => vote === id && roster[index].team === 'B').length,
     }])),
   };
 }
@@ -105,6 +105,7 @@ function DraftPreviewContent({ heroes }: { heroes: readonly DraftHero[] }) {
     const timeout = setTimeout(() => setSnapshot(previous => {
       const view = exampleSnapshot('ban', heroes);
       return { ...view, epoch: previous.epoch, mapResult: previous.mapResult, mapSelection: previous.mapSelection,
+        participants: previous.participants,
         ...(screen === 'map-test' ? { ballots: { ...view.ballots!, self: { ...view.ballots!.self!, selection: [], locked: false } } } : {}) };
     }), Math.max(0, snapshot.timer.deadlineAt - Date.now()));
     return () => clearTimeout(timeout);
@@ -122,9 +123,8 @@ function DraftPreviewContent({ heroes }: { heroes: readonly DraftHero[] }) {
   }, [snapshot.phase, snapshot.timer.status, snapshot.timer.deadlineAt]);
   const controller: DraftRoomController = { snapshot, connected: !['reconnecting', 'replaced'].includes(screen), connectionReplaced: screen === 'replaced', reconnecting: screen === 'reconnecting', pending: false, error: '', reconnect: () => {},
     command: async (type, values) => {
-      if (type === 'map.configure') setSnapshot(previous => ({ ...previous, epoch: previous.epoch + 1,
-        mapSelection: { mode: values?.mapMode === 'POTG' ? 'POTG' : 'VOTE', pickerDiscordId: typeof values?.pickerDiscordId === 'string' ? values.pickerDiscordId : null },
-        progress: previous.progress?.map(player => ({ ...player, ready: player.connectionStatus === 'CONNECTED' && player.inputConnected })) }));
+      if (type === 'roster.swapTeams') setSnapshot(previous => ({ ...previous, participants: swapDraftRosterTeams(previous.participants),
+        progress: previous.progress && swapDraftRosterTeams(previous.progress) }));
       if (type === 'map.pick') setSnapshot(previous => {
         const map = maps.find(entry => entry.mapId === values?.mapId)!; const now = Date.now();
         return { ...previous, phase: 'MAP_RESOLVED', serverNow: now, timer: { ...previous.timer, phase: 'MAP_RESOLVED', deadlineAt: now + DRAFT_LIMITS.mapRevealMs },
@@ -135,12 +135,17 @@ function DraftPreviewContent({ heroes }: { heroes: readonly DraftHero[] }) {
         return { ...previous, selfReady: ready, readyCount: previous.readyCount + Number(ready) - Number(previous.selfReady),
           progress: previous.progress?.map(player => player.discordId === previous.selfDiscordId ? { ...player, ready } : player) };
       });
-      if (type === 'draft.start') setSnapshot(previous => ({ ...exampleSnapshot(previous.mapSelection.mode === 'POTG' ? 'potg' : 'map', heroes),
-        isOperator: previous.isOperator, gameIndex: previous.gameIndex, mapSelection: previous.mapSelection, fearlessMode: previous.fearlessMode }));
+      if (type === 'draft.start') setSnapshot(previous => {
+        const mapSelection = (values?.mapSelection as DraftMapSelection | undefined) ?? previous.mapSelection;
+        const view = exampleSnapshot(mapSelection.mode === 'POTG' ? 'potg' : 'map', heroes);
+        return { ...view, isOperator: previous.isOperator, gameIndex: previous.gameIndex, epoch: previous.epoch, mapSelection, fearlessMode: previous.fearlessMode,
+          participants: previous.participants, progress: previous.progress,
+          ballots: view.ballots && { ...view.ballots, ...previewMapTotals(view.ballots.self?.selection ?? [], otherVotes, previous.participants) } };
+      });
       if (type === 'draft.restart') setSnapshot(previous => ({ ...exampleSnapshot('operator', heroes),
         epoch: previous.epoch + 1, gameId: previous.gameId, gameIndex: previous.gameIndex, isOperator: previous.isOperator,
         timer: { ...previous.timer, phase: 'LOBBY', status: 'ACTIVE', epoch: previous.epoch + 1, deadlineAt: null, remainingMs: null },
-        candidates: null, readyCount: previous.readyCount,
+        candidates: null, readyCount: previous.readyCount, participants: previous.participants,
         mapSelection: previous.mapSelection, previousGame: previous.previousGame, fearlessMode: previous.fearlessMode,
         progress: previous.progress?.map(player => ({ ...player, ready: player.connectionStatus === 'CONNECTED' && player.inputConnected, confirmed: false })) }));
       if (type === 'map.swapSides') setSnapshot(previous => ({ ...previous, mapResult: previous.mapResult && { ...previous.mapResult, firstAttackTeam: previous.mapResult.firstAttackTeam === 'A' ? 'B' : 'A' } }));
@@ -151,13 +156,13 @@ function DraftPreviewContent({ heroes }: { heroes: readonly DraftHero[] }) {
         const fearlessMode = values.fearlessMode;
         setSnapshot(previous => ({ ...previous, fearlessMode }));
       }
-      if (type === 'game.next' || type === 'game.finishAndNext') setSnapshot(previous => ({ ...exampleSnapshot('operator', heroes), gameIndex: previous.gameIndex + 1, fearlessMode: previous.fearlessMode,
-        selfReady: true, readyCount: previous.readyCount, previousGame: previous.mapResult && previous.heroResult ? { gameIndex: previous.gameIndex, map: previous.mapResult.map, firstAttackTeam: previous.mapResult.firstAttackTeam, bans: previous.heroResult.bannedHeroIds.map(id => heroes.find(hero => hero.heroId === id)!) } : undefined,
+      if (type === 'game.next' || type === 'game.finishAndNext') setSnapshot(previous => ({ ...exampleSnapshot('operator', heroes), gameId: `example-game-${previous.gameIndex + 1}`, gameIndex: previous.gameIndex + 1, mapSelection: previous.mapSelection, fearlessMode: previous.fearlessMode,
+        selfReady: true, readyCount: previous.readyCount, participants: previous.participants, previousGame: previous.mapResult && previous.heroResult ? { gameIndex: previous.gameIndex, map: previous.mapResult.map, firstAttackTeam: previous.mapResult.firstAttackTeam, bans: previous.heroResult.bannedHeroIds.map(id => heroes.find(hero => hero.heroId === id)!) } : undefined,
         progress: previous.progress?.map(player => ({ ...player, ready: player.connectionStatus === 'CONNECTED' && player.inputConnected, confirmed: false })) }));
       if ((type === 'ballot.save' || type === 'ballot.lock') && Array.isArray(values?.selection)) {
         const selection = values.selection.filter((value): value is string => typeof value === 'string');
         setSnapshot(previous => ({ ...previous, ballots: previous.ballots && { ...previous.ballots,
-          ...(previous.stageKind === 'MAP' ? previewMapTotals(selection, otherVotes) : {}),
+          ...(previous.stageKind === 'MAP' ? previewMapTotals(selection, otherVotes, previous.participants) : {}),
           self: previous.ballots.self && { ...previous.ballots.self, ballotRevision: previous.ballots.self.ballotRevision + 1,
             selection, locked: type === 'ballot.lock' || selection.filter(Boolean).length === (previous.stageKind === 'BAN' ? 3 : 1) } } }));
       }

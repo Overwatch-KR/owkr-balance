@@ -1,4 +1,5 @@
 import './draft-workspace.css';
+import type { DraftMapSelection } from '#domain/draft';
 import { useDraftAudio } from '@application/draft/use-draft-audio';
 import { DRAFT_FEARLESS_LABELS, getDraftTeamLabel, getDraftSideSummary } from './draft-room-view';
 import { useState } from 'react';
@@ -37,12 +38,16 @@ function DraftRoomContent({ controller, admin = false, sound }: Omit<DraftRoomPa
   const snapshot = controller.snapshot;
   const [operatorOpen, setOperatorOpen] = useState(false);
   const [notice, setNotice] = useState('');
+  const [editedMapSelection, setEditedMapSelection] = useState<{ round: string; selection: DraftMapSelection } | null>(null);
   const execute = (type: string, values?: Record<string, unknown>) => {
     setNotice(''); void controller.command(type, values).catch(error => setNotice(error instanceof Error ? error.message : '진행하지 못했습니다.'));
   };
   if (controller.roomClosed) return <DraftClosedRoom reason={controller.roomUnavailableReason} />;
   if (!snapshot) return <div className="border-y border-slate-800 py-6"><DraftConnectionStatus controller={controller} /></div>;
   const self = snapshot.participants.find(player => player.discordId === snapshot.selfDiscordId);
+  const round = `${snapshot.gameId}:${snapshot.epoch}`;
+  const mapSelection = editedMapSelection?.round === round ? editedMapSelection.selection : snapshot.mapSelection;
+  const showMapSetup = snapshot.phase === 'LOBBY' && snapshot.participants.length === 10 && snapshot.isOperator;
   const controlsDisabled = !controller.connected || controller.pending;
   const phaseReady = snapshot.timer.status === 'ACTIVE';
   const copyResult = async () => {
@@ -59,16 +64,17 @@ function DraftRoomContent({ controller, admin = false, sound }: Omit<DraftRoomPa
   return <div className={`draft-room-panel ${snapshot.ballots?.self || ['MAP_PICKING', 'MAP_RESOLVED'].includes(snapshot.phase) ? 'draft-room-selecting' : 'space-y-5'}`}>
     <DraftRoomHeader controller={controller} admin={admin} onOpenOperator={() => setOperatorOpen(true)} sound={sound} />
     <DraftConnectionStatus controller={controller} notice={notice} />
-    {snapshot.isOperator && <DraftOperatorActions key={`${snapshot.gameId}:${snapshot.epoch}`} controller={controller} execute={execute} />}
+    {snapshot.isOperator && <DraftOperatorActions key={round} controller={controller} mapSelection={mapSelection} execute={execute} />}
     {self && snapshot.phase === 'LOBBY' && <section className="border-y border-slate-800 py-5">
       <h3 className="font-semibold text-white">입장 완료 · 자동 준비 상태입니다</h3>
       <p className="mt-2 text-sm text-slate-400">{self.displayName} · {getDraftTeamLabel(self.team, snapshot.mapResult?.firstAttackTeam)} · {ROLE_LABELS[self.role]} · 입장 {snapshot.readyCount}/10</p>
       <p className="mt-2 text-xs text-slate-500">내 팀과 역할을 확인해 주세요. 참가자 전원 마이크 필수입니다.</p>
     </section>}
     {snapshot.phase === 'LOBBY' && snapshot.participants.length === 0 && <section className="border-y border-slate-800 py-5"><h3 className="font-semibold text-white">참가자 로그인 대기방이 열렸습니다</h3><p className="mt-2 text-sm text-slate-400">방 링크를 먼저 공유해 주세요. 참가자는 디스코드 로그인 후 대기하며, 대진표에서 10명을 편성하면 자동으로 입장합니다.</p></section>}
-    {snapshot.phase === 'LOBBY' && <p className="text-xs text-slate-400">맵 선정: {snapshot.mapSelection.mode === 'VOTE' ? '참가자 투표' : `팟지 · ${snapshot.participants.find(player => player.discordId === snapshot.mapSelection.pickerDiscordId)?.displayName ?? '선수 지정 필요'}`}</p>}
+    {snapshot.phase === 'LOBBY' && !showMapSetup && <p className="text-xs text-slate-400">맵 선정: {snapshot.mapSelection.mode === 'VOTE' ? '참가자 투표' : `팟지 · ${snapshot.participants.find(player => player.discordId === snapshot.mapSelection.pickerDiscordId)?.displayName ?? '선수 지정 필요'}`}</p>}
     {snapshot.phase === 'LOBBY' && <p className="text-xs text-slate-400">밴픽 규칙: {DRAFT_FEARLESS_LABELS[snapshot.fearlessMode ?? 'OFF']}</p>}
-    {snapshot.phase === 'LOBBY' && snapshot.participants.length === 10 && snapshot.isOperator && <DraftMapSetup key={snapshot.epoch} controller={controller} onNotice={setNotice} />}
+    {showMapSetup && <DraftMapSetup controller={controller} mapSelection={mapSelection}
+      onChange={selection => setEditedMapSelection({ round, selection })} onSwapTeams={() => execute('roster.swapTeams')} />}
     {snapshot.phase === 'MAP_PICKING' && <DraftMapPick key={`${snapshot.gameId}:${snapshot.epoch}`} audio={sound.audio} controller={controller} onNotice={setNotice} />}
     {snapshot.phase === 'MAP_RESOLVED' && snapshot.mapResult && <DraftMapReveal key={snapshot.mapResult.resolutionId} snapshot={snapshot} audio={sound.audio} />}
     {snapshot.ballots?.self && <DraftSelection key={`${snapshot.gameId}:${snapshot.epoch}:${snapshot.stageKind}`} audio={sound.audio} controller={controller} onNotice={setNotice} />}

@@ -1,9 +1,13 @@
 import { useState } from 'react';
-import { getDraftStartBlockers, type DraftFearlessMode } from '#domain/draft';
+import { getDraftStartBlockers, type DraftFearlessMode, type DraftMapSelection } from '#domain/draft';
 import type { DraftRoomController } from '@application/draft/use-draft-room';
 import { DRAFT_FEARLESS_LABELS, getDraftPrimaryAction, getDraftSideSummary } from './draft-room-view';
 
-export function DraftOperatorActions({ controller, execute }: { controller: DraftRoomController; execute: (type: string, values?: Record<string, unknown>) => void }) {
+export function DraftOperatorActions({ controller, execute, mapSelection = controller.snapshot!.mapSelection }: {
+  controller: DraftRoomController;
+  execute: (type: string, values?: Record<string, unknown>) => void;
+  mapSelection?: DraftMapSelection;
+}) {
   const snapshot = controller.snapshot!;
   const [remainingMapsConfirmed, setRemainingMapsConfirmed] = useState(false);
   const [diversityExceptionReason, setDiversityExceptionReason] = useState('');
@@ -12,8 +16,8 @@ export function DraftOperatorActions({ controller, execute }: { controller: Draf
   const blockers = getDraftStartBlockers(progress);
   const problems = [blockers.disconnected.length ? `미접속: ${blockers.disconnected.join(', ')}` : '',
     blockers.inputRequired.length ? `입력 연결 필요: ${blockers.inputRequired.join(', ')}` : ''].filter(Boolean);
-  const remainingConfirmation = snapshot.mapSelection.mode === 'VOTE' && snapshot.availableMapCount > 0 && snapshot.availableMapCount < 4;
-  const pickerMissing = snapshot.mapSelection.mode === 'POTG' && !snapshot.participants.some(player => player.discordId === snapshot.mapSelection.pickerDiscordId);
+  const remainingConfirmation = mapSelection.mode === 'VOTE' && snapshot.availableMapCount > 0 && snapshot.availableMapCount < 4;
+  const pickerMissing = mapSelection.mode === 'POTG' && !snapshot.participants.some(player => player.discordId === mapSelection.pickerDiscordId);
   const startBlocked = progress.length !== 10 || problems.length > 0 || snapshot.availableMapCount === 0 || pickerMissing || (remainingConfirmation && !remainingMapsConfirmed);
   const disabled = !controller.connected || controller.pending || (action?.type === 'draft.start' && startBlocked)
     || (action?.requiresActive && snapshot.timer.status !== 'ACTIVE');
@@ -34,7 +38,7 @@ export function DraftOperatorActions({ controller, execute }: { controller: Draf
       </div>}
     </div>{action && <button type="button" className="btn-primary shrink-0 text-sm" disabled={disabled} onClick={() => {
       if (finishCurrentGame && !window.confirm('실제 경기가 종료되었나요? 이번 맵·밴 기록을 저장하고 다음 경기를 준비합니다.')) return;
-      execute(action.type, action.type === 'draft.start' ? { remainingMapsConfirmed, diversityExceptionReason } : undefined);
+      execute(action.type, action.type === 'draft.start' ? { mapSelection, remainingMapsConfirmed, diversityExceptionReason } : undefined);
     }}>{controller.pending ? '처리 중…' : action.label}</button>}</div>
     {snapshot.mapResult?.firstAttackTeam && snapshot.playStatus === 'NOT_STARTED' && snapshot.timer.status !== 'ROSTER_CHANGED' && <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-slate-800 pt-3">
       <p className="text-xs text-slate-300">{getDraftSideSummary(snapshot.mapResult.firstAttackTeam)}</p>
