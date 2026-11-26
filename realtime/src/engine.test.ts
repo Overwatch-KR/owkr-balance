@@ -164,6 +164,61 @@ describe('local server persisted flow', () => {
     await expect(app.engine.createRoom(app.ticket(), 'LOCAL23456', 'create-1')).rejects.toMatchObject({ code: 'ROOM_CLOSED' });
   });
 
+  it.each(['OFF', 'SOFT', 'HARD'] as const)('ends a game in one step and enforces %s fearless rules next game', async mode => {
+    const app = await setup(); await app.readyAll();
+    await expect(app.run(1, 'fearless.configure', { fearlessMode: mode })).rejects.toMatchObject({ code: 'OPERATOR_REQUIRED' });
+    await app.run(0, 'fearless.configure', { fearlessMode: mode });
+    await app.run(0, 'draft.start');
+    await expect(app.run(0, 'fearless.configure', { fearlessMode: 'HARD' })).rejects.toMatchObject({ code: 'INVALID_PHASE' });
+    await expect(app.run(0, 'game.finishAndNext')).rejects.toMatchObject({ code: 'INVALID_PHASE' });
+    await app.lockAll([]); await app.engine.tick(app.code); await app.finishMapReveal();
+    for (let index = 0; index < 10; index++) await app.run(index, 'ballot.lock', { selection: [index < 5 ? 'local-hero-0' : 'local-hero-3'] });
+    await app.engine.tick(app.code);
+    const current = await app.engine.requireRoom(app.code);
+    expect(current.history.games).toHaveLength(0);
+    await expect(app.run(1, 'game.finishAndNext')).rejects.toMatchObject({ code: 'OPERATOR_REQUIRED' });
+    await app.run(0, 'game.finishAndNext');
+    const next = await app.engine.requireRoom(app.code);
+    expect(next.room).toMatchObject({ gameIndex: 2, phase: 'LOBBY', fearlessMode: mode, roomCode: app.code });
+    expect(next.history.games).toHaveLength(1);
+    expect(next.history.games[0]).toMatchObject({ playStatus: 'FINISHED', startedAt: null, finishedAt: next.now,
+      bansByTeam: { A: ['local-hero-0'], B: ['local-hero-3'] } });
+    expect((await app.engine.snapshot('c0')).availableMaps.map(map => map.canonicalMapId)).not.toContain(current.room.mapResult!.map.canonicalMapId);
+    const exclusions = mode === 'OFF' ? [] : mode === 'SOFT' ? ['local-hero-0'] : ['local-hero-0', 'local-hero-3'];
+    expect((await app.engine.snapshot('c0')).fearlessExcludedHeroIds).toEqual(exclusions);
+    expect((await app.engine.snapshot('c5')).fearlessExcludedHeroIds).toEqual(mode === 'SOFT' ? ['local-hero-3'] : exclusions);
+    await app.run(0, 'draft.start'); await app.lockAll([]); await app.engine.tick(app.code); await app.finishMapReveal();
+    if (mode !== 'OFF') await expect(app.run(0, 'ballot.save', { selection: ['local-hero-0'] })).rejects.toMatchObject({ code: 'FEARLESS_BAN_EXCLUDED' });
+    if (mode === 'HARD') await expect(app.run(0, 'ballot.save', { selection: ['local-hero-3'] })).rejects.toMatchObject({ code: 'FEARLESS_BAN_EXCLUDED' });
+    else await app.run(0, 'ballot.save', { selection: ['local-hero-3'] });
+    await app.lockAll(['local-hero-6']); await app.engine.tick(app.code);
+    await app.run(0, 'room.close', { finishCurrentGame: true });
+    const closed = (await app.store.load(app.code))!;
+    expect(closed.room.timer.status).toBe('CANCELLED');
+    expect(closed.history.games).toHaveLength(2);
+    expect(closed.history.games.every(game => game.playStatus === 'FINISHED')).toBe(true);
+  });
+
+  it('allows one repeat ban, then rejects the third attempt for either team', async () => {
+    const app = await setup(); await app.readyAll();
+    await app.run(0, 'fearless.configure', { fearlessMode: 'CUMULATIVE_TWO' });
+    for (let game = 0; game < 3; game++) {
+      await app.run(0, 'draft.start', { remainingMapsConfirmed: true, diversityExceptionReason: '시험' });
+      await app.lockAll([]); await app.engine.tick(app.code); await app.finishMapReveal();
+      if (game < 2) {
+        expect((await app.engine.snapshot('c0')).fearlessExcludedHeroIds).toEqual([]);
+        for (let index = 0; index < 10; index++) await app.run(index, 'ballot.lock', { selection: (index < 5) === (game === 0) ? ['local-hero-0'] : [] });
+        await app.engine.tick(app.code); await app.run(0, 'game.finishAndNext');
+      } else {
+        for (const index of [0, 5]) {
+          expect((await app.engine.snapshot(`c${index}`)).fearlessExcludedHeroIds).toEqual(['local-hero-0']);
+          await expect(app.run(index, 'ballot.save', { selection: ['local-hero-0'] })).rejects.toMatchObject({ code: 'FEARLESS_BAN_EXCLUDED' });
+          await app.run(index, 'ballot.save', { selection: ['local-hero-3'] });
+        }
+      }
+    }
+  });
+
   it('revalidates a changed source and creates only one room with the same request ID', async () => {
     const app = await setup();
     const read = await app.store.readSource('LOCAL23456');

@@ -1,6 +1,6 @@
 import type {
   BallotStage, DraftCatalog, DraftHero, DraftHistory, DraftMap, DraftParticipant, DraftPhase,
-  DraftSource, DraftTimer, HeroResolution, MapCandidateSnapshot, MapResolution, ParticipantProgress, PresenceHistory, DraftMapSelection,
+  DraftSource, DraftTimer, HeroResolution, MapCandidateSnapshot, MapResolution, ParticipantProgress, PresenceHistory, DraftMapSelection, DraftFearlessMode,
 } from '../../domains/draft/shared/public.js';
 
 export interface RoomReceipt {
@@ -29,6 +29,7 @@ export interface DraftRoomRecord {
   mapCatalog: DraftCatalog<DraftMap>;
   heroCatalog: DraftCatalog<DraftHero>;
   mapSelection: DraftMapSelection;
+  fearlessMode?: DraftFearlessMode;
   candidates: MapCandidateSnapshot | null;
   mapResult: MapResolution | null;
   heroResult: HeroResolution | null;

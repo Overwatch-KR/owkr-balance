@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   applyBallotCommand, sealBallotStage, projectDraftBallots, getOperatorParticipantStatuses,
   hasConnectedOperator, emitDraftStreamEvent, inspectDraftStreamEvent, pauseDraftTimer, resumeDraftTimer,
-  correctDraftMapHistory, getUsedDraftMapIds, createDraftReplayPlan, canUseDraftMap,
+  correctDraftMapHistory, getUsedDraftMapIds, getFearlessExcludedHeroIds, createDraftReplayPlan, canUseDraftMap,
   type BallotCommand, type DraftTimer,
 } from '../shared/public.js';
 import { history, heroes, maps, NOW, players, rolls, stage } from './fixtures.js';
@@ -13,6 +13,33 @@ function command(overrides: Partial<BallotCommand> = {}): BallotCommand {
     expectedBallotRevision: 0, selection: ['h0'], lock: false, ...overrides };
 }
 const operators = { ownerId: players[0].discordId, coOperatorId: players[5].discordId, operatorRevision: 1 };
+
+describe('fearless history', () => {
+  it('excludes a hero after two played games even when the bans are not consecutive or made by the same team', () => {
+    const original = history();
+    const game = original.games[0];
+    const first = { ...game, bans: [heroes.entries[0], heroes.entries[0], heroes.entries[1]], bansByTeam: { A: ['h0'], B: ['h1'] } };
+    const second = { ...game, gameId: 'second', bans: [heroes.entries[2]], bansByTeam: { A: ['h2'], B: [] } };
+    const third = { ...game, gameId: 'third', bans: [heroes.entries[0]], bansByTeam: { A: [], B: ['h0'] } };
+    const unplayed = { ...game, gameId: 'unplayed', startedAt: null, playStatus: 'NOT_PLAYED' as const, bans: [heroes.entries[1]] };
+    expect(getFearlessExcludedHeroIds({ ...original, games: [first, second, unplayed] }, 'CUMULATIVE_TWO', 'A')).toEqual([]);
+    const combined = { ...original, games: [first, second, third, unplayed] };
+    expect(getFearlessExcludedHeroIds(combined, 'CUMULATIVE_TWO', 'A')).toEqual(['h0']);
+    expect(getFearlessExcludedHeroIds(combined, 'CUMULATIVE_TWO', 'B')).toEqual(['h0']);
+  });
+  it('uses only played games and does not guess unknown legacy team ownership', () => {
+    const original = history();
+    const legacy = original.games[0];
+    const attributed = { ...legacy, gameId: 'new', startedAt: null, bans: [heroes.entries[1], heroes.entries[4]], bansByTeam: { A: ['h1'], B: ['h4'] } };
+    const skipped = { ...attributed, gameId: 'unplayed', playStatus: 'NOT_PLAYED' as const, bans: [heroes.entries[2]], bansByTeam: { A: ['h2'], B: [] } };
+    const combined = { ...original, games: [legacy, attributed, skipped] };
+    expect(getFearlessExcludedHeroIds(combined, 'OFF', 'A')).toEqual([]);
+    expect(getFearlessExcludedHeroIds(combined, 'SOFT', 'A')).toEqual(['h1']);
+    expect(getFearlessExcludedHeroIds(combined, 'SOFT', 'B')).toEqual(['h4']);
+    expect(getFearlessExcludedHeroIds(combined, 'HARD', 'A')).toEqual(['h0', 'h1', 'h3', 'h4']);
+    expect(getFearlessExcludedHeroIds(combined, 'HARD', 'B')).toEqual(['h0', 'h1', 'h3', 'h4']);
+  });
+});
 
 describe('ballot atomic calculation contract', () => {
   it('automatically readies maps and keeps changes editable until sealing', () => {

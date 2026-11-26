@@ -3,10 +3,10 @@ import {
   applyBallotCommand, createDraftHistory, createMapCandidates, DEFAULT_DRAFT_TIMINGS, POTG_MAP_PICK_SECONDS, DRAFT_RULES_VERSION, DRAFT_LIMITS, DraftRuleError,
   getDraftRoomExpiry, getOperatorParticipantStatuses, getDraftStartBlockers, hasConnectedOperator,
   isConnectionAlive, isDraftOperator, pauseDraftTimer, projectDraftBallots, requireDraft,
-  getUsedDraftMapIds, getEligibleDraftMaps, resolvePotgMap, resolvePotgTimeout, resolveHeroBans, resolveMapVote, resumeDraftTimer, sealBallotStage, validateDraftSource,
+  getUsedDraftMapIds, getFearlessExcludedHeroIds, getEligibleDraftMaps, isDraftFearlessMode, resolvePotgMap, resolvePotgTimeout, resolveHeroBans, resolveMapVote, resumeDraftTimer, sealBallotStage, validateDraftSource,
   type BallotKind, type DraftCatalog, type DraftConnection, type DraftHero,
   type DraftMap, type DraftParticipant, type ParticipantProgress,
-  type DraftRoomSnapshot,
+  type DraftRoomSnapshot, type DraftFearlessMode, type MinimalDraftGame,
 } from '../../domains/draft/shared/public.js';
 import type { DraftRoomRecord, RealtimeStore, RoomBundle, StoreGuard } from './model.js';
 import type { DraftTicket } from './tickets.js';
@@ -22,7 +22,7 @@ export interface DraftCommand {
   commandId: string;
   type: 'ready.set' | 'draft.start' | 'draft.pause' | 'draft.resume' | 'draft.restart'
     | 'map.configure' | 'map.pick' | 'map.swapSides' | 'ballot.save' | 'ballot.lock' | 'game.confirmApplied' | 'game.markStarted'
-    | 'game.markFinished' | 'game.markAborted' | 'game.markNotPlayed' | 'game.next' | 'room.close';
+    | 'game.markFinished' | 'game.markAborted' | 'game.markNotPlayed' | 'game.next' | 'game.finishAndNext' | 'fearless.configure' | 'room.close';
   epoch: number;
   expectedRevision: number;
   expectedBallotRevision: number;
@@ -34,6 +34,8 @@ export interface DraftCommand {
   reason: string;
   remainingMapsConfirmed: boolean;
   diversityExceptionReason: string;
+  fearlessMode?: DraftFearlessMode;
+  finishCurrentGame?: boolean;
 }
 
 export function parseDraftCommand(value: unknown): DraftCommand {
@@ -41,7 +43,7 @@ export function parseDraftCommand(value: unknown): DraftCommand {
   const raw = value as Record<string, unknown>;
   const types: readonly string[] = ['ready.set', 'draft.start', 'draft.pause', 'draft.resume', 'draft.restart',
     'map.configure', 'map.pick', 'map.swapSides', 'ballot.save', 'ballot.lock', 'game.confirmApplied', 'game.markStarted', 'game.markFinished',
-    'game.markAborted', 'game.markNotPlayed', 'game.next', 'room.close'];
+    'game.markAborted', 'game.markNotPlayed', 'game.next', 'game.finishAndNext', 'fearless.configure', 'room.close'];
   requireDraft(typeof raw.commandId === 'string' && /^[\w-]{1,128}$/.test(raw.commandId)
     && typeof raw.type === 'string' && types.includes(raw.type)
     && Number.isSafeInteger(raw.epoch) && Number(raw.epoch) > 0,
@@ -61,6 +63,8 @@ export function parseDraftCommand(value: unknown): DraftCommand {
   }
   if (raw.type === 'map.pick') requireDraft(typeof raw.mapId === 'string' && raw.mapId.length > 0 && raw.mapId.length <= 100,
     'INVALID_MAP', '선택한 맵을 확인해 주세요.');
+  if (raw.type === 'fearless.configure') requireDraft(isDraftFearlessMode(raw.fearlessMode),
+    'INVALID_FEARLESS_MODE', '피어리스 방식을 확인해 주세요.');
   return {
     commandId: raw.commandId, type: raw.type as DraftCommand['type'], epoch: raw.epoch as number,
     expectedRevision: Number(raw.expectedRevision ?? -1), expectedBallotRevision: Number(raw.expectedBallotRevision ?? -1),
@@ -69,6 +73,8 @@ export function parseDraftCommand(value: unknown): DraftCommand {
     selection: (raw.selection as string[] | undefined) ?? [], ready: raw.ready === true,
     reason: (raw.reason as string | undefined)?.trim() ?? '', remainingMapsConfirmed: raw.remainingMapsConfirmed === true,
     diversityExceptionReason: (raw.diversityExceptionReason as string | undefined)?.trim() ?? '',
+    ...(raw.type === 'fearless.configure' ? { fearlessMode: raw.fearlessMode as DraftFearlessMode } : {}),
+    ...(raw.type === 'room.close' && raw.finishCurrentGame === true ? { finishCurrentGame: true } : {}),
   };
 }
 
@@ -263,6 +269,10 @@ export class DraftEngine {
       requireDraft(command.epoch === room.epoch, 'STALE_STAGE', '경기 세대가 변경되었습니다.');
       validateDraftSource(bundle.source, room.source, now);
       requireDraft(participant && room.stage && room.timer.status === 'ACTIVE', 'BALLOT_CLOSED', '현재 입력할 수 있는 투표가 없습니다.');
+      if (room.stage.kind === 'BAN') {
+        const excluded = getFearlessExcludedHeroIds(history, room.fearlessMode ?? 'OFF', participant.team);
+        requireDraft(command.selection.every(id => !excluded.includes(id)), 'FEARLESS_BAN_EXCLUDED', '피어리스 규칙으로 다시 밴할 수 없는 영웅입니다.');
+      }
       room.stage.inputConnections = this.inputConnections(room.roomCode, now);
       const result = applyBallotCommand(room.stage, {
         commandId: command.commandId, roomId: room.roomCode, gameId: room.gameId, epoch: command.epoch,
@@ -300,11 +310,16 @@ export class DraftEngine {
     const guard: Partial<StoreGuard> = { authExpiresAt: client.authExpiresAt };
     if (command.type === 'room.close') {
       requireDraft(command.reason, 'REASON_REQUIRED', '방을 종료할 사유가 필요합니다.');
+      guard.expectedHistoryRevision = history.mapHistoryRevision;
+      if (command.finishCurrentGame) this.finishCurrentGame(bundle);
       requireDraft(!history.games.some(game => game.playStatus === 'PLAYING'), 'GAME_NOT_CLOSED', '진행 중인 경기의 종료 또는 중단을 먼저 기록해 주세요.');
       room.timer = { ...room.timer, status: 'CANCELLED', deadlineAt: null, remainingMs: null };
       if (room.stage?.status === 'OPEN') room.stage.status = 'PAUSED';
-      guard.expectedHistoryRevision = history.mapHistoryRevision;
       history.activeRoomId = null; history.mapHistoryRevision++;
+    } else if (command.type === 'fearless.configure') {
+      requireDraft(room.phase === 'LOBBY' && room.timer.status === 'ACTIVE', 'INVALID_PHASE', '대기실에서만 피어리스 방식을 바꿀 수 있습니다.');
+      requireDraft(command.fearlessMode, 'INVALID_FEARLESS_MODE', '피어리스 방식을 확인해 주세요.');
+      room.fearlessMode = command.fearlessMode;
     } else if (command.type === 'map.configure') {
       requireDraft(room.phase === 'LOBBY' && room.timer.status === 'ACTIVE', 'INVALID_PHASE', '준비 단계에서만 맵 방식을 바꿀 수 있습니다.');
       validateDraftSource(bundle.source, room.source, now);
@@ -387,16 +402,17 @@ export class DraftEngine {
       requireDraft(room.phase === 'HERO_RESOLVED' && room.mapResult && room.heroResult && room.timer.status === 'ACTIVE',
         'INVALID_PHASE', '확정된 맵과 밴이 필요합니다.');
       requireDraft(!history.games.some(game => game.gameId === room.gameId), 'GAME_ALREADY_APPLIED', '이미 설정 적용을 확인했습니다.');
-      history.games = [...history.games, {
-        gameId: room.gameId, roomId: room.roomCode, roomExpiresAt: room.expiresAt, appliedAt: -1,
-        map: structuredClone(room.mapResult.map), firstAttackTeam: room.mapResult.firstAttackTeam,
-        heroCatalogVersion: room.heroCatalog.approval.version, mapCatalogVersion: room.mapCatalog.approval.version,
-        mapSelection: structuredClone(room.mapSelection),
-        rulesVersion: DRAFT_RULES_VERSION, bans: room.heroResult.bannedHeroIds.map(id => ({ ...room.heroCatalog.entries.find(hero => hero.heroId === id)! })),
-        playStatus: 'NOT_STARTED', startedAt: null, finishedAt: null,
-      }];
+      history.games = [...history.games, this.createGameRecord(room)];
+      guard.expectedHistoryRevision = history.mapHistoryRevision;
+      history.mapHistoryRevision++;
+      guard.expectedSourceRaw = bundle.sourceRaw!;
       room.phase = 'COMPLETED'; room.timer = { ...room.timer, phase: 'COMPLETED', deadlineAt: null };
-    } else if (command.type === 'game.next') {
+    } else if (command.type === 'game.next' || command.type === 'game.finishAndNext') {
+      if (command.type === 'game.finishAndNext') {
+        guard.expectedHistoryRevision = history.mapHistoryRevision;
+        this.finishCurrentGame(bundle);
+        history.mapHistoryRevision++;
+      }
       const game = history.games.find(game => game.gameId === room.gameId);
       requireDraft(game && ['FINISHED', 'ABORTED_PLAYED', 'NOT_PLAYED'].includes(game.playStatus), 'GAME_NOT_CLOSED', '실제 경기 기록을 먼저 마무리해 주세요.');
       validateDraftSource(bundle.source, bundle.source ?? room.source, now);
@@ -432,6 +448,37 @@ export class DraftEngine {
     return getUsedDraftMapIds(bundle.history);
   }
 
+  private createGameRecord(room: DraftRoomRecord): MinimalDraftGame {
+    requireDraft(room.mapResult && room.heroResult, 'INVALID_PHASE', '확정된 맵과 밴이 필요합니다.');
+    const bansByTeam = { A: [] as string[], B: [] as string[] };
+    for (const slot of room.heroResult.slots) if (slot.heroId) bansByTeam[slot.team].push(slot.heroId);
+    return {
+      gameId: room.gameId, roomId: room.roomCode, roomExpiresAt: room.expiresAt, appliedAt: -1,
+      map: structuredClone(room.mapResult.map), firstAttackTeam: room.mapResult.firstAttackTeam,
+      heroCatalogVersion: room.heroCatalog.approval.version, mapCatalogVersion: room.mapCatalog.approval.version,
+      mapSelection: structuredClone(room.mapSelection), rulesVersion: DRAFT_RULES_VERSION,
+      bans: room.heroResult.bannedHeroIds.map(id => ({ ...room.heroCatalog.entries.find(hero => hero.heroId === id)! })),
+      bansByTeam, playStatus: 'NOT_STARTED', startedAt: null, finishedAt: null,
+    };
+  }
+
+  private finishCurrentGame(bundle: RoomBundle): void {
+    const { room, history } = bundle;
+    requireDraft(room.phase === 'HERO_RESOLVED' || room.phase === 'COMPLETED', 'INVALID_PHASE', '밴픽이 완료된 경기만 종료할 수 있습니다.');
+    let game = history.games.find(entry => entry.gameId === room.gameId);
+    requireDraft(!game || game.playStatus === 'NOT_STARTED' || game.playStatus === 'PLAYING', 'INVALID_PLAY_STATUS', '이미 종료된 경기입니다.');
+    requireDraft(!['EXPIRED', 'CANCELLED'].includes(room.timer.status), 'INVALID_PLAY_STATUS', '종료된 방에서는 경기 결과를 기록할 수 없습니다.');
+    if (!game) {
+      game = this.createGameRecord(room);
+      history.games = [...history.games, game];
+    }
+    if (game.startedAt === null) {
+      requireDraft(!this.usedMaps(bundle).includes(game.map.canonicalMapId), 'MAP_ALREADY_USED', '이미 사용한 맵은 기록할 수 없습니다.');
+    }
+    if (!game.bansByTeam && room.heroResult) game.bansByTeam = this.createGameRecord(room).bansByTeam;
+    game.playStatus = 'FINISHED'; game.finishedAt = -1;
+  }
+
   private reset(room: DraftRoomRecord): void {
     room.epoch++; room.phase = 'LOBBY'; room.fixedRoster = null;
     room.stage = null; room.candidates = null; room.mapResult = null; room.heroResult = null;
@@ -464,6 +511,7 @@ export class DraftEngine {
     const operator = isDraftOperator(history.operators, client.discordId);
     requireDraft(operator || bundle.source?.participants.some(player => player.discordId === client.discordId), 'ROOM_ACCESS_DENIED', '현재 방 명단에 없습니다.');
     const previous = history.games.at(-1);
+    const selfTeam = roster(room).find(player => player.discordId === client.discordId)?.team;
     return {
       ...(previous && previous.gameId !== room.gameId ? { previousGame: {
         gameIndex: room.gameIndex - 1, map: previous.map, firstAttackTeam: previous.firstAttackTeam, bans: previous.bans,
@@ -477,6 +525,8 @@ export class DraftEngine {
       availableMapCount: new Set(room.mapCatalog.entries.filter(map => map.active
         && !this.usedMaps(bundle).includes(map.canonicalMapId)).map(map => map.canonicalMapId)).size,
       availableMaps: getEligibleDraftMaps(room.mapCatalog, this.usedMaps(bundle)), mapSelection: { ...room.mapSelection },
+      fearlessMode: room.fearlessMode ?? 'OFF',
+      fearlessExcludedHeroIds: selfTeam ? getFearlessExcludedHeroIds(history, room.fearlessMode ?? 'OFF', selfTeam) : [],
       heroes: room.heroCatalog.entries.filter(hero => hero.active).map(hero => ({ ...hero })),
       stageKind: room.stage?.kind ?? null, stageStatus: room.stage?.status,
       participants: roster(room).map(player => ({ ...player })), progress: operator ? this.statuses(bundle, client.discordId) : undefined,
@@ -539,7 +589,8 @@ export class DraftEngine {
         room.timer = { ...room.timer, phase: room.phase, deadlineAt: -1 };
       } else {
         room.heroResult = resolveHeroBans({ resolutionId: stage.sealed!.resolutionId, catalog: room.heroCatalog,
-          participants: roster(room), ballots: ballots.map(ballot => ({ discordId: ballot.discordId, ranking: ballot.selection })), entropy: stage.sealed!.entropy });
+          participants: roster(room), ballots: ballots.map(ballot => ({ discordId: ballot.discordId, ranking: ballot.selection })), entropy: stage.sealed!.entropy,
+          excludedHeroIdsByTeam: { A: getFearlessExcludedHeroIds(history, room.fearlessMode ?? 'OFF', 'A'), B: getFearlessExcludedHeroIds(history, room.fearlessMode ?? 'OFF', 'B') } });
         room.phase = 'HERO_RESOLVED'; room.stage = null; room.timer = { ...room.timer, phase: room.phase, deadlineAt: null };
       }
       await this.save(bundle); return;

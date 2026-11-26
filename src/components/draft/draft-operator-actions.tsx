@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { getDraftStartBlockers } from '#domain/draft';
+import { getDraftStartBlockers, type DraftFearlessMode } from '#domain/draft';
 import type { DraftRoomController } from '@application/draft/use-draft-room';
-import { getDraftPrimaryAction, getDraftSideSummary } from './draft-room-view';
+import { DRAFT_FEARLESS_LABELS, getDraftPrimaryAction, getDraftSideSummary } from './draft-room-view';
 
 export function DraftOperatorActions({ controller, execute }: { controller: DraftRoomController; execute: (type: string, values?: Record<string, unknown>) => void }) {
   const snapshot = controller.snapshot!;
@@ -19,6 +19,7 @@ export function DraftOperatorActions({ controller, execute }: { controller: Draf
     || (action?.requiresActive && snapshot.timer.status !== 'ACTIVE');
   const canCancel = snapshot.phase !== 'LOBBY' && snapshot.phase !== 'COMPLETED' && snapshot.playStatus === 'NOT_STARTED'
     && !['EXPIRED', 'CANCELLED'].includes(snapshot.timer.status);
+  const finishCurrentGame = action?.type === 'game.finishAndNext';
   if (!snapshot.isOperator || controller.roomClosed) return null;
   return <section className="draft-operator-actions" aria-label="다음 운영 작업">
     <div className="draft-operator-action-row"><div className="min-w-0">
@@ -31,14 +32,23 @@ export function DraftOperatorActions({ controller, execute }: { controller: Draf
         {snapshot.availableMapCount === 0 && <p>미사용 맵이 없습니다.</p>}{pickerMissing && <p>맵을 선택할 팟지 선수를 지정해 주세요.</p>}
         {!startBlocked && <p className="text-emerald-400">10명 모두 준비되었습니다. 밴픽을 시작할 수 있습니다.</p>}
       </div>}
-    </div>{action && <button type="button" className="btn-primary shrink-0 text-sm" disabled={disabled} onClick={() => execute(action.type,
-      action.type === 'draft.start' ? { remainingMapsConfirmed, diversityExceptionReason } : undefined)}>{controller.pending ? '처리 중…' : action.label}</button>}</div>
+    </div>{action && <button type="button" className="btn-primary shrink-0 text-sm" disabled={disabled} onClick={() => {
+      if (finishCurrentGame && !window.confirm('실제 경기가 종료되었나요? 이번 맵·밴 기록을 저장하고 다음 경기를 준비합니다.')) return;
+      execute(action.type, action.type === 'draft.start' ? { remainingMapsConfirmed, diversityExceptionReason } : undefined);
+    }}>{controller.pending ? '처리 중…' : action.label}</button>}</div>
     {snapshot.mapResult?.firstAttackTeam && snapshot.playStatus === 'NOT_STARTED' && snapshot.timer.status !== 'ROSTER_CHANGED' && <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-slate-800 pt-3">
       <p className="text-xs text-slate-300">{getDraftSideSummary(snapshot.mapResult.firstAttackTeam)}</p>
       <button type="button" className="btn-ghost border border-slate-700 text-xs" disabled={!controller.connected || controller.pending}
         onClick={() => execute('map.swapSides')}>공격·수비 교대</button>
     </div>}
     {snapshot.phase === 'LOBBY' && <div className="mt-3 text-xs text-slate-400">
+      <label className="block">밴픽 규칙
+        <select className="form-control mt-1" value={snapshot.fearlessMode ?? 'OFF'} disabled={!controller.connected || controller.pending || snapshot.timer.status !== 'ACTIVE'}
+          onChange={event => execute('fearless.configure', { fearlessMode: event.target.value as DraftFearlessMode })}>
+          {Object.entries(DRAFT_FEARLESS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        </select>
+      </label>
+      <p className="mt-1">소프트: 우리 팀이 밴한 영웅 재밴 금지 · 하드: 양 팀이 밴한 영웅 재밴 금지 · 누적 2회: 양 팀 합산 두 경기에서 밴된 영웅은 내전 종료까지 재밴 금지</p>
       {remainingConfirmation && <label className="flex min-h-11 items-center gap-2"><input type="checkbox" disabled={!controller.connected || controller.pending} checked={remainingMapsConfirmed} onChange={event => setRemainingMapsConfirmed(event.target.checked)} />남은 맵 {snapshot.availableMapCount}개로 진행 · 무작위 없음</label>}
       <details><summary className="cursor-pointer py-2">고급 맵 설정 · 모드 다양성 예외</summary><label className="mt-1 block">예외 사유 (필요할 때만)
         <input className="form-control mt-1" maxLength={500} disabled={!controller.connected || controller.pending} value={diversityExceptionReason} onChange={event => setDiversityExceptionReason(event.target.value)} /></label></details>
@@ -51,10 +61,10 @@ export function DraftOperatorActions({ controller, execute }: { controller: Draf
         }}>밴픽 취소</button>
     </div>}
     <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-800 pt-3">
-      <p className="text-xs text-slate-500">{snapshot.playStatus === 'PLAYING' ? '진행 중인 경기의 종료 또는 중단을 먼저 기록해 주세요.' : '방을 닫으면 모든 연결과 공유 링크 참여가 종료됩니다.'} 2시간 동안 조작이 없으면 자동 종료됩니다.</p>
-      <button type="button" className="btn-ghost text-xs text-red-300" disabled={!controller.connected || controller.pending || snapshot.playStatus === 'PLAYING'}
+      <p className="text-xs text-slate-500">{finishCurrentGame ? '실제 마지막 경기가 끝났다면 결과를 기록하고 내전을 종료할 수 있습니다.' : '방을 닫으면 모든 연결과 공유 링크 참여가 종료됩니다.'} 2시간 동안 조작이 없으면 자동 종료됩니다.</p>
+      <button type="button" className="btn-ghost text-xs text-red-300" disabled={!controller.connected || controller.pending || (snapshot.playStatus === 'PLAYING' && !finishCurrentGame)}
         onClick={() => {
-          if (window.confirm('내전을 종료하고 밴픽방을 닫을까요? 모든 참가자의 연결이 종료되고 이 공유 링크는 다시 사용할 수 없습니다. 경기 기록과 원본 팀 배정은 유지됩니다.')) execute('room.close', { reason: '운영자 내전 종료' });
+          if (window.confirm(finishCurrentGame ? '마지막 실제 경기가 종료되었나요? 이번 경기의 맵·밴을 기록하고 모든 참가자의 연결을 종료합니다.' : '내전을 종료하고 밴픽방을 닫을까요? 모든 참가자의 연결이 종료되고 이 공유 링크는 다시 사용할 수 없습니다. 경기 기록과 원본 팀 배정은 유지됩니다.')) execute('room.close', { reason: '운영자 내전 종료', ...(finishCurrentGame ? { finishCurrentGame: true } : {}) });
         }}>내전 종료·방 닫기</button>
     </div>
   </section>;

@@ -2,7 +2,7 @@ import type { BallotKind, BallotStage } from './ballots.js';
 import type { HeroResolution } from './heroes.js';
 import type { DraftTimer } from './lifecycle.js';
 import type { MapCandidateSnapshot, MapResolution } from './maps.js';
-import type { DraftHero, DraftMap, DraftMapSelection, DraftParticipant, DraftPhase, DraftTeam, PlayStatus } from './model.js';
+import type { DraftFearlessMode, DraftHero, DraftMap, DraftMapSelection, DraftParticipant, DraftPhase, DraftTeam, PlayStatus } from './model.js';
 import type { OperatorParticipantStatus } from './presence.js';
 import type { ParticipantBallotView } from './views.js';
 
@@ -36,6 +36,8 @@ export interface DraftRoomSnapshot {
   availableMapCount: number;
   availableMaps: readonly DraftMap[];
   mapSelection: DraftMapSelection;
+  fearlessMode?: DraftFearlessMode;
+  fearlessExcludedHeroIds?: readonly string[];
   inputConnected: boolean;
   heroes: readonly DraftHero[];
   stageKind: BallotKind | null;
