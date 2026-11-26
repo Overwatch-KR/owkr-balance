@@ -3,6 +3,7 @@ import { DraftEngine, parseDraftCommand, type DraftCommand } from './engine.js';
 import { createLocalDraftFixtures } from './local-fixtures.js';
 import type { DraftTicket } from './tickets.js';
 import type { RoomBundle, StoreGuard } from './model.js';
+import { DraftRuleError } from '../../domains/draft/shared/public.js';
 
 async function setup(options: { realCatalogs?: boolean } = {}) {
   let time = Date.now();
@@ -161,6 +162,31 @@ describe('local server persisted flow', () => {
     await expect(app.engine.createRoom(app.ticket(), 'OTHER23456', 'create-1')).rejects.toThrow('다른 원본');
     app.advance(171 * 60_000);
     await expect(app.engine.createRoom(app.ticket(), 'LOCAL23456', 'create-1')).rejects.toMatchObject({ code: 'ROOM_CLOSED' });
+  });
+
+  it('revalidates a changed source and creates only one room with the same request ID', async () => {
+    const app = await setup();
+    const read = await app.store.readSource('LOCAL23456');
+    const source = JSON.parse(read.raw!);
+    const original = app.store.create.bind(app.store);
+    const create = vi.spyOn(app.store, 'create').mockImplementationOnce(async (...args) => {
+      app.store.setSource('LOCAL23456', { ...source, revision: source.revision + 1 });
+      return original(...args);
+    });
+    const code = await app.engine.createRoom(app.ticket(), 'LOCAL23456', 'retry-source');
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(create.mock.calls.map(call => call[3])).toEqual(['retry-source', 'retry-source']);
+    expect((await app.engine.requireRoom(code)).room.source.revision).toBe(source.revision + 1);
+    expect(await app.engine.createRoom(app.ticket(), 'LOCAL23456', 'retry-source')).toBe(code);
+    expect(await app.store.listActiveRooms()).toHaveLength(2);
+  });
+
+  it.each([['SOURCE_OUTDATED', 3], ['ROOM_LIMIT', 1], ['WRITER_LOST', 1]] as const)('bounds retries for %s', async (code, attempts) => {
+    const app = await setup();
+    const create = vi.spyOn(app.store, 'create').mockRejectedValue(new DraftRuleError(code, '시험'));
+    await expect(app.engine.createRoom(app.ticket(), 'LOCAL23456', 'failed-create')).rejects.toMatchObject({ code });
+    expect(create).toHaveBeenCalledTimes(attempts);
+    expect(await app.store.listActiveRooms()).toEqual([app.code]);
   });
 
   it('automatically readies joined players and blocks starting when one disconnects', async () => {
