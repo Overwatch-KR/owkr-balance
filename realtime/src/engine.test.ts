@@ -184,12 +184,12 @@ describe('local server persisted flow', () => {
     expect(next.history.games[0]).toMatchObject({ playStatus: 'FINISHED', startedAt: null, finishedAt: next.now,
       bansByTeam: { A: ['local-hero-0'], B: ['local-hero-3'] } });
     expect((await app.engine.snapshot('c0')).availableMaps.map(map => map.canonicalMapId)).not.toContain(current.room.mapResult!.map.canonicalMapId);
-    const exclusions = mode === 'OFF' ? [] : mode === 'SOFT' ? ['local-hero-0'] : ['local-hero-0', 'local-hero-3'];
+    const exclusions = mode === 'OFF' ? [] : ['local-hero-0', 'local-hero-3'];
     expect((await app.engine.snapshot('c0')).fearlessExcludedHeroIds).toEqual(exclusions);
-    expect((await app.engine.snapshot('c5')).fearlessExcludedHeroIds).toEqual(mode === 'SOFT' ? ['local-hero-3'] : exclusions);
+    expect((await app.engine.snapshot('c5')).fearlessExcludedHeroIds).toEqual(exclusions);
     await app.run(0, 'draft.start'); await app.lockAll([]); await app.engine.tick(app.code); await app.finishMapReveal();
     if (mode !== 'OFF') await expect(app.run(0, 'ballot.save', { selection: ['local-hero-0'] })).rejects.toMatchObject({ code: 'FEARLESS_BAN_EXCLUDED' });
-    if (mode === 'HARD') await expect(app.run(0, 'ballot.save', { selection: ['local-hero-3'] })).rejects.toMatchObject({ code: 'FEARLESS_BAN_EXCLUDED' });
+    if (mode !== 'OFF') await expect(app.run(0, 'ballot.save', { selection: ['local-hero-3'] })).rejects.toMatchObject({ code: 'FEARLESS_BAN_EXCLUDED' });
     else await app.run(0, 'ballot.save', { selection: ['local-hero-3'] });
     await app.lockAll(['local-hero-6']); await app.engine.tick(app.code);
     await app.run(0, 'room.close', { finishCurrentGame: true });
@@ -217,6 +217,35 @@ describe('local server persisted flow', () => {
         }
       }
     }
+  });
+
+  it('lets an operator exclude or restore an individual game ban for cumulative fearless', async () => {
+    const app = await setup(); await app.readyAll();
+    await app.run(0, 'fearless.configure', { fearlessMode: 'CUMULATIVE_TWO' });
+    for (let game = 0; game < 2; game++) {
+      await app.run(0, 'draft.start'); await app.lockAll([]); await app.engine.tick(app.code); await app.finishMapReveal();
+      await app.lockAll(['local-hero-0']); await app.engine.tick(app.code); await app.run(0, 'game.finishAndNext');
+    }
+    const before = await app.engine.snapshot('c0');
+    expect(before.fearlessHistory?.map(game => game.gameIndex)).toEqual([1, 2]);
+    expect((await app.engine.snapshot('c1')).fearlessHistory).toBeUndefined();
+    const gameId = before.fearlessHistory![0].gameId;
+    const exception = { gameId, heroId: 'local-hero-0', exempt: true };
+    const setException = (index: number, values = exception) => app.run(index, 'fearless.setException', { fearlessException: values });
+    await expect(setException(1)).rejects.toMatchObject({ code: 'OPERATOR_REQUIRED' });
+    await expect(setException(0, { ...exception, heroId: 'local-hero-3' })).rejects.toMatchObject({ code: 'INVALID_FEARLESS_EXCEPTION' });
+    await setException(0);
+    const exempted = await app.engine.snapshot('c0');
+    expect(exempted.fearlessExcludedHeroIds).toEqual([]);
+    expect(exempted.fearlessHistory?.[0]).toMatchObject({ bans: before.fearlessHistory![0].bans, exemptHeroIds: ['local-hero-0'] });
+    expect(exempted.fearlessHistory?.[1]).toEqual(before.fearlessHistory![1]);
+    await setException(0, { ...exception, exempt: false });
+    expect((await app.engine.snapshot('c1')).fearlessExcludedHeroIds).toEqual(['local-hero-0']);
+    await setException(0);
+    await app.run(0, 'draft.start', { remainingMapsConfirmed: true, diversityExceptionReason: '시험' });
+    await expect(setException(0, { ...exception, exempt: false })).rejects.toMatchObject({ code: 'INVALID_PHASE' });
+    await app.lockAll([]); await app.engine.tick(app.code); await app.finishMapReveal();
+    await app.run(1, 'ballot.save', { selection: ['local-hero-0'] });
   });
 
   it('revalidates a changed source and creates only one room with the same request ID', async () => {
@@ -743,10 +772,10 @@ describe('operator side swaps', () => {
     for (let index = 0; index < 10; index++) await app.run(index, 'ballot.lock', { selection: [index < 5 ? 'local-hero-0' : 'local-hero-3'] });
     await app.engine.tick(app.code);
     await app.run(0, 'game.finishAndNext');
-    expect(await app.engine.snapshot('c1')).toMatchObject({ phase: 'LOBBY', gameIndex: 2, participants: expected, fearlessExcludedHeroIds: ['local-hero-0'] });
+    expect(await app.engine.snapshot('c1')).toMatchObject({ phase: 'LOBBY', gameIndex: 2, participants: expected, fearlessExcludedHeroIds: ['local-hero-0', 'local-hero-3'] });
     await app.run(0, 'draft.start'); await app.lockAll([]); await app.engine.tick(app.code); await app.finishMapReveal();
     await expect(app.run(1, 'ballot.save', { selection: ['local-hero-0'] })).rejects.toMatchObject({ code: 'FEARLESS_BAN_EXCLUDED' });
-    await app.run(1, 'ballot.save', { selection: ['local-hero-3'] });
+    await app.run(1, 'ballot.save', { selection: ['local-hero-6'] });
   });
   async function mapReady(mapId = 'kings-row') {
     const app = await setup({ realCatalogs: true }); await app.readyAll();

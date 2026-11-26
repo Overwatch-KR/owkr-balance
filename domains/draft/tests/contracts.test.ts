@@ -22,22 +22,23 @@ describe('fearless history', () => {
     const second = { ...game, gameId: 'second', bans: [heroes.entries[2]], bansByTeam: { A: ['h2'], B: [] } };
     const third = { ...game, gameId: 'third', bans: [heroes.entries[0]], bansByTeam: { A: [], B: ['h0'] } };
     const unplayed = { ...game, gameId: 'unplayed', startedAt: null, playStatus: 'NOT_PLAYED' as const, bans: [heroes.entries[1]] };
-    expect(getFearlessExcludedHeroIds({ ...original, games: [first, second, unplayed] }, 'CUMULATIVE_TWO', 'A')).toEqual([]);
+    expect(getFearlessExcludedHeroIds({ ...original, games: [first, second, unplayed] }, 'CUMULATIVE_TWO')).toEqual([]);
     const combined = { ...original, games: [first, second, third, unplayed] };
-    expect(getFearlessExcludedHeroIds(combined, 'CUMULATIVE_TWO', 'A')).toEqual(['h0']);
-    expect(getFearlessExcludedHeroIds(combined, 'CUMULATIVE_TWO', 'B')).toEqual(['h0']);
+    expect(getFearlessExcludedHeroIds(combined, 'CUMULATIVE_TWO')).toEqual(['h0']);
+    expect(getFearlessExcludedHeroIds({ ...combined, games: [{ ...first, fearlessExemptHeroIds: ['h0'] }, second, third] }, 'CUMULATIVE_TWO')).toEqual([]);
   });
-  it('uses only played games and does not guess unknown legacy team ownership', () => {
+  it('uses the last played game for soft and every played game for hard, including legacy games', () => {
     const original = history();
     const legacy = original.games[0];
     const attributed = { ...legacy, gameId: 'new', startedAt: null, bans: [heroes.entries[1], heroes.entries[4]], bansByTeam: { A: ['h1'], B: ['h4'] } };
     const skipped = { ...attributed, gameId: 'unplayed', playStatus: 'NOT_PLAYED' as const, bans: [heroes.entries[2]], bansByTeam: { A: ['h2'], B: [] } };
     const combined = { ...original, games: [legacy, attributed, skipped] };
-    expect(getFearlessExcludedHeroIds(combined, 'OFF', 'A')).toEqual([]);
-    expect(getFearlessExcludedHeroIds(combined, 'SOFT', 'A')).toEqual(['h1']);
-    expect(getFearlessExcludedHeroIds(combined, 'SOFT', 'B')).toEqual(['h4']);
-    expect(getFearlessExcludedHeroIds(combined, 'HARD', 'A')).toEqual(['h0', 'h1', 'h3', 'h4']);
-    expect(getFearlessExcludedHeroIds(combined, 'HARD', 'B')).toEqual(['h0', 'h1', 'h3', 'h4']);
+    expect(getFearlessExcludedHeroIds(combined, 'OFF')).toEqual([]);
+    expect(getFearlessExcludedHeroIds(combined, 'SOFT')).toEqual(['h1', 'h4']);
+    expect(getFearlessExcludedHeroIds(combined, 'HARD')).toEqual(['h0', 'h1', 'h3', 'h4']);
+    const exemptions = { ...combined, games: [legacy, { ...attributed, fearlessExemptHeroIds: ['h4'] }, skipped] };
+    expect(getFearlessExcludedHeroIds(exemptions, 'SOFT')).toEqual(['h1']);
+    expect(getFearlessExcludedHeroIds(exemptions, 'HARD')).toEqual(['h0', 'h1', 'h3']);
   });
 });
 

@@ -334,33 +334,35 @@ describe('draft selection and ban results', () => {
     expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>밴픽 시작/);
   });
 
-  it('설정 적용 전 진행 중인 밴픽에만 운영자 취소 버튼을 표시하고 연결이 끊기면 잠근다', () => {
+  it('밴픽 진행 중에는 운영자 취소만 표시하고 연결이 끊기면 잠근다', () => {
     const view = snapshot(); view.isOperator = true;
     const controller = { snapshot: view, connected: true, pending: false, error: '', command: vi.fn(), reconnect: vi.fn() };
-    for (const phase of ['MAP_VOTING', 'MAP_PICKING', 'MAP_RESOLVED', 'HERO_VOTING', 'HERO_RESOLVED'] as const) {
+    for (const phase of ['MAP_VOTING', 'MAP_PICKING', 'MAP_RESOLVED', 'HERO_VOTING'] as const) {
       view.phase = phase;
-      expect(render(<DraftOperatorActions controller={controller} execute={vi.fn()} />)).toContain('밴픽 취소');
+      const markup = render(<DraftOperatorActions controller={controller} execute={vi.fn()} />);
+      expect(markup).toContain('밴픽 취소');
+      expect(markup).not.toContain('내전 종료·방 닫기');
     }
     expect(render(<DraftOperatorActions controller={{ ...controller, connected: false }} execute={vi.fn()} />))
       .toMatch(/<button[^>]*disabled=""[^>]*>밴픽 취소/);
     expect(render(<DraftOperatorActions controller={{ ...controller, pending: true }} execute={vi.fn()} />))
       .toMatch(/<button[^>]*disabled=""[^>]*>밴픽 취소/);
-    for (const phase of ['LOBBY', 'COMPLETED'] as const) {
-      view.phase = phase;
-      expect(render(<DraftOperatorActions controller={controller} execute={vi.fn()} />)).not.toContain('밴픽 취소');
-    }
     view.phase = 'HERO_VOTING'; view.isOperator = false;
     expect(render(<DraftOperatorActions controller={controller} execute={vi.fn()} />)).not.toContain('밴픽 취소');
   });
 
-  it('운영자에게만 방 닫기를 표시하고 마지막 경기 결과를 함께 기록할 수 있다', () => {
+  it('대기실과 최종 결과에서는 운영자 방 닫기만 표시하고 마지막 경기 결과를 함께 기록할 수 있다', () => {
     const view = snapshot(); view.isOperator = true;
     const controller = { snapshot: view, connected: true, pending: false, error: '', command: vi.fn(), reconnect: vi.fn() };
-    let markup = render(<DraftOperatorActions controller={controller} execute={vi.fn()} />);
-    expect(markup).toContain('내전 종료·방 닫기');
-    expect(markup).not.toMatch(/<button[^>]*disabled=""[^>]*>내전 종료·방 닫기/);
+    for (const phase of ['LOBBY', 'HERO_RESOLVED', 'COMPLETED'] as const) {
+      view.phase = phase;
+      const markup = render(<DraftOperatorActions controller={controller} execute={vi.fn()} />);
+      expect(markup).toContain('내전 종료·방 닫기');
+      expect(markup).not.toContain('밴픽 취소');
+      expect(markup).not.toMatch(/<button[^>]*disabled=""[^>]*>내전 종료·방 닫기/);
+    }
     view.phase = 'COMPLETED'; view.playStatus = 'PLAYING';
-    markup = render(<DraftOperatorActions controller={controller} execute={vi.fn()} />);
+    let markup = render(<DraftOperatorActions controller={controller} execute={vi.fn()} />);
     expect(markup).not.toMatch(/<button[^>]*disabled=""[^>]*>내전 종료·방 닫기/);
     expect(markup).toContain('실제 마지막 경기가 끝났다면');
     view.isOperator = false;
@@ -374,15 +376,16 @@ describe('draft selection and ban results', () => {
     const view = snapshot(); view.fearlessMode = 'SOFT'; view.fearlessExcludedHeroIds = ['ana'];
     const markup = render(<DraftSelection controller={{ snapshot: view, connected: true, pending: false, error: '', command: vi.fn(), reconnect: vi.fn() }} />);
     expect(markup).toContain('소프트 피어리스');
-    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*aria-label="아나 · 피어리스 재밴 금지"/);
+    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*aria-label="아나 · 피어리스로 밴 불가"/);
+    expect(markup).toMatch(/<button[^>]*aria-label="아나 · 피어리스로 밴 불가"[^>]*cursor-not-allowed/);
     expect(markup).not.toMatch(/<button[^>]*disabled=""[^>]*aria-label="D.Va"/);
   });
 
-  it('운영자가 대기실에서 누적 2회 재밴 제한을 선택할 수 있다', () => {
+  it('운영자가 대기실에서 누적 밴 2회 제한을 선택할 수 있다', () => {
     const view = snapshot(); view.phase = 'LOBBY'; view.isOperator = true; view.fearlessMode = 'CUMULATIVE_TWO';
     const markup = render(<DraftOperatorActions controller={{ snapshot: view, connected: true, pending: false, error: '', command: vi.fn(), reconnect: vi.fn() }} execute={vi.fn()} />);
     expect(markup).toContain('value="CUMULATIVE_TWO" selected=""');
-    expect(markup).toContain('누적 2회 재밴 제한');
+    expect(markup).toContain('누적 밴 2회 제한');
   });
 
   it('연결 문제를 우선 안내하고 이전 저장 알림을 숨긴다', () => {

@@ -19,6 +19,7 @@ export interface MinimalDraftGame {
   rulesVersion: string;
   bans: readonly DraftHero[];
   bansByTeam?: Readonly<Record<DraftTeam, readonly string[]>>;
+  fearlessExemptHeroIds?: readonly string[];
   playStatus: PlayStatus;
   startedAt: number | null;
   finishedAt: number | null;
@@ -67,19 +68,23 @@ export function getUsedDraftMapIds(history: DraftHistory): string[] {
     .filter(value => value.played).map(value => value.canonicalMapId))].sort();
 }
 
-export function getFearlessExcludedHeroIds(history: DraftHistory, mode: DraftFearlessMode, team: DraftTeam): string[] {
+export function getPlayedDraftGames(history: DraftHistory): MinimalDraftGame[] {
+  return history.games.filter(game => usageValue(history, game).played);
+}
+
+/** @description 소프트는 직전 경기, 하드는 이전 경기 전체의 밴을 양 팀 공통으로 제한한다. */
+export function getFearlessExcludedHeroIds(history: DraftHistory, mode: DraftFearlessMode): string[] {
   if (mode === 'OFF') return [];
-  const playedGames = history.games.filter(game => usageValue(history, game).played);
-  if (mode === 'CUMULATIVE_TWO') {
-    const counts = new Map<string, number>();
-    for (const game of playedGames) {
-      for (const heroId of new Set(game.bans.map(hero => hero.heroId))) counts.set(heroId, (counts.get(heroId) ?? 0) + 1);
+  const playedGames = getPlayedDraftGames(history);
+  const games = mode === 'SOFT' ? playedGames.slice(-1) : playedGames;
+  const counts = new Map<string, number>();
+  for (const game of games) {
+    for (const heroId of new Set(game.bans.map(hero => hero.heroId))) {
+      if (!game.fearlessExemptHeroIds?.includes(heroId)) counts.set(heroId, (counts.get(heroId) ?? 0) + 1);
     }
-    return [...counts].filter(([, count]) => count >= 2).map(([heroId]) => heroId).sort();
   }
-  return [...new Set(playedGames.flatMap(game =>
-    mode === 'HARD' ? game.bans.map(hero => hero.heroId) : [...(game.bansByTeam?.[team] ?? [])],
-  ))].sort();
+  const minimum = mode === 'CUMULATIVE_TWO' ? 2 : 1;
+  return [...counts].filter(([, count]) => count >= minimum).map(([heroId]) => heroId).sort();
 }
 
 export function validateHistoryMutation(history: DraftHistory, actor: DraftActor, expectedRevision: number, now: number): void {

@@ -26,6 +26,7 @@ export interface BallotStage {
   deadlineAt: number;
   expiresAt: number;
   allowedIds: readonly string[];
+  fearlessExcludedHeroIds?: readonly string[];
   ballots: readonly DraftBallot[];
   receipts: readonly BallotReceipt[];
   inputConnections: Readonly<Record<string, string>>;

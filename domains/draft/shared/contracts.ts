@@ -15,6 +15,21 @@ export interface DraftParticipantAdmission {
   participantCount: number;
 }
 
+export interface DraftFearlessGame {
+  gameId: string;
+  gameIndex: number;
+  mapName: string;
+  played: boolean;
+  bans: readonly DraftHero[];
+  exemptHeroIds: readonly string[];
+}
+
+export interface DraftFearlessException {
+  gameId: string;
+  heroId: string;
+  exempt: boolean;
+}
+
 export interface DraftRoomSnapshot {
   rosterCount?: number;
   roomCode: string;
@@ -38,6 +53,7 @@ export interface DraftRoomSnapshot {
   mapSelection: DraftMapSelection;
   fearlessMode?: DraftFearlessMode;
   fearlessExcludedHeroIds?: readonly string[];
+  fearlessHistory?: readonly DraftFearlessGame[];
   inputConnected: boolean;
   heroes: readonly DraftHero[];
   stageKind: BallotKind | null;

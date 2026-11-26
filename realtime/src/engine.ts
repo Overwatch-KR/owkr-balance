@@ -3,10 +3,10 @@ import {
   applyBallotCommand, createDraftHistory, createMapCandidates, DEFAULT_DRAFT_TIMINGS, POTG_MAP_PICK_SECONDS, DRAFT_RULES_VERSION, DRAFT_LIMITS, DraftRuleError,
   getDraftRoomExpiry, getOperatorParticipantStatuses, getDraftStartBlockers, hasConnectedOperator,
   isConnectionAlive, isDraftOperator, pauseDraftTimer, projectDraftBallots, requireDraft,
-  getUsedDraftMapIds, getFearlessExcludedHeroIds, getEligibleDraftMaps, isDraftFearlessMode, resolvePotgMap, resolvePotgTimeout, resolveHeroBans, resolveMapVote, resumeDraftTimer, sealBallotStage, swapDraftRosterTeams, validateDraftSource,
+  getUsedDraftMapIds, getFearlessExcludedHeroIds, getPlayedDraftGames, getEligibleDraftMaps, isDraftFearlessMode, resolvePotgMap, resolvePotgTimeout, resolveHeroBans, resolveMapVote, resumeDraftTimer, sealBallotStage, swapDraftRosterTeams, validateDraftSource,
   type BallotKind, type DraftCatalog, type DraftConnection, type DraftHero,
-  type DraftMap, type DraftMapSelection, type DraftParticipant, type ParticipantProgress,
-  type DraftRoomSnapshot, type DraftFearlessMode, type MinimalDraftGame,
+  type DraftMap, type DraftMapSelection, type DraftParticipant, type DraftTeam, type ParticipantProgress,
+  type DraftRoomSnapshot, type DraftFearlessMode, type DraftFearlessException, type MinimalDraftGame,
 } from '../../domains/draft/shared/public.js';
 import type { DraftRoomRecord, RealtimeStore, RoomBundle, StoreGuard } from './model.js';
 import type { DraftTicket } from './tickets.js';
@@ -22,7 +22,7 @@ export interface DraftCommand {
   commandId: string;
   type: 'ready.set' | 'roster.swapTeams' | 'draft.start' | 'draft.pause' | 'draft.resume' | 'draft.restart'
     | 'map.configure' | 'map.pick' | 'map.swapSides' | 'ballot.save' | 'ballot.lock' | 'game.confirmApplied' | 'game.markStarted'
-    | 'game.markFinished' | 'game.markAborted' | 'game.markNotPlayed' | 'game.next' | 'game.finishAndNext' | 'fearless.configure' | 'room.close';
+    | 'game.markFinished' | 'game.markAborted' | 'game.markNotPlayed' | 'game.next' | 'game.finishAndNext' | 'fearless.configure' | 'fearless.setException' | 'room.close';
   epoch: number;
   expectedRevision: number;
   expectedBallotRevision: number;
@@ -36,6 +36,7 @@ export interface DraftCommand {
   remainingMapsConfirmed: boolean;
   diversityExceptionReason: string;
   fearlessMode?: DraftFearlessMode;
+  fearlessException?: DraftFearlessException;
   finishCurrentGame?: boolean;
 }
 
@@ -53,7 +54,7 @@ export function parseDraftCommand(value: unknown): DraftCommand {
   const raw = value as Record<string, unknown>;
   const types: readonly string[] = ['ready.set', 'roster.swapTeams', 'draft.start', 'draft.pause', 'draft.resume', 'draft.restart',
     'map.configure', 'map.pick', 'map.swapSides', 'ballot.save', 'ballot.lock', 'game.confirmApplied', 'game.markStarted', 'game.markFinished',
-    'game.markAborted', 'game.markNotPlayed', 'game.next', 'game.finishAndNext', 'fearless.configure', 'room.close'];
+    'game.markAborted', 'game.markNotPlayed', 'game.next', 'game.finishAndNext', 'fearless.configure', 'fearless.setException', 'room.close'];
   requireDraft(typeof raw.commandId === 'string' && /^[\w-]{1,128}$/.test(raw.commandId)
     && typeof raw.type === 'string' && types.includes(raw.type)
     && Number.isSafeInteger(raw.epoch) && Number(raw.epoch) > 0,
@@ -71,6 +72,15 @@ export function parseDraftCommand(value: unknown): DraftCommand {
     'INVALID_MAP', '선택한 맵을 확인해 주세요.');
   if (raw.type === 'fearless.configure') requireDraft(isDraftFearlessMode(raw.fearlessMode),
     'INVALID_FEARLESS_MODE', '피어리스 방식을 확인해 주세요.');
+  let fearlessException: DraftFearlessException | undefined;
+  if (raw.type === 'fearless.setException') {
+    const input = raw.fearlessException;
+    const { gameId, heroId, exempt } = input && typeof input === 'object' ? input as Record<string, unknown> : {};
+    requireDraft(typeof gameId === 'string' && gameId.length > 0 && gameId.length <= 128
+      && typeof heroId === 'string' && heroId.length > 0 && heroId.length <= 100 && typeof exempt === 'boolean',
+    'INVALID_FEARLESS_EXCEPTION', '경기와 피어리스 반영 상태를 확인해 주세요.');
+    fearlessException = { gameId, heroId, exempt };
+  }
   return {
     commandId: raw.commandId, type: raw.type as DraftCommand['type'], epoch: raw.epoch as number,
     expectedRevision: Number(raw.expectedRevision ?? -1), expectedBallotRevision: Number(raw.expectedBallotRevision ?? -1),
@@ -81,6 +91,7 @@ export function parseDraftCommand(value: unknown): DraftCommand {
     diversityExceptionReason: (raw.diversityExceptionReason as string | undefined)?.trim() ?? '',
     ...(raw.type === 'draft.start' && raw.mapSelection !== undefined ? { mapSelection: parseMapSelection(raw.mapSelection) } : {}),
     ...(raw.type === 'fearless.configure' ? { fearlessMode: raw.fearlessMode as DraftFearlessMode } : {}),
+    ...(fearlessException ? { fearlessException } : {}),
     ...(raw.type === 'room.close' && raw.finishCurrentGame === true ? { finishCurrentGame: true } : {}),
   };
 }
@@ -96,6 +107,17 @@ function roster(room: DraftRoomRecord): readonly DraftParticipant[] {
 
 function emptyProgress(participants: readonly DraftParticipant[]): ParticipantProgress[] {
   return participants.map(player => ({ discordId: player.discordId, ready: false, confirmed: false }));
+}
+
+/** @description 새 밴 투표는 시작 시점의 제한을 사용하고 이미 열린 구버전 소프트 투표는 기존 표를 보존한다. */
+function fearlessExclusions({ room, history }: RoomBundle, team?: DraftTeam): readonly string[] {
+  const mode = room.fearlessMode ?? 'OFF';
+  const stage = room.stage;
+  if (stage?.fearlessExcludedHeroIds) return stage.fearlessExcludedHeroIds;
+  if (stage?.kind === 'BAN' && mode === 'SOFT') {
+    return team ? [...new Set(getPlayedDraftGames(history).flatMap(game => game.bansByTeam?.[team] ?? []))].sort() : [];
+  }
+  return getFearlessExcludedHeroIds(history, mode);
 }
 
 export class DraftEngine {
@@ -246,7 +268,7 @@ export class DraftEngine {
     await this.store.commit(bundle, guard);
   }
 
-  private newStage(room: DraftRoomRecord, kind: BallotKind, now: number): void {
+  private newStage(room: DraftRoomRecord, kind: BallotKind, now: number, fearlessExcludedHeroIds?: readonly string[]): void {
     const seconds = kind === 'MAP' ? DEFAULT_DRAFT_TIMINGS.mapVotingSeconds
       : DEFAULT_DRAFT_TIMINGS.heroVotingSeconds;
     room.phase = kind === 'MAP' ? 'MAP_VOTING' : 'HERO_VOTING';
@@ -258,6 +280,7 @@ export class DraftEngine {
         ...room.candidates!.candidates.map(candidate => candidate.map.mapId),
         ...(room.candidates!.randomPool.length ? ['RANDOM'] : []),
       ] : room.heroCatalog.entries.filter(hero => hero.active).map(hero => hero.heroId),
+      ...(fearlessExcludedHeroIds ? { fearlessExcludedHeroIds } : {}),
       ballots: roster(room).map(player => ({ discordId: player.discordId, ballotRevision: 0, selection: [], locked: false })),
     };
     room.timer = { phase: room.phase, status: 'ACTIVE', deadlineAt, remainingMs: null, expiresAt: room.expiresAt, epoch: room.epoch };
@@ -279,7 +302,7 @@ export class DraftEngine {
       const participant = roster(room).find(player => player.discordId === client.discordId);
       requireDraft(participant && room.stage && room.timer.status === 'ACTIVE', 'BALLOT_CLOSED', '현재 입력할 수 있는 투표가 없습니다.');
       if (room.stage.kind === 'BAN') {
-        const excluded = getFearlessExcludedHeroIds(history, room.fearlessMode ?? 'OFF', participant.team);
+        const excluded = fearlessExclusions(bundle, participant.team);
         requireDraft(command.selection.every(id => !excluded.includes(id)), 'FEARLESS_BAN_EXCLUDED', '피어리스 규칙으로 다시 밴할 수 없는 영웅입니다.');
       }
       room.stage.inputConnections = this.inputConnections(room.roomCode, now);
@@ -329,6 +352,18 @@ export class DraftEngine {
       requireDraft(room.phase === 'LOBBY' && room.timer.status === 'ACTIVE', 'INVALID_PHASE', '대기실에서만 피어리스 방식을 바꿀 수 있습니다.');
       requireDraft(command.fearlessMode, 'INVALID_FEARLESS_MODE', '피어리스 방식을 확인해 주세요.');
       room.fearlessMode = command.fearlessMode;
+    } else if (command.type === 'fearless.setException') {
+      requireDraft(room.phase === 'LOBBY' && room.timer.status === 'ACTIVE', 'INVALID_PHASE', '준비 단계에서만 피어리스 반영 여부를 바꿀 수 있습니다.');
+      const exception = command.fearlessException;
+      requireDraft(exception, 'INVALID_FEARLESS_EXCEPTION', '경기와 피어리스 반영 상태를 확인해 주세요.');
+      const game = getPlayedDraftGames(history).find(entry => entry.gameId === exception.gameId && entry.gameId !== room.gameId);
+      requireDraft(game && game.bans.some(hero => hero.heroId === exception.heroId), 'INVALID_FEARLESS_EXCEPTION', '완료한 경기의 확정 밴만 관리할 수 있습니다.');
+      const exemptions = new Set(game.fearlessExemptHeroIds);
+      if (exception.exempt) exemptions.add(exception.heroId);
+      else exemptions.delete(exception.heroId);
+      game.fearlessExemptHeroIds = [...exemptions];
+      guard.expectedHistoryRevision = history.mapHistoryRevision;
+      history.mapHistoryRevision++;
     } else if (command.type === 'map.configure') {
       requireDraft(room.phase === 'LOBBY' && room.timer.status === 'ACTIVE', 'INVALID_PHASE', '준비 단계에서만 맵 방식을 바꿀 수 있습니다.');
       validateDraftSource(bundle.source, room.source, now);
@@ -528,6 +563,7 @@ export class DraftEngine {
     requireDraft(operator || bundle.source?.participants.some(player => player.discordId === client.discordId), 'ROOM_ACCESS_DENIED', '현재 방 명단에 없습니다.');
     const previous = history.games.at(-1);
     const selfTeam = roster(room).find(player => player.discordId === client.discordId)?.team;
+    const playedGames = operator ? new Set(getPlayedDraftGames(history).map(game => game.gameId)) : null;
     return {
       ...(previous && previous.gameId !== room.gameId ? { previousGame: {
         gameIndex: room.gameIndex - 1, map: previous.map, firstAttackTeam: previous.firstAttackTeam, bans: previous.bans,
@@ -542,7 +578,11 @@ export class DraftEngine {
         && !this.usedMaps(bundle).includes(map.canonicalMapId)).map(map => map.canonicalMapId)).size,
       availableMaps: getEligibleDraftMaps(room.mapCatalog, this.usedMaps(bundle)), mapSelection: { ...room.mapSelection },
       fearlessMode: room.fearlessMode ?? 'OFF',
-      fearlessExcludedHeroIds: selfTeam ? getFearlessExcludedHeroIds(history, room.fearlessMode ?? 'OFF', selfTeam) : [],
+      fearlessExcludedHeroIds: fearlessExclusions(bundle, selfTeam),
+      ...(playedGames ? { fearlessHistory: history.games.flatMap((game, index) => game.gameId === room.gameId ? [] : [{
+        gameId: game.gameId, gameIndex: index + 1, mapName: game.map.nameKo, played: playedGames.has(game.gameId),
+        bans: game.bans, exemptHeroIds: game.fearlessExemptHeroIds ?? [],
+      }]) } : {}),
       heroes: room.heroCatalog.entries.filter(hero => hero.active).map(hero => ({ ...hero })),
       stageKind: room.stage?.kind ?? null, stageStatus: room.stage?.status,
       participants: roster(room).map(player => ({ ...player })), progress: operator ? this.statuses(bundle, client.discordId) : undefined,
@@ -606,13 +646,13 @@ export class DraftEngine {
       } else {
         room.heroResult = resolveHeroBans({ resolutionId: stage.sealed!.resolutionId, catalog: room.heroCatalog,
           participants: roster(room), ballots: ballots.map(ballot => ({ discordId: ballot.discordId, ranking: ballot.selection })), entropy: stage.sealed!.entropy,
-          excludedHeroIdsByTeam: { A: getFearlessExcludedHeroIds(history, room.fearlessMode ?? 'OFF', 'A'), B: getFearlessExcludedHeroIds(history, room.fearlessMode ?? 'OFF', 'B') } });
+          excludedHeroIdsByTeam: { A: fearlessExclusions(bundle, 'A'), B: fearlessExclusions(bundle, 'B') } });
         room.phase = 'HERO_RESOLVED'; room.stage = null; room.timer = { ...room.timer, phase: room.phase, deadlineAt: null };
       }
       await this.save(bundle); return;
     }
     if (room.phase === 'MAP_RESOLVED' && room.timer.deadlineAt !== null && now >= room.timer.deadlineAt) {
-      this.newStage(room, 'BAN', now); await this.save(bundle);
+      this.newStage(room, 'BAN', now, getFearlessExcludedHeroIds(history, room.fearlessMode ?? 'OFF')); await this.save(bundle);
     }
   }
 
@@ -625,7 +665,7 @@ export class DraftEngine {
       if ((bundle.room.phase as string) === 'HERO_PREFERENCE') {
         const status = bundle.room.timer.status;
         bundle.room.epoch++;
-        this.newStage(bundle.room, 'BAN', bundle.now);
+        this.newStage(bundle.room, 'BAN', bundle.now, getFearlessExcludedHeroIds(bundle.history, bundle.room.fearlessMode ?? 'OFF'));
         if (['CANCELLED', 'EXPIRED', 'ROSTER_CHANGED'].includes(status)) {
           bundle.room.timer = { ...bundle.room.timer, status, deadlineAt: null };
         }

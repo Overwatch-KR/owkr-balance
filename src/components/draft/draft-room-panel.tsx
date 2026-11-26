@@ -8,6 +8,7 @@ import { DraftMapPick } from './draft-map-pick';
 import { DraftMapReveal } from './draft-map-reveal';
 import { DraftSelection } from './draft-selection';
 import { DraftOperatorDialog } from './draft-operator-dialog';
+import { DraftFearlessDialog } from './draft-fearless-dialog';
 import { DraftGameSummary } from './draft-game-summary';
 import { DraftBanResult } from './draft-ban-result';
 import { DraftRoomHeader } from './draft-room-header';
@@ -36,7 +37,7 @@ function DraftRoomWithAudio(props: Omit<DraftRoomPanelProps, 'sound'>) {
 
 function DraftRoomContent({ controller, admin = false, sound }: Omit<DraftRoomPanelProps, 'sound'> & { sound: ReturnType<typeof useDraftAudio> }) {
   const snapshot = controller.snapshot;
-  const [operatorOpen, setOperatorOpen] = useState(false);
+  const [dialog, setDialog] = useState<'operator' | 'fearless' | null>(null);
   const [notice, setNotice] = useState('');
   const [editedMapSelection, setEditedMapSelection] = useState<{ round: string; selection: DraftMapSelection } | null>(null);
   const execute = (type: string, values?: Record<string, unknown>) => {
@@ -62,9 +63,9 @@ function DraftRoomContent({ controller, admin = false, sound }: Omit<DraftRoomPa
     catch { setNotice('복사 권한을 확인해 주세요.'); }
   };
   return <div className={`draft-room-panel ${snapshot.ballots?.self || ['MAP_PICKING', 'MAP_RESOLVED'].includes(snapshot.phase) ? 'draft-room-selecting' : 'space-y-5'}`}>
-    <DraftRoomHeader controller={controller} admin={admin} onOpenOperator={() => setOperatorOpen(true)} sound={sound} />
+    <DraftRoomHeader controller={controller} admin={admin} onOpenOperator={() => setDialog('operator')} sound={sound} />
     <DraftConnectionStatus controller={controller} notice={notice} />
-    {snapshot.isOperator && <DraftOperatorActions key={round} controller={controller} mapSelection={mapSelection} execute={execute} />}
+    {snapshot.isOperator && <DraftOperatorActions key={round} controller={controller} mapSelection={mapSelection} execute={execute} onOpenFearless={() => setDialog('fearless')} />}
     {self && snapshot.phase === 'LOBBY' && <section className="border-y border-slate-800 py-5">
       <h3 className="font-semibold text-white">입장 완료 · 자동 준비 상태입니다</h3>
       <p className="mt-2 text-sm text-slate-400">{self.displayName} · {getDraftTeamLabel(self.team, snapshot.mapResult?.firstAttackTeam)} · {ROLE_LABELS[self.role]} · 입장 {snapshot.readyCount}/10</p>
@@ -88,7 +89,8 @@ function DraftRoomContent({ controller, admin = false, sound }: Omit<DraftRoomPa
         </div>)}
       </div>)}
     </section>}
-    {snapshot.isOperator && operatorOpen && <DraftOperatorDialog onClose={() => setOperatorOpen(false)}><section aria-label="운영 제어" className="border-t border-slate-700 pt-5">
+    {snapshot.isOperator && dialog === 'fearless' && <DraftFearlessDialog controller={controller} onClose={() => setDialog(null)} />}
+    {snapshot.isOperator && dialog === 'operator' && <DraftOperatorDialog onClose={() => setDialog(null)}><section aria-label="운영 제어" className="border-t border-slate-700 pt-5">
       <h3 className="mb-3 font-semibold">운영 제어</h3><div className="flex flex-wrap gap-2">
         {phaseReady ? <button type="button" className={buttonClass} disabled={controlsDisabled} onClick={() => {
           const reason = window.prompt('정지 사유를 입력해 주세요.'); if (reason?.trim()) execute('draft.pause', { reason });
